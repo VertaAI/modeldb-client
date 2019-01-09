@@ -1,4 +1,5 @@
 """Logistic Regression with Grid Search (scikit-learn)"""
+
 import os
 import itertools
 
@@ -56,12 +57,12 @@ for hyperparams in hyperparam_sets:
     val_acc = 0  # track average validation accuracy across folds
     for idxs_train, idxs_val in validation_splitter.split(X_train, y_train):
         # index into training data to produce train/val splits
-        X_cross_train, y_cross_train = X[idxs_train], y[idxs_train]
+        X_val_train, y_val_train = X[idxs_train], y[idxs_train]
         X_val, y_val = X[idxs_val], y[idxs_val]
 
         # create and fit model
         model = linear_model.LogisticRegression(**hyperparams)
-        model.fit(X_cross_train, y_cross_train)
+        model.fit(X_val_train, y_val_train)
 
         # accumulate average validation accuracy
         val_acc += model.score(X_val, y_val)/validation_splitter.get_n_splits()
