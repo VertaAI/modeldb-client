@@ -2,6 +2,8 @@
 import os
 import itertools
 
+import joblib
+
 import pandas as pd
 import numpy as np
 
@@ -85,3 +87,7 @@ print(f"Testing accuracy: {model.score(X_test, y_test)}")
 
 print(f"Training F-score: {metrics.f1_score(y_train, model.predict(X_train))}")
 print(f"Testing F-score: {metrics.f1_score(y_test, model.predict(X_test))}")
+
+
+# save model to disk
+joblib.dump(model, os.path.join("..", "output", "logreg_gridsearch.gz"))
