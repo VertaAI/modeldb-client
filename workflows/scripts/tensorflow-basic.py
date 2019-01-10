@@ -8,12 +8,8 @@ import tensorflow as tf
 from tensorflow import keras
 
 
-# define location of data file
-DATA_DIR = os.path.join("..", "data", "mnist")
-DATA_FILE = "mnist.npz"
-
 # load data from CSV file into a NumPy mapping
-data = np.load(os.path.join(DATA_DIR, DATA_FILE))
+data = np.load(os.path.join("..", "data", "mnist", "mnist.npz"))
 
 # gather indices to split training data into training and validation sets
 data_train = (data['x_train'], data['y_train'])

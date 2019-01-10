@@ -16,12 +16,8 @@ import warnings
 warnings.filterwarnings('ignore')
 
 
-# define location of data file
-DATA_DIR = os.path.join("..", "data", "census")
-DATA_FILE = "cleaned-census-data.csv"
-
 # load pre-cleaned data from CSV file into pandas DataFrame
-df = pd.read_csv(os.path.join(DATA_DIR, DATA_FILE), delimiter=',')
+df = pd.read_csv(os.path.join("..", "data", "census", "cleaned-census-data.csv"), delimiter=',')
 
 # split into features and labels
 features_df = df.drop('>50K', axis='columns')
