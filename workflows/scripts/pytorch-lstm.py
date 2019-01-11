@@ -41,7 +41,7 @@ class TrainingDataset(data_utils.Dataset):
 
 
 # load word-index mapping
-with open(os.path.join(DATA_DIR, "imdb_word_index.json")) as f:
+with open(os.path.join("..", "data", "imdb", "imdb_word_index.json")) as f:
     word_index = json.load(f)
 # add special tokens
 word_index = {word: index+3 for word, index in word_index.items()}
