@@ -14,10 +14,15 @@ from . import _utils
 class ModelDBClient:
     _GRPC_PREFIX = "Grpc-Metadata-"
 
-    def __init__(self, email, dev_key, host="localhost", port="8080"):
-        self._auth = {self._GRPC_PREFIX+'email': email,
-                      self._GRPC_PREFIX+'developer_key': dev_key,
-                      self._GRPC_PREFIX+'source': "PythonClient"}
+    def __init__(self, email=None, dev_key=None, host="localhost", port="8080"):
+        if email is None and dev_key is None:
+            self._auth = None
+        elif email is not None and dev_key is not None:
+            self._auth = {self._GRPC_PREFIX+'email': email,
+                          self._GRPC_PREFIX+'developer_key': dev_key,
+                          self._GRPC_PREFIX+'source': "PythonClient"}
+        else:
+            raise ValueError("`email` and `dev_key` must be provided together")
 
         self._socket = "{}:{}".format(host, port)
 
