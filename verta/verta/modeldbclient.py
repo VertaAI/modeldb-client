@@ -1324,10 +1324,10 @@ class ExperimentRun:
         ----------
         name : str
             Name of the model.
-        model : 
-            Model object to be logged.
         path : str
             File system path of the model.
+        model : object (optional)
+            Model object to be logged.
 
         """
         if model is not None:
