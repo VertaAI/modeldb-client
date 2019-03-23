@@ -1313,7 +1313,7 @@ class ExperimentRun:
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
         return {dataset.key: dataset.path for dataset in response_msg.datasets}
 
-    def log_model(self, name, model, path):
+    def log_model(self, name, path, model=None):
         """
         Logs the file system path of a model to this Experiment Run.
 
@@ -1330,7 +1330,8 @@ class ExperimentRun:
             File system path of the model.
 
         """
-        joblib.dump(model, path)
+        if model is not None:
+            joblib.dump(model, path)
         model_artifact = _CommonService.Artifact(key=name, path=path,
                                         artifact_type=_CommonService.ArtifactTypeEnum.MODEL)
         msg = _ExperimentRunService.LogArtifact(id=self._id, artifact=model_artifact)
