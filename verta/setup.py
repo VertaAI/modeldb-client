@@ -21,6 +21,7 @@ setup(
     install_requires=[
         "googleapis-common-protos~=1.5",
         "grpcio~=1.17",
+	"joblib",
         "protobuf~=3.6",
         "requests~=2.21",
     ],

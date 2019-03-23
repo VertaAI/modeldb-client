@@ -3,6 +3,7 @@ import ast
 import time
 
 import requests
+import joblib
 
 from ._protos.public.modeldb import CommonService_pb2 as _CommonService
 from ._protos.public.modeldb import ProjectService_pb2 as _ProjectService
@@ -1312,7 +1313,7 @@ class ExperimentRun:
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
         return {dataset.key: dataset.path for dataset in response_msg.datasets}
 
-    def log_model(self, name, path):
+    def log_model(self, name, model, path):
         """
         Logs the file system path of a model to this Experiment Run.
 
@@ -1323,13 +1324,16 @@ class ExperimentRun:
         ----------
         name : str
             Name of the model.
+        model : 
+            Model object to be logged.
         path : str
             File system path of the model.
 
         """
-        model = _CommonService.Artifact(key=name, path=path,
+        joblib.dump(model, path)
+        model_artifact = _CommonService.Artifact(key=name, path=path,
                                         artifact_type=_CommonService.ArtifactTypeEnum.MODEL)
-        msg = _ExperimentRunService.LogArtifact(id=self._id, artifact=model)
+        msg = _ExperimentRunService.LogArtifact(id=self._id, artifact=model_artifact)
         data = _utils.proto_to_json(msg)
         response = requests.post("http://{}/v1/experiment-run/logArtifact".format(self._socket),
                                  json=data, headers=self._auth)
