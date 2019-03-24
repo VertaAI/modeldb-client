@@ -65,8 +65,7 @@ class ModelDBClient:
 
         m = re.compile('.*:[0-9]+').match(host)
         if m:
-            raise ValueError("Argument 'host' already contains a port. Please split and provide as "
-                             "separate arguments.")
+            raise ValueError("argument `host` already contains a port; please split and provide as separate arguments")
 
         self._socket = "{}:{}".format(host, port)
 
