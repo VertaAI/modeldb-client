@@ -1248,16 +1248,32 @@ class ExperimentRun:
         else:
             return _utils.load(filepath)
 
-    def get_datasets(self):
+    def get_datasets(self, load=False, errors='raise'):
         """
         Gets file system paths of all datasets from this Experiment Run.
 
+        If `load` is True, this function will instead deserialize and return the datasets themselves.
+
+        Parameters
+        ----------
+        load : bool, default False
+            Whether or not to deserialize and return the models themselves.
+        errors : {'raise', 'ignore'}, default 'raise'
+            How to handle errors during loading if `load` is True.
+            - If 'raise', then an exception will be raised.
+            - If 'ignore', then the filepath for that dataset will be returned instead.
+
         Returns
         -------
-        dict of str to str
-            File system paths of all datasets.
+        dict of str to {str, object}
+            File system paths of all datasets, or the datasets themselves if `load` is True.
 
         """
+        if not load and errors != 'raise':
+            raise ValueError("cannot specify `errors` when `load` is False")
+        if errors not in ['raise', 'ignore']:
+            raise ValueError("`errors` must be one of {'raise', 'ignore'}")
+
         Message = _ExperimentRunService.GetDatasets
         msg = Message(id=self._id)
         data = _utils.proto_to_json(msg)
@@ -1267,7 +1283,18 @@ class ExperimentRun:
             raise requests.HTTPError("{}: {}".format(response.status_code, response.reason))
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
-        return {dataset.key: dataset.path for dataset in response_msg.datasets}
+        datasets = {dataset.key: dataset.path for dataset in response_msg.datasets}
+        if not load:
+            return datasets
+        else:
+            for name, filepath in datasets.items():
+                try:
+                    datasets[name] = _utils.load(filepath)
+                except Exception as e:
+                    if errors == 'raise':
+                        raise e
+                    elif errors == 'ignore':
+                        pass
 
     def log_model(self, key, path, model=None):
         """
@@ -1340,16 +1367,32 @@ class ExperimentRun:
         else:
             return _utils.load(filepath)
 
-    def get_models(self):
+    def get_models(self, load=False, errors='raise'):
         """
         Gets file system paths of all models from this Experiment Run.
 
+        If `load` is True, this function will instead deserialize and return the models themselves.
+
+        Parameters
+        ----------
+        load : bool, default False
+            Whether or not to deserialize and return the models themselves.
+        errors : {'raise', 'ignore'}, default 'raise'
+            How to handle errors during loading if `load` is True.
+            - If 'raise', then an exception will be raised.
+            - If 'ignore', then the filepath for that model will be returned instead.
+
         Returns
         -------
-        dict of str to str
-            File system paths of all models.
+        dict of str to {str, object}
+            File system paths of all models, or the models themselves if `load` is True.
 
         """
+        if not load and errors != 'raise':
+            raise ValueError("cannot specify `errors` when `load` is False")
+        if errors not in ['raise', 'ignore']:
+            raise ValueError("`errors` must be one of {'raise', 'ignore'}")
+
         Message = _ExperimentRunService.GetArtifacts
         msg = Message(id=self._id)
         data = _utils.proto_to_json(msg)
@@ -1359,9 +1402,20 @@ class ExperimentRun:
             raise requests.HTTPError("{}: {}".format(response.status_code, response.reason))
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
-        return {artifact.key: artifact.path
-                for artifact in response_msg.artifacts
-                if artifact.artifact_type == _CommonService.ArtifactTypeEnum.MODEL}
+        models = {artifact.key: artifact.path
+                  for artifact in response_msg.artifacts
+                  if artifact.artifact_type == _CommonService.ArtifactTypeEnum.MODEL}
+        if not load:
+            return models
+        else:
+            for name, filepath in datasets.items():
+                try:
+                    datasets[name] = _utils.load(filepath)
+                except Exception as e:
+                    if errors == 'raise':
+                        raise e
+                    elif errors == 'ignore':
+                        pass
 
     def log_image(self, key, path, image=None):
         """
@@ -1434,16 +1488,32 @@ class ExperimentRun:
         else:
             return _utils.load(filepath)
 
-    def get_images(self):
+    def get_images(self, load=False, errors='raise'):
         """
         Gets file system paths of all images from this Experiment Run.
 
+        If `load` is True, this function will instead deserialize and return the images themselves.
+
+        Parameters
+        ----------
+        load : bool, default False
+            Whether or not to deserialize and return the models themselves.
+        errors : {'raise', 'ignore'}, default 'raise'
+            How to handle errors during loading if `load` is True.
+            - If 'raise', then an exception will be raised.
+            - If 'ignore', then the filepath for that image will be returned instead.
+
         Returns
         -------
-        dict of str to str
-            File system paths of all images.
+        dict of str to {str, object}
+            File system paths of all images, or the images themselves if `load` is True.
 
         """
+        if not load and errors != 'raise':
+            raise ValueError("cannot specify `errors` when `load` is False")
+        if errors not in ['raise', 'ignore']:
+            raise ValueError("`errors` must be one of {'raise', 'ignore'}")
+
         Message = _ExperimentRunService.GetArtifacts
         msg = Message(id=self._id)
         data = _utils.proto_to_json(msg)
@@ -1453,9 +1523,20 @@ class ExperimentRun:
             raise requests.HTTPError("{}: {}".format(response.status_code, response.reason))
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
-        return {artifact.key: artifact.path
-                for artifact in response_msg.artifacts
-                if artifact.artifact_type == _CommonService.ArtifactTypeEnum.IMAGE}
+        images = {artifact.key: artifact.path
+                  for artifact in response_msg.artifacts
+                  if artifact.artifact_type == _CommonService.ArtifactTypeEnum.IMAGE}
+        if not load:
+            return images
+        else:
+            for name, filepath in datasets.items():
+                try:
+                    datasets[name] = _utils.load(filepath)
+                except Exception as e:
+                    if errors == 'raise':
+                        raise e
+                    elif errors == 'ignore':
+                        pass
 
     def log_observation(self, key, value):
         """
