@@ -172,3 +172,21 @@ def dump(obj, filename):
 
     # move file to `filename`
     os.rename(temp_filename, filename)
+
+
+def load(filename):
+    """
+    Deserializes an object from disk at path `filename`
+
+    Parameters
+    ----------
+    filename : str
+        Path to file containing serialized object.
+
+    Returns
+    -------
+    obj : object
+        Deserialized object.
+
+    """
+    return joblib.load(filename)
