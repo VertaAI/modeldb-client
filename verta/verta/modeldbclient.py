@@ -290,6 +290,22 @@ class Project:
         else:
             raise requests.HTTPError("{}: {}".format(response.status_code, response.reason))
 
+    @property
+    def expt_runs(self):
+        # get runs in this Project
+        Message = _ExperimentRunService.GetExperimentRunsInProject
+        msg = Message(project_id=self._id)
+        data = _utils.proto_to_json(msg)
+        response = requests.get("http://{}/v1/experiment-run/getExperimentRunsInProject".format(self._socket),
+                                params=data, headers=self._auth)
+        if not response.ok:
+            raise requests.HTTPError("{}: {}".format(response.status_code, response.reason))
+
+        expt_run_ids = [expt_run.id
+                        for expt_run
+                        in _utils.json_to_proto(response.json(), Message.Response).experiment_runs]
+        return ExperimentRuns(self._auth, self._socket, expt_run_ids)
+
     @staticmethod
     def _generate_default_name():
         return "Project {}".format(str(time.time()).replace('.', ''))
@@ -409,6 +425,22 @@ class Experiment:
         else:
             raise requests.HTTPError("{}: {}".format(response.status_code, response.reason))
 
+    @property
+    def expt_runs(self):
+        # get runs in this Experiment
+        Message = _ExperimentRunService.GetExperimentRunsInExperiment
+        msg = Message(experiment_id=self._id)
+        data = _utils.proto_to_json(msg)
+        response = requests.get("http://{}/v1/experiment-run/getExperimentRunsInExperiment".format(self._socket),
+        params=data, headers=self._auth)
+        if not response.ok:
+            raise requests.HTTPError("{}: {}".format(response.status_code, response.reason))
+
+        expt_run_ids = [expt_run.id
+                        for expt_run
+                        in _utils.json_to_proto(response.json(), Message.Response).experiment_runs]
+        return ExperimentRuns(self._auth, self._socket, expt_run_ids)
+
     @staticmethod
     def _generate_default_name():
         return "Experiment {}".format(str(time.time()).replace('.', ''))
@@ -465,8 +497,8 @@ class ExperimentRuns:
 
     This class provides functionality for filtering and sorting its contents.
 
-    There should not be a need to instantiate this class directly; please use other classes' methods
-    to access Experiment Runs.
+    There should not be a need to instantiate this class directly; please use other classes'
+    attributes to access Experiment Runs.
 
     Warnings
     --------
