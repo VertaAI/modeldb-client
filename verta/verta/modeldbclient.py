@@ -1212,19 +1212,23 @@ class ExperimentRun:
         if not response.ok:
             raise requests.HTTPError("{}: {}".format(response.status_code, response.reason))
 
-    def get_dataset(self, key):
+    def get_dataset(self, key, load=False):
         """
         Gets the file system path of the dataset with name `key` from this Experiment Run.
+
+        If `load` is True, this function will instead deserialize and return the dataset itself.
 
         Parameters
         ----------
         key : str
             Name of the dataset.
+        load : bool, default False
+            Whether or not to deserialize and return the dataset itself.
 
         Returns
         -------
-        str
-            File system path of the dataset.
+        str or object
+            File system path of the dataset, or the dataset object itself if `load` is True.
 
         """
         _utils.validate_flat_key(key)
@@ -1238,7 +1242,11 @@ class ExperimentRun:
             raise requests.HTTPError("{}: {}".format(response.status_code, response.reason))
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
-        return {dataset.key: dataset.path for dataset in response_msg.datasets}[key]
+        filepath = {dataset.key: dataset.path for dataset in response_msg.datasets}[key]
+        if not load:
+            return filepath
+        else:
+            return _utils.load(filepath)
 
     def get_datasets(self):
         """
@@ -1294,19 +1302,23 @@ class ExperimentRun:
         if not response.ok:
             raise requests.HTTPError("{}: {}".format(response.status_code, response.reason))
 
-    def get_model(self, key):
+    def get_model(self, key, load=False):
         """
         Gets the file system path of the model with name `key` from this Experiment Run.
+
+        If `load` is True, this function will instead deserialize and return the model itself.
 
         Parameters
         ----------
         key : str
             Name of the model.
+        load : bool, default False
+            Whether or not to deserialize and return the model itself.
 
         Returns
         -------
-        str
-            File system path of the model.
+        str or object
+            File system path of the model, or the model object itself if `load` is True.
 
         """
         _utils.validate_flat_key(key)
@@ -1320,9 +1332,13 @@ class ExperimentRun:
             raise requests.HTTPError("{}: {}".format(response.status_code, response.reason))
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
-        return {artifact.key: artifact.path
-                for artifact in response_msg.artifacts
-                if artifact.artifact_type == _CommonService.ArtifactTypeEnum.MODEL}[key]
+        filepath = {artifact.key: artifact.path
+                    for artifact in response_msg.artifacts
+                    if artifact.artifact_type == _CommonService.ArtifactTypeEnum.MODEL}[key]
+        if not load:
+            return filepath
+        else:
+            return _utils.load(filepath)
 
     def get_models(self):
         """
@@ -1380,19 +1396,23 @@ class ExperimentRun:
         if not response.ok:
             raise requests.HTTPError("{}: {}".format(response.status_code, response.reason))
 
-    def get_image(self, key):
+    def get_image(self, key, load=False):
         """
         Gets the file system path of the image with name `key` from this Experiment Run.
+
+        If `load` is True, this function will instead deserialize and return the image itself.
 
         Parameters
         ----------
         key : str
             Name of the image.
+        load : bool, default False
+            Whether or not to deserialize and return the image itself.
 
         Returns
         -------
-        str
-            File system path of the image.
+        str or object
+            File system path of the image, or the image object itself if `load` is True.
 
         """
         _utils.validate_flat_key(key)
@@ -1406,9 +1426,13 @@ class ExperimentRun:
             raise requests.HTTPError("{}: {}".format(response.status_code, response.reason))
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
-        return {artifact.key: artifact.path
-                for artifact in response_msg.artifacts
-                if artifact.artifact_type == _CommonService.ArtifactTypeEnum.IMAGE}[key]
+        filepath = {artifact.key: artifact.path
+                    for artifact in response_msg.artifacts
+                    if artifact.artifact_type == _CommonService.ArtifactTypeEnum.IMAGE}[key]
+        if not load:
+            return filepath
+        else:
+            return _utils.load(filepath)
 
     def get_images(self):
         """
