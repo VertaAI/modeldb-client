@@ -2,6 +2,51 @@ import pytest
 import utils
 
 
+class TestHyperparameters:
+    hyperparameters = {
+        utils.gen_str(): utils.gen_str(),
+        utils.gen_str(): utils.gen_int(),
+        utils.gen_str(): utils.gen_float(),
+    }
+
+    def test_single(self, run):
+        for key, val in self.hyperparameters.items():
+            run.log_hyperparameter(key, val)
+
+        with pytest.raises(KeyError):
+            run.get_hyperparameter(utils.gen_str())
+
+        for key, val in self.hyperparameters.items():
+            assert run.get_hyperparameter(key) == val
+
+        assert run.get_hyperparameters() == self.hyperparameters
+
+    def test_dict(self, run):
+        with pytest.raises(ValueError):
+            run.log_hyperparameters(self.hyperparameters, **self.hyperparameters)
+
+        run.log_hyperparameters(self.hyperparameters)
+
+        with pytest.raises(KeyError):
+            run.get_hyperparameter(utils.gen_str())
+
+        for key, val in self.hyperparameters.items():
+            assert run.get_hyperparameter(key) == val
+
+        assert run.get_hyperparameters() == self.hyperparameters
+
+    def test_unpack(self, run):
+        run.log_hyperparameters(**self.hyperparameters)
+
+        with pytest.raises(KeyError):
+            run.get_hyperparameter(utils.gen_str())
+
+        for key, val in self.hyperparameters.items():
+            assert run.get_hyperparameter(key) == val
+
+        assert run.get_hyperparameters() == self.hyperparameters
+
+
 def test_attributes(run):
     attributes = {
         utils.gen_str(): utils.gen_str(),
@@ -37,67 +82,6 @@ def test_datasets(run):
         assert run.get_dataset(key) == val
 
     assert run.get_datasets() == datasets
-
-
-def test_hyperparameters1(run):
-    hyperparameters = {
-        utils.gen_str(): utils.gen_str(),
-        utils.gen_str(): utils.gen_int(),
-        utils.gen_str(): utils.gen_float(),
-    }
-
-    for key, val in hyperparameters.items():
-        run.log_hyperparameter(key, val)
-
-    with pytest.raises(KeyError):
-        run.get_hyperparameter(utils.gen_str())
-
-    for key, val in hyperparameters.items():
-        assert run.get_hyperparameter(key) == val
-
-    assert run.get_hyperparameters() == hyperparameters
-
-
-def test_hyperparameters2(run):
-    hyperparameters = {
-        utils.gen_str(): utils.gen_str(),
-        utils.gen_str(): utils.gen_int(),
-        utils.gen_str(): utils.gen_float(),
-    }
-
-    with pytest.raises(ValueError):
-        run.log_hyperparameters(hyperparameters, **hyperparameters)
-
-    run.log_hyperparameters(hyperparameters)
-
-    with pytest.raises(KeyError):
-        run.get_hyperparameter(utils.gen_str())
-
-    for key, val in hyperparameters.items():
-        assert run.get_hyperparameter(key) == val
-
-    assert run.get_hyperparameters() == hyperparameters
-
-
-def test_hyperparameters3(run):
-    hyperparameters = {
-        utils.gen_str(): utils.gen_str(),
-        utils.gen_str(): utils.gen_int(),
-        utils.gen_str(): utils.gen_float(),
-    }
-
-    with pytest.raises(ValueError):
-        run.log_hyperparameters(hyperparameters, **hyperparameters)
-
-    run.log_hyperparameters(**hyperparameters)
-
-    with pytest.raises(KeyError):
-        run.get_hyperparameter(utils.gen_str())
-
-    for key, val in hyperparameters.items():
-        assert run.get_hyperparameter(key) == val
-
-    assert run.get_hyperparameters() == hyperparameters
 
 
 def test_images(run):
