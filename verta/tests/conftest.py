@@ -1,4 +1,5 @@
 import os
+import shutil
 
 import pytest
 import utils
@@ -35,6 +36,15 @@ def email():
 @pytest.fixture(scope='session')
 def dev_key():
     return os.environ.get(DEV_KEY_ENV_VAR, DEFAULT_DEV_KEY)
+
+
+@pytest.fixture(scope='session')
+def output_path():
+    dirpath = ".outputs"
+    while os.path.exists(dirpath):  # avoid name collisions
+        dirpath += '_'
+    yield os.path.join(dirpath, "{}")
+    shutil.rmtree(dirpath)
 
 
 @pytest.fixture
