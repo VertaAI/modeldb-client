@@ -176,7 +176,7 @@ def dump(obj, filename):
 
 def load(filename):
     """
-    Deserializes an object from disk at path `filename`
+    Deserializes an object from disk at path `filename`.
 
     Parameters
     ----------
