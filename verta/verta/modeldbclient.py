@@ -1295,6 +1295,7 @@ class ExperimentRun:
                         raise e
                     elif errors == 'ignore':
                         pass
+            return datasets
 
     def log_model(self, key, path, model=None):
         """
@@ -1408,14 +1409,15 @@ class ExperimentRun:
         if not load:
             return models
         else:
-            for name, filepath in datasets.items():
+            for name, filepath in models.items():
                 try:
-                    datasets[name] = _utils.load(filepath)
+                    models[name] = _utils.load(filepath)
                 except Exception as e:
                     if errors == 'raise':
                         raise e
                     elif errors == 'ignore':
                         pass
+            return models
 
     def log_image(self, key, path, image=None):
         """
@@ -1529,14 +1531,15 @@ class ExperimentRun:
         if not load:
             return images
         else:
-            for name, filepath in datasets.items():
+            for name, filepath in images.items():
                 try:
-                    datasets[name] = _utils.load(filepath)
+                    images[name] = _utils.load(filepath)
                 except Exception as e:
                     if errors == 'raise':
                         raise e
                     elif errors == 'ignore':
                         pass
+            return images
 
     def log_observation(self, key, value):
         """
