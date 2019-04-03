@@ -245,6 +245,8 @@ class Project:
     ----------
     name : str
         Name of this Project.
+    expt_runs : :class:`ExperimentRuns`
+        Experiment Runs under this Project.
 
     """
     def __init__(self, auth, socket,
@@ -289,6 +291,22 @@ class Project:
             return response_msg.project.name
         else:
             raise requests.HTTPError("{}: {}".format(response.status_code, response.reason))
+
+    @property
+    def expt_runs(self):
+        # get runs in this Project
+        Message = _ExperimentRunService.GetExperimentRunsInProject
+        msg = Message(project_id=self._id)
+        data = _utils.proto_to_json(msg)
+        response = requests.get("http://{}/v1/experiment-run/getExperimentRunsInProject".format(self._socket),
+                                params=data, headers=self._auth)
+        if not response.ok:
+            raise requests.HTTPError("{}: {}".format(response.status_code, response.reason))
+
+        expt_run_ids = [expt_run.id
+                        for expt_run
+                        in _utils.json_to_proto(response.json(), Message.Response).experiment_runs]
+        return ExperimentRuns(self._auth, self._socket, expt_run_ids)
 
     @staticmethod
     def _generate_default_name():
@@ -347,94 +365,6 @@ class Project:
         else:
             raise requests.HTTPError("{}: {}".format(response.status_code, response.reason))
 
-    def find(self, where, ret_all_info=False):
-        """
-        Gets the Experiment Runs from this Project that match predicates `where`.
-
-        A predicate in `where` is a string containing a simple boolean expression consisting of:
-
-            - a dot-delimited Experiment Run property such as ``metrics.accuracy``
-            - a Python boolean operator such as ``>=``
-            - a literal value such as ``.8``
-
-        Parameters
-        ----------
-        where : str or list of str
-            Predicates specifying Experiment Runs to get.
-        ret_all_info : bool, default False
-            If False, return an :class:`ExperimentRuns`. Otherwise, return an iterable of `protobuf` `Message`\ s.
-
-        Returns
-        -------
-        :class:`ExperimentRuns` or iterable of google.protobuf.message.Message
-
-        Examples
-        --------
-        >>> proj.find(["code_version == '0.2.1'",
-        ...            "hyperparameters.hidden size == 256",
-        ...            "metrics.accuracy >= .8"])
-        <ExperimentRuns containing 3 runs>
-
-        """
-        expt_runs = ExperimentRuns(self._auth, self._socket)
-        return expt_runs.find(where, ret_all_info, _proj_id=self._id)
-
-    def top_k(self, key, k, ret_all_info=False):
-        """
-        Gets the Experiment Runs from this Project with the `k` highest `key`\ s.
-
-        A `key` is a string containing a dot-delimited Experiment Run property such as ``metrics.accuracy``.
-
-        Parameters
-        ----------
-        key : str
-            Dot-delimited Experiment Run property.
-        k : int
-            Number of Experiment Runs to get.
-        ret_all_info : bool, default False
-            If False, return an :class:`ExperimentRuns`. Otherwise, return an iterable of `protobuf` `Message`\ s.
-
-        Returns
-        -------
-        :class:`ExperimentRuns` or iterable of google.protobuf.message.Message
-
-        Examples
-        --------
-        >>> proj.top_k("metrics.accuracy", 3)
-        <ExperimentRuns containing 3 runs>
-
-        """
-        expt_runs = ExperimentRuns(self._auth, self._socket)
-        return expt_runs.top_k(key, k, ret_all_info, _proj_id=self._id)
-
-    def bottom_k(self, key, k, ret_all_info=False):
-        """
-        Gets the Experiment Runs from this Project with the `k` lowest `key`\ s.
-
-        A `key` is a string containing a dot-delimited Experiment Run property such as ``metrics.loss``.
-
-        Parameters
-        ----------
-        key : str
-            Dot-delimited Experiment Run property.
-        k : int
-            Number of Experiment Runs to get.
-        ret_all_info : bool, default False
-            If False, return an :class:`ExperimentRuns`. Otherwise, return an iterable of `protobuf` `Message`\ s.
-
-        Returns
-        -------
-        :class:`ExperimentRuns` or iterable of google.protobuf.message.Message
-
-        Examples
-        --------
-        >>> proj.bottom_k("metrics.loss", 3)
-        <ExperimentRuns containing 3 runs>
-
-        """
-        expt_runs = ExperimentRuns(self._auth, self._socket)
-        return expt_runs.bottom_k(key, k, ret_all_info, _proj_id=self._id)
-
 
 class Experiment:
     """
@@ -450,6 +380,8 @@ class Experiment:
     ----------
     name : str
         Name of this Experiment.
+    expt_runs : :class:`ExperimentRuns`
+        Experiment Runs under this Experiment.
 
     """
     def __init__(self, auth, socket,
@@ -496,6 +428,22 @@ class Experiment:
             return response_msg.experiment.name
         else:
             raise requests.HTTPError("{}: {}".format(response.status_code, response.reason))
+
+    @property
+    def expt_runs(self):
+        # get runs in this Experiment
+        Message = _ExperimentRunService.GetExperimentRunsInExperiment
+        msg = Message(experiment_id=self._id)
+        data = _utils.proto_to_json(msg)
+        response = requests.get("http://{}/v1/experiment-run/getExperimentRunsInExperiment".format(self._socket),
+        params=data, headers=self._auth)
+        if not response.ok:
+            raise requests.HTTPError("{}: {}".format(response.status_code, response.reason))
+
+        expt_run_ids = [expt_run.id
+                        for expt_run
+                        in _utils.json_to_proto(response.json(), Message.Response).experiment_runs]
+        return ExperimentRuns(self._auth, self._socket, expt_run_ids)
 
     @staticmethod
     def _generate_default_name():
@@ -546,94 +494,6 @@ class Experiment:
         else:
             raise requests.HTTPError("{}: {}".format(response.status_code, response.reason))
 
-    def find(self, where, ret_all_info=False):
-        """
-        Gets the Experiment Runs from this Experiment that match predicates `where`.
-
-        A predicate in `where` is a string containing a simple boolean expression consisting of:
-
-            - a dot-delimited Experiment Run property such as ``metrics.accuracy``
-            - a Python boolean operator such as ``>=``
-            - a literal value such as ``.8``
-
-        Parameters
-        ----------
-        where : str or list of str
-            Predicates specifying Experiment Runs to get.
-        ret_all_info : bool, default False
-            If False, return an :class:`ExperimentRuns`. Otherwise, return an iterable of `protobuf` `Message`\ s.
-
-        Returns
-        -------
-        :class:`ExperimentRuns` or iterable of google.protobuf.message.Message
-
-        Examples
-        --------
-        >>> expt.find(["code_version == '0.2.1'",
-        ...            "hyperparameters.hidden size == 256",
-        ...            "metrics.accuracy >= .8"])
-        <ExperimentRuns containing 3 runs>
-
-        """
-        expt_runs = ExperimentRuns(self._auth, self._socket)
-        return expt_runs.find(where, ret_all_info, _expt_id=self._id)
-
-    def top_k(self, key, k, ret_all_info=False):
-        """
-        Gets the Experiment Runs from this Experiment with the `k` highest `key`\ s.
-
-        A `key` is a string containing a dot-delimited Experiment Run property such as ``metrics.accuracy``.
-
-        Parameters
-        ----------
-        key : str
-            Dot-delimited Experiment Run property.
-        k : int
-            Number of Experiment Runs to get.
-        ret_all_info : bool, default False
-            If False, return an :class:`ExperimentRuns`. Otherwise, return an iterable of `protobuf` `Message`\ s.
-
-        Returns
-        -------
-        :class:`ExperimentRuns` or iterable of google.protobuf.message.Message
-
-        Examples
-        --------
-        >>> expt.top_k("metrics.accuracy", 3)
-        <ExperimentRuns containing 3 runs>
-
-        """
-        expt_runs = ExperimentRuns(self._auth, self._socket)
-        return expt_runs.top_k(key, k, ret_all_info, _expt_id=self._id)
-
-    def bottom_k(self, key, k, ret_all_info=False):
-        """
-        Gets the Experiment Runs from this Experiment with the `k` lowest `key`\ s.
-
-        A `key` is a string containing a dot-delimited Experiment Run property such as ``metrics.accuracy``.
-
-        Parameters
-        ----------
-        key : str
-            Dot-delimited Experiment Run property.
-        k : int
-            Number of Experiment Runs to get.
-        ret_all_info : bool, default False
-            If False, return an :class:`ExperimentRuns`. Otherwise, return an iterable of `protobuf` `Message`\ s.
-
-        Returns
-        -------
-        :class:`ExperimentRuns` or iterable of google.protobuf.message.Message
-
-        Examples
-        --------
-        >>> expt.bottom_k("metrics.loss", 3)
-        <ExperimentRuns containing 3 runs>
-
-        """
-        expt_runs = ExperimentRuns(self._auth, self._socket)
-        return expt_runs.bottom_k(key, k, ret_all_info, _expt_id=self._id)
-
 
 class ExperimentRuns:
     """
@@ -641,8 +501,8 @@ class ExperimentRuns:
 
     This class provides functionality for filtering and sorting its contents.
 
-    There should not be a need to instantiate this class directly; please use other classes' methods
-    to access Experiment Runs.
+    There should not be a need to instantiate this class directly; please use other classes'
+    attributes to access Experiment Runs.
 
     Warnings
     --------
