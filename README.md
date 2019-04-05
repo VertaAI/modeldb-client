@@ -1,4 +1,12 @@
-# To Contribute
+# Verta: Model Lifecycle Management
+
+Thanks for stopping by, and for taking your first step towards a healthier, more sustainable model lifecycle!
+
+Come see [our user guide and documentation](https://verta.readthedocs.io/en/docs/index.html) to get started.
+
+---
+
+# Contributing
 1. from the root directory of the repository, run these commands:
     1. `git submodule init`
     1. `git submodule update`
@@ -9,9 +17,3 @@
         1. this means you don't have to rerun `pip3 install` whenever you make changes
 1. use ModelDBClient
 1. tackle issues
-
-
-# To Use
-1. run `pip3 install verta`
-1. take a look at our [documentation](https://verta.readthedocs.io/en/latest/)
-1. refer to our [API reference](https://verta.readthedocs.io/en/latest/api/verta.html)
