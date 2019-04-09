@@ -58,7 +58,7 @@ def client(host, port, email, dev_key):
 
 
 @pytest.fixture
-def run(client):
+def experiment_run(client):
     client.set_project()
     client.set_experiment()
     return client.set_experiment_run()
