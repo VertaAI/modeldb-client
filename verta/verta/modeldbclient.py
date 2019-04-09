@@ -258,14 +258,18 @@ class Project:
         else:
             if proj_name is None:
                 proj_name = Project._generate_default_name()
-            proj = Project._get(auth, socket, proj_name)
-            if proj is not None:
-                if any(param is not None for param in (desc, tags, attrs)):
-                    raise ValueError("Project with name {} already exists;"
-                                     " cannot initialize `desc`, `tags`, or `attrs`".format(proj_name))
-                print("set existing Project: {}".format(proj.name))
-            else:
+            try:
                 proj = Project._create(auth, socket, proj_name, desc, tags, attrs)
+            except requests.HTTPError as e:
+                if e.response.status_code == 409:  # already exists
+                    if any(param is not None for param in (desc, tags, attrs)):
+                        raise ValueError("Project with name {} already exists;"
+                                         " cannot initialize `desc`, `tags`, or `attrs`".format(proj_name))
+                    proj = Project._get(auth, socket, proj_name)
+                    print("set existing Project: {}".format(proj.name))
+                else:
+                    raise e
+            else:
                 print("created new Project: {}".format(proj.name))
 
         self._auth = auth
@@ -391,14 +395,18 @@ class Experiment:
         elif proj_id is not None:
             if expt_name is None:
                 expt_name = Experiment._generate_default_name()
-            expt = Experiment._get(auth, socket, proj_id, expt_name)
-            if expt is not None:
-                if any(param is not None for param in (desc, tags, attrs)):
-                    raise ValueError("Experiment with name {} already exists;"
-                                     " cannot initialize `desc`, `tags`, or `attrs`".format(expt_name))
-                print("set existing Experiment: {}".format(expt.name))
-            else:
+            try:
                 expt = Experiment._create(auth, socket, proj_id, expt_name, desc, tags, attrs)
+            except requests.HTTPError as e:
+                if e.response.status_code == 409:  # already exists
+                    if any(param is not None for param in (desc, tags, attrs)):
+                        raise ValueError("Experiment with name {} already exists;"
+                                         " cannot initialize `desc`, `tags`, or `attrs`".format(expt_name))
+                    expt = Experiment._get(auth, socket, proj_id, expt_name)
+                    print("set existing Experiment: {}".format(expt.name))
+                else:
+                    raise e
+            else:
                 print("created new Experiment: {}".format(expt.name))
         else:
             raise ValueError("insufficient arguments")
@@ -814,14 +822,19 @@ class ExperimentRun:
         elif None not in (proj_id, expt_id):
             if expt_run_name is None:
                 expt_run_name = ExperimentRun._generate_default_name()
-            expt_run = ExperimentRun._get(auth, socket, proj_id, expt_id, expt_run_name)
-            if expt_run is not None:
-                if any(param is not None for param in (desc, tags, attrs)):
-                    raise ValueError("ExperimentRun with name {} already exists;"
-                                     " cannot initialize `desc`, `tags`, or `attrs`".format(expt_run_name))
-                pass
-            else:
+            try:
                 expt_run = ExperimentRun._create(auth, socket, proj_id, expt_id, expt_run_name, desc, tags, attrs)
+            except requests.HTTPError as e:
+                if e.response.status_code == 409:  # already exists
+                    if any(param is not None for param in (desc, tags, attrs)):
+                        raise ValueError("ExperimentRun with name {} already exists;"
+                                         " cannot initialize `desc`, `tags`, or `attrs`".format(expt_run_name))
+                    expt_run = ExperimentRun._get(auth, socket, proj_id, expt_id, expt_run_name)
+                    #print("set existing ExperimentRun: {}".format(expt_run.name))
+                else:
+                    raise e
+            else:
+                pass#print("created new ExperimentRun: {}".format(expt_run.name))
         else:
             raise ValueError("insufficient arguments")
 
