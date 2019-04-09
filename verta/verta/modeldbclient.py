@@ -830,11 +830,11 @@ class ExperimentRun:
                         raise ValueError("ExperimentRun with name {} already exists;"
                                          " cannot initialize `desc`, `tags`, or `attrs`".format(expt_run_name))
                     expt_run = ExperimentRun._get(auth, socket, proj_id, expt_id, expt_run_name)
-                    #print("set existing ExperimentRun: {}".format(expt_run.name))
+                    print("set existing ExperimentRun: {}".format(expt_run.name))
                 else:
                     raise e
             else:
-                pass#print("created new ExperimentRun: {}".format(expt_run.name))
+                print("created new ExperimentRun: {}".format(expt_run.name))
         else:
             raise ValueError("insufficient arguments")
 
