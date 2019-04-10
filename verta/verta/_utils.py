@@ -2,7 +2,7 @@ import six
 
 import os
 import json
-import pathlib
+import pathlib2
 import string
 
 import joblib
@@ -75,9 +75,9 @@ def python_to_val_proto(val):
         return Value(null_value=NULL_VALUE)
     if isinstance(val, bool):  # did you know that `bool` is a subclass of `int`?
         return Value(bool_value=val)
-    elif isinstance(val, float) or isinstance(val, int):
+    elif isinstance(val, float) or isinstance(val, six.integer_types):
         return Value(number_value=val)
-    elif isinstance(val, str):
+    elif isinstance(val, six.string_types):
         return Value(string_value=val)
     elif isinstance(val, dict):
         raise NotImplementedError()
@@ -170,7 +170,7 @@ def dump(obj, filename):
 
     # create parent directory
     dirpath = os.path.dirname(filename)  # get parent dir
-    pathlib.Path(dirpath).mkdir(parents=True, exist_ok=True)  # create parent dir
+    pathlib2.Path(dirpath).mkdir(parents=True, exist_ok=True)  # create parent dir
 
     # move file to `filename`
     os.rename(temp_filename, filename)
