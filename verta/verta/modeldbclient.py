@@ -3,7 +3,6 @@ import six
 import re
 import ast
 import time
-from urllib.parse import urlparse
 import warnings
 
 import requests
@@ -13,6 +12,7 @@ from ._protos.public.modeldb import ProjectService_pb2 as _ProjectService
 from ._protos.public.modeldb import ExperimentService_pb2 as _ExperimentService
 from ._protos.public.modeldb import ExperimentRunService_pb2 as _ExperimentRunService
 from . import _utils
+from ._compat import urlparse
 
 
 class ModelDBClient:
