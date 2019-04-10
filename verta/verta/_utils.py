@@ -1,11 +1,11 @@
 import six
+import six.moves.cPickle as pickle
 
 import os
 import json
 import pathlib2
 import string
 
-import joblib
 
 from google.protobuf import json_format
 from google.protobuf.struct_pb2 import Value, NULL_VALUE
@@ -166,7 +166,7 @@ def dump(obj, filename):
     temp_filename = '.' + os.path.basename(filename)
     while os.path.exists(temp_filename):  # avoid name collisions
         temp_filename += '_'
-    joblib.dump(obj, temp_filename)
+    pickle.dump(obj, temp_filename)
 
     # create parent directory
     dirpath = os.path.dirname(filename)  # get parent dir
@@ -191,4 +191,4 @@ def load(filename):
         Deserialized object.
 
     """
-    return joblib.load(filename)
+    return pickle.load(filename)

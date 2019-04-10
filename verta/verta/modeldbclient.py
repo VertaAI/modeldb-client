@@ -1,4 +1,5 @@
 import six
+import six.moves.cPickle as pickle
 from six.moves.urllib.parse import urlparse
 
 import re
