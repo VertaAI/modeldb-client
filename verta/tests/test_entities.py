@@ -34,6 +34,27 @@ class TestExperiment:
                 client.set_experiment(expt.name, **kwargs)
 
 
+class TestExperimentRuns:
+    def test_magic_methods(self, client):
+        client.set_project()
+        expt1 = client.set_experiment()
+
+        # __getitem__
+        expt1_run_ids = [client.set_experiment_run()._id for _ in range(12)]
+        for expt_run_id, expt_run in zip(expt1_run_ids, expt1.expt_runs):
+            assert expt_run_id == expt_run._id
+
+        # __len__
+        assert len(expt1_run_ids) == len(expt1.expt_runs)
+
+        # __add__
+        expt2 = client.set_experiment()
+        expt2_run_ids = [client.set_experiment_run()._id for _ in range(12)]
+        for expt_run_id, expt_run in zip(expt1_run_ids + expt2_run_ids,
+                                         expt1.expt_runs + expt2.expt_runs):
+            assert expt_run_id == expt_run._id
+
+
 class TestExperimentRun:
     def test_set_experiment_run_warning(self, client):
         client.set_project()
