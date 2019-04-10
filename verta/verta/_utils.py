@@ -1,3 +1,5 @@
+import six
+
 import os
 import json
 import pathlib
