@@ -246,7 +246,7 @@ class Project:
     def __init__(self, auth, socket,
                  proj_name=None,
                  desc=None, tags=None, attrs=None,
-                 *, _proj_id=None):
+                 _proj_id=None):
         if proj_name is not None and _proj_id is not None:
             raise ValueError("cannot specify both `proj_name` and `_proj_id`")
 
@@ -309,7 +309,7 @@ class Project:
         return "Project {}".format(str(time.time()).replace('.', ''))
 
     @staticmethod
-    def _get(auth, socket, proj_name=None, *, _proj_id=None):
+    def _get(auth, socket, proj_name=None, _proj_id=None):
         if _proj_id is not None:
             Message = _ProjectService.GetProjectById
             msg = Message(id=_proj_id)
@@ -383,7 +383,7 @@ class Experiment:
     def __init__(self, auth, socket,
                  proj_id=None, expt_name=None,
                  desc=None, tags=None, attrs=None,
-                 *, _expt_id=None):
+                 _expt_id=None):
         if expt_name is not None and _expt_id is not None:
             raise ValueError("cannot specify both `expt_name` and `_expt_id`")
 
@@ -448,7 +448,7 @@ class Experiment:
         return "Experiment {}".format(str(time.time()).replace('.', ''))
 
     @staticmethod
-    def _get(auth, socket, proj_id=None, expt_name=None, *, _expt_id=None):
+    def _get(auth, socket, proj_id=None, expt_name=None, _expt_id=None):
         if _expt_id is not None:
             Message = _ExperimentService.GetExperimentById
             msg = Message(id=_expt_id)
@@ -564,7 +564,7 @@ class ExperimentRuns:
         else:
             return NotImplemented
 
-    def find(self, where, ret_all_info=False, *, _proj_id=None, _expt_id=None):
+    def find(self, where, ret_all_info=False, _proj_id=None, _expt_id=None):
         """
         Gets the Experiment Runs from this collection that match predicates `where`.
 
@@ -691,7 +691,7 @@ class ExperimentRuns:
             return self.__class__(self._auth, self._socket,
                                   [expt_run.id for expt_run in response_msg.experiment_runs])
 
-    def top_k(self, key, k, ret_all_info=False, *, _proj_id=None, _expt_id=None):
+    def top_k(self, key, k, ret_all_info=False, _proj_id=None, _expt_id=None):
         """
         Gets the Experiment Runs from this collection with the `k` highest `key`\ s.
 
@@ -741,7 +741,7 @@ class ExperimentRuns:
             return self.__class__(self._auth, self._socket,
                                   [expt_run.id for expt_run in response_msg.experiment_runs])
 
-    def bottom_k(self, key, k, ret_all_info=False, *, _proj_id=None, _expt_id=None):
+    def bottom_k(self, key, k, ret_all_info=False, _proj_id=None, _expt_id=None):
         """
         Gets the Experiment Runs from this collection with the `k` lowest `key`\ s.
 
@@ -810,7 +810,7 @@ class ExperimentRun:
     def __init__(self, auth, socket,
                  proj_id=None, expt_id=None, expt_run_name=None,
                  desc=None, tags=None, attrs=None,
-                 *, _expt_run_id=None):
+                 _expt_run_id=None):
         if expt_run_name is not None and _expt_run_id is not None:
             raise ValueError("cannot specify both `expt_run_name` and `_expt_run_id`")
 
@@ -860,7 +860,7 @@ class ExperimentRun:
         return "ExperimentRun {}".format(str(time.time()).replace('.', ''))
 
     @staticmethod
-    def _get(auth, socket, proj_id=None, expt_id=None, expt_run_name=None, *, _expt_run_id=None):
+    def _get(auth, socket, proj_id=None, expt_id=None, expt_run_name=None, _expt_run_id=None):
         if _expt_run_id is not None:
             Message = _ExperimentRunService.GetExperimentRunById
             msg = Message(id=_expt_run_id)
