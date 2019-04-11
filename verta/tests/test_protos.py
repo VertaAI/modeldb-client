@@ -1,6 +1,6 @@
-import pytest
-
 import requests
+
+import pytest
 
 
 class TestGetChildren:
