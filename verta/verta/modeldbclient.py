@@ -349,7 +349,7 @@ class Project:
     def _create(auth, socket, proj_name, desc=None, tags=None, attrs=None):
         if attrs is not None:
             attrs = [_CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value))
-                     for key, value in attrs.items()]
+                     for key, value in six.viewitems(attrs)]
 
         Message = _ProjectService.CreateProject
         msg = Message(name=proj_name, description=desc, tags=tags, metadata=attrs)
@@ -479,7 +479,7 @@ class Experiment:
     def _create(auth, socket, proj_id, expt_name, desc=None, tags=None, attrs=None):
         if attrs is not None:
             attrs = [_CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value))
-                     for key, value in attrs.items()]
+                     for key, value in six.viewitems(attrs)]
 
         Message = _ExperimentService.CreateExperiment
         msg = Message(project_id=proj_id, name=expt_name,
@@ -535,7 +535,7 @@ class ExperimentRuns:
                '>=': _ExperimentRunService.OperatorEnum.GTE,
                '<':  _ExperimentRunService.OperatorEnum.LT,
                '<=': _ExperimentRunService.OperatorEnum.LTE}
-    _OP_PATTERN = re.compile(r"({})".format('|'.join(sorted(_OP_MAP.keys(), key=lambda s: len(s), reverse=True))))
+    _OP_PATTERN = re.compile(r"({})".format('|'.join(sorted(six.viewkeys(_OP_MAP), key=lambda s: len(s), reverse=True))))
 
     def __init__(self, auth, socket, expt_run_ids=None):
         self._auth = auth
@@ -900,7 +900,7 @@ class ExperimentRun:
     def _create(auth, socket, proj_id, expt_id, expt_run_name, desc=None, tags=None, attrs=None):
         if attrs is not None:
             attrs = [_CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value))
-                     for key, value in attrs.items()]
+                     for key, value in six.viewitems(attrs)]
 
         Message = _ExperimentRunService.CreateExperimentRun
         msg = Message(project_id=proj_id, experiment_id=expt_id, name=expt_run_name,
@@ -1108,10 +1108,10 @@ class ExperimentRun:
             hyperparams = hyperparams_kwargs
 
         # validate all keys first
-        for key in hyperparams.keys():
+        for key in six.viewkeys(hyperparams):
             _utils.validate_flat_key(key)
 
-        for key, value in hyperparams.items():
+        for key, value in six.viewitems(hyperparams):
             hyperparameter = _CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value))
             msg = _ExperimentRunService.LogHyperparameter(id=self._id, hyperparameter=hyperparameter)
             data = _utils.proto_to_json(msg)
@@ -1272,7 +1272,7 @@ class ExperimentRun:
         if not load:
             return datasets
         else:
-            for name, filepath in datasets.items():
+            for name, filepath in six.viewitems(datasets):
                 try:
                     datasets[name] = _utils.load(filepath)
                 except Exception as e:
@@ -1391,7 +1391,7 @@ class ExperimentRun:
         if not load:
             return models
         else:
-            for name, filepath in models.items():
+            for name, filepath in six.viewitems(models):
                 try:
                     models[name] = _utils.load(filepath)
                 except Exception as e:
@@ -1510,7 +1510,7 @@ class ExperimentRun:
         if not load:
             return images
         else:
-            for name, filepath in images.items():
+            for name, filepath in six.viewitems(images):
                 try:
                     images[name] = _utils.load(filepath)
                 except Exception as e:
