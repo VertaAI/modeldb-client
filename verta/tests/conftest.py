@@ -5,7 +5,6 @@ import pytest
 import utils
 
 from verta import ModelDBClient
-from verta.modeldbclient import Project, Experiment, ExperimentRun
 
 
 HOST_ENV_VAR = "MODELDB_HOST"
@@ -51,32 +50,15 @@ def output_path():
 @pytest.fixture
 def client(host, port, email, dev_key):
     client = ModelDBClient(host, port, email, dev_key)
+
     yield client
+
     if client.proj is not None:
         utils.delete_project(client.proj._id, client)
 
 
 @pytest.fixture
-def project(client):
-    proj = Project._create(client._auth, client._socket,
-                           Project._generate_default_name())
-    yield proj
-    utils.delete_project(proj._id, client)
-
-
-@pytest.fixture
-def experiment(project, client):
-    expt = Experiment._create(client._auth, client._socket,
-                              project._id,
-                              Experiment._generate_default_name())
-    yield expt
-    utils.delete_experiment(expt._id, client)
-
-
-@pytest.fixture
-def experiment_run(project, experiment, client):
-    expt_run = ExperimentRun._create(client._auth, client._socket,
-                                     project._id, experiment._id,
-                                     ExperimentRun._generate_default_name())
-    yield expt_run
-    utils.delete_experiment_run(expt_run._id, client)
+def experiment_run(client):
+    client.set_project()
+    client.set_experiment()
+    return client.set_experiment_run()
