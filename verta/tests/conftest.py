@@ -1,10 +1,10 @@
 import os
 import shutil
 
+from verta import ModelDBClient
+
 import pytest
 import utils
-
-from verta import ModelDBClient
 
 
 HOST_ENV_VAR = "MODELDB_HOST"

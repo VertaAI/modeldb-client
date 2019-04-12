@@ -17,7 +17,7 @@ setup(
         "verta",
         "verta._protos.public.modeldb",
     ],
-    python_requires=">= 3.5, < 3.8",
+    python_requires=">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*",
     install_requires=[
         "googleapis-common-protos~=1.5",
         "grpcio~=1.16",
@@ -25,5 +25,6 @@ setup(
         "pathlib2~=2.1",
         "protobuf~=3.6",
         "requests~=2.21",
+        "six~=1.12",
     ],
 )

@@ -1,7 +1,9 @@
+import six
+from six.moves.urllib.parse import urlparse
+
 import re
 import ast
 import time
-from urllib.parse import urlparse
 import warnings
 
 import requests
@@ -246,7 +248,7 @@ class Project:
     def __init__(self, auth, socket,
                  proj_name=None,
                  desc=None, tags=None, attrs=None,
-                 *, _proj_id=None):
+                 _proj_id=None):
         if proj_name is not None and _proj_id is not None:
             raise ValueError("cannot specify both `proj_name` and `_proj_id`")
 
@@ -309,7 +311,7 @@ class Project:
         return "Project {}".format(str(time.time()).replace('.', ''))
 
     @staticmethod
-    def _get(auth, socket, proj_name=None, *, _proj_id=None):
+    def _get(auth, socket, proj_name=None, _proj_id=None):
         if _proj_id is not None:
             Message = _ProjectService.GetProjectById
             msg = Message(id=_proj_id)
@@ -347,7 +349,7 @@ class Project:
     def _create(auth, socket, proj_name, desc=None, tags=None, attrs=None):
         if attrs is not None:
             attrs = [_CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value))
-                     for key, value in attrs.items()]
+                     for key, value in six.viewitems(attrs)]
 
         Message = _ProjectService.CreateProject
         msg = Message(name=proj_name, description=desc, tags=tags, metadata=attrs)
@@ -383,7 +385,7 @@ class Experiment:
     def __init__(self, auth, socket,
                  proj_id=None, expt_name=None,
                  desc=None, tags=None, attrs=None,
-                 *, _expt_id=None):
+                 _expt_id=None):
         if expt_name is not None and _expt_id is not None:
             raise ValueError("cannot specify both `expt_name` and `_expt_id`")
 
@@ -448,7 +450,7 @@ class Experiment:
         return "Experiment {}".format(str(time.time()).replace('.', ''))
 
     @staticmethod
-    def _get(auth, socket, proj_id=None, expt_name=None, *, _expt_id=None):
+    def _get(auth, socket, proj_id=None, expt_name=None, _expt_id=None):
         if _expt_id is not None:
             Message = _ExperimentService.GetExperimentById
             msg = Message(id=_expt_id)
@@ -477,7 +479,7 @@ class Experiment:
     def _create(auth, socket, proj_id, expt_name, desc=None, tags=None, attrs=None):
         if attrs is not None:
             attrs = [_CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value))
-                     for key, value in attrs.items()]
+                     for key, value in six.viewitems(attrs)]
 
         Message = _ExperimentService.CreateExperiment
         msg = Message(project_id=proj_id, name=expt_name,
@@ -533,7 +535,7 @@ class ExperimentRuns:
                '>=': _ExperimentRunService.OperatorEnum.GTE,
                '<':  _ExperimentRunService.OperatorEnum.LT,
                '<=': _ExperimentRunService.OperatorEnum.LTE}
-    _OP_PATTERN = re.compile(r"({})".format('|'.join(sorted(_OP_MAP.keys(), key=lambda s: len(s), reverse=True))))
+    _OP_PATTERN = re.compile(r"({})".format('|'.join(sorted(six.viewkeys(_OP_MAP), key=lambda s: len(s), reverse=True))))
 
     def __init__(self, auth, socket, expt_run_ids=None):
         self._auth = auth
@@ -564,7 +566,7 @@ class ExperimentRuns:
         else:
             return NotImplemented
 
-    def find(self, where, ret_all_info=False, *, _proj_id=None, _expt_id=None):
+    def find(self, where, ret_all_info=False, _proj_id=None, _expt_id=None):
         """
         Gets the Experiment Runs from this collection that match predicates `where`.
 
@@ -691,7 +693,7 @@ class ExperimentRuns:
             return self.__class__(self._auth, self._socket,
                                   [expt_run.id for expt_run in response_msg.experiment_runs])
 
-    def top_k(self, key, k, ret_all_info=False, *, _proj_id=None, _expt_id=None):
+    def top_k(self, key, k, ret_all_info=False, _proj_id=None, _expt_id=None):
         """
         Gets the Experiment Runs from this collection with the `k` highest `key`\ s.
 
@@ -741,7 +743,7 @@ class ExperimentRuns:
             return self.__class__(self._auth, self._socket,
                                   [expt_run.id for expt_run in response_msg.experiment_runs])
 
-    def bottom_k(self, key, k, ret_all_info=False, *, _proj_id=None, _expt_id=None):
+    def bottom_k(self, key, k, ret_all_info=False, _proj_id=None, _expt_id=None):
         """
         Gets the Experiment Runs from this collection with the `k` lowest `key`\ s.
 
@@ -810,7 +812,7 @@ class ExperimentRun:
     def __init__(self, auth, socket,
                  proj_id=None, expt_id=None, expt_run_name=None,
                  desc=None, tags=None, attrs=None,
-                 *, _expt_run_id=None):
+                 _expt_run_id=None):
         if expt_run_name is not None and _expt_run_id is not None:
             raise ValueError("cannot specify both `expt_run_name` and `_expt_run_id`")
 
@@ -860,7 +862,7 @@ class ExperimentRun:
         return "ExperimentRun {}".format(str(time.time()).replace('.', ''))
 
     @staticmethod
-    def _get(auth, socket, proj_id=None, expt_id=None, expt_run_name=None, *, _expt_run_id=None):
+    def _get(auth, socket, proj_id=None, expt_id=None, expt_run_name=None, _expt_run_id=None):
         if _expt_run_id is not None:
             Message = _ExperimentRunService.GetExperimentRunById
             msg = Message(id=_expt_run_id)
@@ -898,7 +900,7 @@ class ExperimentRun:
     def _create(auth, socket, proj_id, expt_id, expt_run_name, desc=None, tags=None, attrs=None):
         if attrs is not None:
             attrs = [_CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value))
-                     for key, value in attrs.items()]
+                     for key, value in six.viewitems(attrs)]
 
         Message = _ExperimentRunService.CreateExperimentRun
         msg = Message(project_id=proj_id, experiment_id=expt_id, name=expt_run_name,
@@ -1106,10 +1108,10 @@ class ExperimentRun:
             hyperparams = hyperparams_kwargs
 
         # validate all keys first
-        for key in hyperparams.keys():
+        for key in six.viewkeys(hyperparams):
             _utils.validate_flat_key(key)
 
-        for key, value in hyperparams.items():
+        for key, value in six.viewitems(hyperparams):
             hyperparameter = _CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value))
             msg = _ExperimentRunService.LogHyperparameter(id=self._id, hyperparameter=hyperparameter)
             data = _utils.proto_to_json(msg)
@@ -1270,7 +1272,7 @@ class ExperimentRun:
         if not load:
             return datasets
         else:
-            for name, filepath in datasets.items():
+            for name, filepath in six.viewitems(datasets):
                 try:
                     datasets[name] = _utils.load(filepath)
                 except Exception as e:
@@ -1389,7 +1391,7 @@ class ExperimentRun:
         if not load:
             return models
         else:
-            for name, filepath in models.items():
+            for name, filepath in six.viewitems(models):
                 try:
                     models[name] = _utils.load(filepath)
                 except Exception as e:
@@ -1508,7 +1510,7 @@ class ExperimentRun:
         if not load:
             return images
         else:
-            for name, filepath in images.items():
+            for name, filepath in six.viewitems(images):
                 try:
                     images[name] = _utils.load(filepath)
                 except Exception as e:

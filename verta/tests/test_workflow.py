@@ -1,5 +1,10 @@
+import six
+
 import pytest
 import utils
+
+
+if six.PY2: FileNotFoundError = IOError
 
 
 class TestHyperparameters:
