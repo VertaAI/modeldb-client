@@ -2,6 +2,7 @@ import re
 import ast
 import time
 from urllib.parse import urlparse
+import warnings
 
 import requests
 
@@ -263,8 +264,8 @@ class Project:
             except requests.HTTPError as e:
                 if e.response.status_code == 409:  # already exists
                     if any(param is not None for param in (desc, tags, attrs)):
-                        raise ValueError("Project with name {} already exists;"
-                                         " cannot initialize `desc`, `tags`, or `attrs`".format(proj_name))
+                        warnings.warn("Project with name {} already exists;"
+                                      " cannot initialize `desc`, `tags`, or `attrs`".format(proj_name))
                     proj = Project._get(auth, socket, proj_name)
                     print("set existing Project: {}".format(proj.name))
                 else:
@@ -400,8 +401,8 @@ class Experiment:
             except requests.HTTPError as e:
                 if e.response.status_code == 409:  # already exists
                     if any(param is not None for param in (desc, tags, attrs)):
-                        raise ValueError("Experiment with name {} already exists;"
-                                         " cannot initialize `desc`, `tags`, or `attrs`".format(expt_name))
+                        warnings.warn("Experiment with name {} already exists;"
+                                      " cannot initialize `desc`, `tags`, or `attrs`".format(expt_name))
                     expt = Experiment._get(auth, socket, proj_id, expt_name)
                     print("set existing Experiment: {}".format(expt.name))
                 else:
@@ -827,8 +828,8 @@ class ExperimentRun:
             except requests.HTTPError as e:
                 if e.response.status_code == 409:  # already exists
                     if any(param is not None for param in (desc, tags, attrs)):
-                        raise ValueError("ExperimentRun with name {} already exists;"
-                                         " cannot initialize `desc`, `tags`, or `attrs`".format(expt_run_name))
+                        warnings.warn("ExperimentRun with name {} already exists;"
+                                      " cannot initialize `desc`, `tags`, or `attrs`".format(expt_run_name))
                     expt_run = ExperimentRun._get(auth, socket, proj_id, expt_id, expt_run_name)
                     print("set existing ExperimentRun: {}".format(expt_run.name))
                 else:
