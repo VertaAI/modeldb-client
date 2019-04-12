@@ -1,4 +1,5 @@
 import six
+from six.moves.urllib.parse import urlparse
 
 import re
 import ast
@@ -12,7 +13,6 @@ from ._protos.public.modeldb import ProjectService_pb2 as _ProjectService
 from ._protos.public.modeldb import ExperimentService_pb2 as _ExperimentService
 from ._protos.public.modeldb import ExperimentRunService_pb2 as _ExperimentRunService
 from . import _utils
-from ._compat import urlparse
 
 
 class ModelDBClient:
