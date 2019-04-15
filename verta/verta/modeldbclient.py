@@ -527,10 +527,10 @@ class ExperimentRuns:
 
     Examples
     --------
-    >>> runs = expt.find("hyperparameters.hidden size == 256")
+    >>> runs = expt.find("hyperparameters.hidden_size == 256")
     >>> len(runs)
     12
-    >>> runs += expt.find("hyperparameters.hidden size == 512")
+    >>> runs += expt.find("hyperparameters.hidden_size == 512")
     >>> len(runs)
     24
     >>> runs = runs.find("metrics.accuracy >= .8")
@@ -601,7 +601,7 @@ class ExperimentRuns:
         Examples
         --------
         >>> runs.find(["code_version == '0.2.1'",
-        ...            "hyperparameters.hidden size == 256",
+        ...            "hyperparameters.hidden_size == 256",
         ...            "metrics.accuracy >= .8"])
         <ExperimentRuns containing 3 runs>
 
