@@ -68,18 +68,6 @@ class TestExperimentRuns:
                                          expt1.expt_runs + expt2.expt_runs):
             assert expt_run_id == expt_run._id
 
-<<<<<<< HEAD
-
-class TestExperimentRun:
-    def test_set_experiment_run_warning(self, client):
-        client.set_project()
-        client.set_experiment()
-        expt_run = client.set_experiment_run()
-
-        for kwargs in KWARGS_COMBOS:
-            with pytest.warns(UserWarning):
-                client.set_experiment_run(expt_run.name, **kwargs)
-=======
         # ignore duplicates
         woven_run_ids = [id_ for pair in zip(expt1_run_ids, expt2_run_ids) for id_ in pair]
         woven_expt_runs = expt1.expt_runs.__class__(client._auth, client._socket, woven_run_ids)
@@ -167,4 +155,14 @@ class TestExperimentRun:
                                                     key=lambda run: run.get_metric('val'))][:k]
         for expt_run_id, expt_run in zip(bottom_run_ids, expt.expt_runs.bottom_k("metrics.val", k)):
             assert expt_run_id == expt_run._id
->>>>>>> Create tests for ExptRuns querying
+
+
+class TestExperimentRun:
+    def test_set_experiment_run_warning(self, client):
+        client.set_project()
+        client.set_experiment()
+        expt_run = client.set_experiment_run()
+
+        for kwargs in KWARGS_COMBOS:
+            with pytest.warns(UserWarning):
+                client.set_experiment_run(expt_run.name, **kwargs)
