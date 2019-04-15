@@ -994,6 +994,44 @@ class ExperimentRun:
             response = requests.put(url, files={'file': artifact_stream})
             response.raise_for_status()
 
+    def _get_artifact(self, key):
+        """
+        Gets the artifact with name `key` from this Experiment Run.
+
+        If the artifact was originally logged as just a filesystem path, that path will be returned.
+        Otherwise, bytes representing the artifact object will be returned.
+
+        Parameters
+        ----------
+        key : str
+            Name of the artifact.
+
+        Returns
+        -------
+        str or bytes
+            Filesystem path or bytes representing the artifact.
+
+        """
+        # get key-path from ModelDB
+        Message = _ExperimentRunService.GetArtifacts
+        msg = Message(id=self._id, key=key)
+        data = _utils.proto_to_json(msg)
+        response = requests.get("http://{}/v1/experiment-run/getArtifacts".format(self._socket),
+                                params=data, headers=self._auth)
+        response.raise_for_status()
+
+        response_msg = _utils.json_to_proto(response.json(), Message.Response)
+        artifact = response_msg.artifacts[0]
+        if artifact.path_only:
+            return artifact.path
+        else:
+            # download artifact from artifact store
+            url = self._get_url_for_artifact(key, "GET")
+            response = requests.get(url)
+            response.raise_for_status()
+
+            return response.content.split(six.ensure_binary('\r\n'))[3]
+
     def log_attribute(self, key, value):
         """
         Logs an attribute to this Experiment Run.
