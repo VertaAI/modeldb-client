@@ -28,10 +28,10 @@ class ModelDBClient:
         Hostname of the node running the ModelDB backend.
     port : str or int, default "8080"
         Port number to which the ModelDB backend is listening.
-    email : str or None, default None
+    email : str or None, optional
         Authentication credentials for managed service. If this does not sound familiar, then there
         is no need to set it.
-    dev_key : str or None, default None
+    dev_key : str or None, optional
         Authentication credentials for managed service. If this does not sound familiar, then there
         is no need to set it.
 
