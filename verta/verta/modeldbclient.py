@@ -927,6 +927,36 @@ class ExperimentRun:
         else:
             response.raise_for_status()
 
+    def _get_url_for_artifact(self, key, method):
+        """
+        Obtains a URL to use for accessing stored artifacts.
+
+        Parameters
+        ----------
+        key : str
+            Name of the artifact.
+        method : {'GET', 'PUT'}
+            REST method to request for the generated URL.
+
+        Returns
+        -------
+        str
+            Generated URL.
+
+        """
+        if method.upper() not in ("GET", "PUT"):
+            raise ValueError("`method` must be one of {'GET', 'PUT'}")
+
+        Message = _ExperimentRunService.GetUrlForArtifact
+        msg = Message(id=self._id, key=key, method=method.upper())
+        data = _utils.proto_to_json(msg)
+        response = requests.post("http://{}/v1/experiment-run/getUrlForArtifact".format(self._socket),
+                                 json=data, headers=self._auth)
+        response.raise_for_status()
+
+        response_msg = _utils.json_to_proto(response.json(), Message.Response)
+        return response_msg.url
+
     def log_attribute(self, key, value):
         """
         Logs an attribute to this Experiment Run.
