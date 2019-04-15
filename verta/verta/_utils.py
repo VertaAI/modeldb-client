@@ -192,3 +192,33 @@ def load(filename):
 
     """
     return pickle.load(filename)
+
+
+def ensure_bytestream(obj):
+    """
+    Converts an object into a bytestream.
+
+    If `obj` is file-like, its contents will be read into memory and then wrapped in a bytestream.
+    This has a performance cost, but checking beforehand whether an arbitrary file-like object
+    returns bytes is an implementation nightmare.
+
+    If `obj` is not file-like, it will be serialized and then wrapped in a bytestream.
+
+    Parameters
+    ----------
+    obj : file-like or object
+        Object to convert into a bytestream.
+
+    Returns
+    -------
+    file-like
+        Buffered bytestream.
+
+    """
+    try:  # check if obj is file-like
+        contents = obj.read()
+    except AttributeError:  # obj is not file-like
+        bytestring = pickle.dumps(obj)
+    else:
+        bytestring = six.ensure_binary(contents)
+    return six.BytesIO(bytestring)
