@@ -957,6 +957,43 @@ class ExperimentRun:
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
         return response_msg.url
 
+    def _log_artifact(self, key, artifact, artifact_type):
+        """
+        Logs an artifact to this Experiment Run.
+
+        Parameters
+        ----------
+        key : str
+            Name of the artifact.
+        artifact : str or file-like or object
+            Artifact or some representation thereof.
+            - If str, then the string will be logged as a path from your local filesystem.
+            - If file-like, then the contents will be read as bytes and uploaded as an artifact.
+            - Otherwise, the object will be serialized and uploaded as an artifact.
+        artifact_type : int
+            Variant of `_CommonService.ArtifactTypeEnum`.
+
+        """
+        path_only = isinstance(artifact, six.string_types)
+
+        # log key-path to ModelDB
+        Message = _ExperimentRunService.LogArtifact
+        artifact_msg = _CommonService.Artifact(key=key,
+                                               path=artifact if path_only else None, path_only=path_only,
+                                               artifact_type=artifact_type)
+        msg = Message(id=self._id, artifact=artifact_msg)
+        data = _utils.proto_to_json(msg)
+        response = requests.post("http://{}/v1/experiment-run/logArtifact".format(self._socket),
+                                 json=data, headers=self._auth)
+        response.raise_for_status()
+
+        if not path_only:
+            # upload artifact to artifact store
+            url = self._get_url_for_artifact(key, "PUT")
+            artifact_stream = _utils.ensure_bytestream(artifact)
+            response = requests.put(url, data=artifact_stream)
+            response.raise_for_status()
+
     def log_attribute(self, key, value):
         """
         Logs an attribute to this Experiment Run.
