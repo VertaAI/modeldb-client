@@ -512,6 +512,17 @@ class ExperimentRuns:
     This is to allow filtering and sorting without modifying the Experiment Runs' parent and vice
     versa.
 
+    For example, this behavior may be surprising:
+
+    >>> runs = expt.expt_runs
+    >>> runs
+    <ExperimentRuns containing 10 runs>
+    >>> new_run = client.set_experiment_run()
+    >>> expt.expt_runs  # updated
+    <ExperimentRuns containing 11 runs>
+    >>> runs  # still 10
+    <ExperimentRuns containing 10 runs>
+
     The individual ``ExperimentRun``\ s themselves, however, are still synchronized with the backend.
 
     Examples
