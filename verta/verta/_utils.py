@@ -84,7 +84,7 @@ def python_to_val_proto(val):
     elif isinstance(val, list):
         raise NotImplementedError()
     else:
-        raise ValueError("unsupported type {}".format(type(val)))
+        raise ValueError("unsupported type {}; consider using log_artifact() instead".format(type(val)))
 
 
 def val_proto_to_python(msg):
