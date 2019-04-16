@@ -22,6 +22,7 @@ setup(
         "googleapis-common-protos~=1.5",
         "grpcio~=1.16",
         "pathlib2~=2.1",
+        "pillow>=5.2, <7.0",
         "protobuf~=3.6",
         "requests~=2.21",
         "six~=1.12",
