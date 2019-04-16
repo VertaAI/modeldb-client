@@ -1334,74 +1334,54 @@ class ExperimentRun:
             except pickle.UnpicklingError:
                 return dataset
 
-    def log_model(self, key, path, model=None):
+    def log_model(self, key, model):
         """
-        Logs the file system path of a model to this Experiment Run.
-
-        If `model` is provided as an argument, it will be serialized and saved to disk at `path`.
-
-        Models are the result of the training procedure, such as a pickled support vector machine
-        or a neural network's weight tensors.
+        Logs a model artifact to this Experiment Run.
 
         Parameters
         ----------
         key : str
             Name of the model.
-        path : str
-            File system path of the model.
-        model : object, optional
-            Model object to be logged.
+        model : str or file-like or object
+            Model or some representation thereof.
+            - If str, then the string will be logged as a path from your local filesystem.
+            - If file-like, then the contents will be read as bytes and uploaded as an artifact.
+            - Otherwise, the object will be serialized and uploaded as an artifact.
 
         """
         _utils.validate_flat_key(key)
 
-        if model is not None:
-            _utils.dump(model, path)
+        self._log_artifact(key, model, _CommonService.ArtifactTypeEnum.MODEL)
 
-        model_artifact = _CommonService.Artifact(key=key, path=path,
-                                                 artifact_type=_CommonService.ArtifactTypeEnum.MODEL)
-        msg = _ExperimentRunService.LogArtifact(id=self._id, artifact=model_artifact)
-        data = _utils.proto_to_json(msg)
-        response = requests.post("http://{}/v1/experiment-run/logArtifact".format(self._socket),
-                                 json=data, headers=self._auth)
-        response.raise_for_status()
-
-    def get_model(self, key, load=False):
+    def get_model(self, key):
         """
-        Gets the file system path of the model with name `key` from this Experiment Run.
+        Gets the model artifact with name `key` from this Experiment Run.
 
-        If `load` is True, this function will instead deserialize and return the model itself.
+        If the model was originally logged as just a filesystem path, that path will be returned.
+        Otherwise, the model object itself will be returned. If the object is unable to be
+        deserialized, the raw bytes are returned instead.
 
         Parameters
         ----------
         key : str
             Name of the model.
-        load : bool, default False
-            Whether or not to deserialize and return the model itself.
 
         Returns
         -------
-        str or object
-            File system path of the model, or the model object itself if `load` is True.
+        str or object or bytes
+            Filesystem path of the model, the model object, or bytes representing the model.
 
         """
         _utils.validate_flat_key(key)
 
-        Message = _ExperimentRunService.GetArtifacts
-        msg = Message(id=self._id)
-        data = _utils.proto_to_json(msg)
-        response = requests.get("http://{}/v1/experiment-run/getArtifacts".format(self._socket),
-                                params=data, headers=self._auth)
-        response.raise_for_status()
-
-        response_msg = _utils.json_to_proto(response.json(), Message.Response)
-        filepath = {artifact.key: artifact.path
-                    for artifact in response_msg.artifacts
-                    if artifact.artifact_type == _CommonService.ArtifactTypeEnum.MODEL}[key]
-        if not load:
-            return filepath
+        model = self._get_artifact(key)
+        if isinstance(model, six.string_types):
+            return model
         else:
-            return _utils.load(filepath)
+            try:
+                return pickle.loads(model)
+            except pickle.UnpicklingError:
+                return model
 
     def log_image(self, key, path, image=None):
         """
