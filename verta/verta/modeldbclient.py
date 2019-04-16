@@ -1285,71 +1285,54 @@ class ExperimentRun:
         return {hyperparameter.key: _utils.val_proto_to_python(hyperparameter.value)
                 for hyperparameter in response_msg.hyperparameters}
 
-    def log_dataset(self, key, path, dataset=None):
+    def log_dataset(self, key, dataset):
         """
-        Logs the file system path of a dataset to this Experiment Run.
-
-        If `dataset` is provided as an argument, it will be serialized and saved to disk at `path`.
-
-        Datasets are model inputs, such as a test or validation set of grayscale images.
+        Logs a dataset artifact to this Experiment Run.
 
         Parameters
         ----------
         key : str
             Name of the dataset.
-        path : str
-            File system path of the dataset.
-        dataset : object, optional
-            Dataset object to be logged.
+        dataset : str or file-like or object
+            Dataset or some representation thereof.
+            - If str, then the string will be logged as a path from your local filesystem.
+            - If file-like, then the contents will be read as bytes and uploaded as an artifact.
+            - Otherwise, the object will be serialized and uploaded as an artifact.
 
         """
         _utils.validate_flat_key(key)
 
-        if dataset is not None:
-            _utils.dump(dataset, path)
+        self._log_artifact(key, dataset, _CommonService.ArtifactTypeEnum.DATA)
 
-        dataset = _CommonService.Artifact(key=key, path=path,
-                                          artifact_type=_CommonService.ArtifactTypeEnum.DATA)
-        msg = _ExperimentRunService.LogDataset(id=self._id, dataset=dataset)
-        data = _utils.proto_to_json(msg)
-        response = requests.post("http://{}/v1/experiment-run/logDataset".format(self._socket),
-                                 json=data, headers=self._auth)
-        response.raise_for_status()
-
-    def get_dataset(self, key, load=False):
+    def get_dataset(self, key):
         """
-        Gets the file system path of the dataset with name `key` from this Experiment Run.
+        Gets the dataset artifact with name `key` from this Experiment Run.
 
-        If `load` is True, this function will instead deserialize and return the dataset itself.
+        If the dataset was originally logged as just a filesystem path, that path will be returned.
+        Otherwise, the dataset object itself will be returned. If the object is unable to be
+        deserialized, the raw bytes are returned instead.
 
         Parameters
         ----------
         key : str
             Name of the dataset.
-        load : bool, default False
-            Whether or not to deserialize and return the dataset itself.
 
         Returns
         -------
-        str or object
-            File system path of the dataset, or the dataset object itself if `load` is True.
+        str or object or bytes
+            Filesystem path of the dataset, the dataset object, or bytes representing the dataset.
 
         """
         _utils.validate_flat_key(key)
 
-        Message = _ExperimentRunService.GetDatasets
-        msg = Message(id=self._id)
-        data = _utils.proto_to_json(msg)
-        response = requests.get("http://{}/v1/experiment-run/getDatasets".format(self._socket),
-                                params=data, headers=self._auth)
-        response.raise_for_status()
-
-        response_msg = _utils.json_to_proto(response.json(), Message.Response)
-        filepath = {dataset.key: dataset.path for dataset in response_msg.datasets}[key]
-        if not load:
-            return filepath
+        dataset = self._get_artifact(key)
+        if isinstance(dataset, six.string_types):
+            return dataset
         else:
-            return _utils.load(filepath)
+            try:
+                return pickle.loads(dataset)
+            except pickle.UnpicklingError:
+                return dataset
 
     def log_model(self, key, path, model=None):
         """
