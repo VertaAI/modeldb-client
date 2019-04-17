@@ -1031,7 +1031,7 @@ class ExperimentRun:
             response = requests.get(url)
             response.raise_for_status()
 
-            return response.content.split(six.ensure_binary('\r\n'))[3]
+            return b'\r\n'.join(response.content.split(six.ensure_binary('\r\n'))[3:-2])
 
     def log_attribute(self, key, value):
         """
@@ -1412,12 +1412,14 @@ class ExperimentRun:
             try:  # handle PIL Image
                 colors = image.getcolors()
             except AttributeError:
-                del bytestream
+                pass
             else:
-                if len(colors) == 1 and colors[0][1] == (255, 255, 255, 255):
+                if len(colors) == 1 and all(val == 255 for val in colors[0][1]):
                     warnings.warn("the image being logged is blank")
-                img.save(bytestream, 'png')
-        else:
+                image.save(bytestream, 'png')
+
+        if bytestream.getbuffer().nbytes:
+            bytestream.seek(0)
             image = bytestream
 
         self._log_artifact(key, image, _CommonService.ArtifactTypeEnum.IMAGE)
@@ -1448,7 +1450,7 @@ class ExperimentRun:
             return image
         else:
             try:
-                return PIL.Image.open(image)
+                return PIL.Image.open(six.BytesIO(image))
             except IOError:
                 return image
 
