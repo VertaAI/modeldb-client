@@ -1454,6 +1454,55 @@ class ExperimentRun:
             except IOError:
                 return image
 
+    def log_artifact(self, key, artifact):
+        """
+        Logs an artifact to this Experiment Run.
+
+        Parameters
+        ----------
+        key : str
+            Name of the artifact.
+        artifact : str or file-like or object
+            Artifact or some representation thereof.
+            - If str, then the string will be logged as a path from your local filesystem.
+            - If file-like, then the contents will be read as bytes and uploaded as an artifact.
+            - Otherwise, the object will be serialized and uploaded as an artifact.
+
+        """
+        _utils.validate_flat_key(key)
+
+        self._log_artifact(key, artifact, _CommonService.ArtifactTypeEnum.BLOB)
+
+    def get_artifact(self, key):
+        """
+        Gets the artifact with name `key` from this Experiment Run.
+
+        If the artifact was originally logged as just a filesystem path, that path will be returned.
+        Otherwise, the artifact object will be returned. If the object is unable to be deserialized,
+        the raw bytes are returned instead.
+
+        Parameters
+        ----------
+        key : str
+            Name of the artifact.
+
+        Returns
+        -------
+        str or bytes
+            Filesystem path of the artifact, the artifact object, or bytes representing the artifact.
+
+        """
+        _utils.validate_flat_key(key)
+
+        artifact = self._get_artifact(key)
+        if isinstance(artifact, six.string_types):
+            return artifact
+        else:
+            try:
+                return pickle.loads(artifact)
+            except pickle.UnpicklingError:
+                return artifact
+
     def log_observation(self, key, value):
         """
         Logs an observation to this Experiment Run.
