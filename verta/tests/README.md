@@ -1,7 +1,9 @@
 To install the packages needed for developing `verta`, run:
 
 ```
-pip install -r ../requirements.txt
+cd ..
+pip install -r requirements.txt
+cd tests
 ```
 
 To execute tests, run:
