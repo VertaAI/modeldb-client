@@ -1,4 +1,5 @@
 import six
+import six.moves.cPickle as pickle
 from six.moves.urllib.parse import urlparse
 
 import re
@@ -926,6 +927,36 @@ class ExperimentRun:
         else:
             response.raise_for_status()
 
+    def _get_url_for_artifact(self, key, method):
+        """
+        Obtains a URL to use for accessing stored artifacts.
+
+        Parameters
+        ----------
+        key : str
+            Name of the artifact.
+        method : {'GET', 'PUT'}
+            REST method to request for the generated URL.
+
+        Returns
+        -------
+        str
+            Generated URL.
+
+        """
+        if method.upper() not in ("GET", "PUT"):
+            raise ValueError("`method` must be one of {'GET', 'PUT'}")
+
+        Message = _ExperimentRunService.GetUrlForArtifact
+        msg = Message(id=self._id, key=key, method=method.upper())
+        data = _utils.proto_to_json(msg)
+        response = requests.post("http://{}/v1/experiment-run/getUrlForArtifact".format(self._socket),
+                                 json=data, headers=self._auth)
+        response.raise_for_status()
+
+        response_msg = _utils.json_to_proto(response.json(), Message.Response)
+        return response_msg.url
+
     def log_attribute(self, key, value):
         """
         Logs an attribute to this Experiment Run.
@@ -1245,54 +1276,6 @@ class ExperimentRun:
         else:
             return _utils.load(filepath)
 
-    def get_datasets(self, load=False, errors='raise'):
-        """
-        Gets file system paths of all datasets from this Experiment Run.
-
-        If `load` is True, this function will instead deserialize and return the datasets themselves.
-
-        Parameters
-        ----------
-        load : bool, default False
-            Whether or not to deserialize and return the models themselves.
-        errors : {'raise', 'ignore'}, default 'raise'
-            How to handle errors during loading if `load` is True.
-            - If 'raise', then an exception will be raised.
-            - If 'ignore', then the filepath for that dataset will be returned instead.
-
-        Returns
-        -------
-        dict of str to {str, object}
-            File system paths of all datasets, or the datasets themselves if `load` is True.
-
-        """
-        if not load and errors != 'raise':
-            raise ValueError("cannot specify `errors` when `load` is False")
-        if errors not in ['raise', 'ignore']:
-            raise ValueError("`errors` must be one of {'raise', 'ignore'}")
-
-        Message = _ExperimentRunService.GetDatasets
-        msg = Message(id=self._id)
-        data = _utils.proto_to_json(msg)
-        response = requests.get("http://{}/v1/experiment-run/getDatasets".format(self._socket),
-                                params=data, headers=self._auth)
-        response.raise_for_status()
-
-        response_msg = _utils.json_to_proto(response.json(), Message.Response)
-        datasets = {dataset.key: dataset.path for dataset in response_msg.datasets}
-        if not load:
-            return datasets
-        else:
-            for name, filepath in six.viewitems(datasets):
-                try:
-                    datasets[name] = _utils.load(filepath)
-                except Exception as e:
-                    if errors == 'raise':
-                        raise e
-                    elif errors == 'ignore':
-                        pass
-            return datasets
-
     def log_model(self, key, path, model=None):
         """
         Logs the file system path of a model to this Experiment Run.
@@ -1362,56 +1345,6 @@ class ExperimentRun:
         else:
             return _utils.load(filepath)
 
-    def get_models(self, load=False, errors='raise'):
-        """
-        Gets file system paths of all models from this Experiment Run.
-
-        If `load` is True, this function will instead deserialize and return the models themselves.
-
-        Parameters
-        ----------
-        load : bool, default False
-            Whether or not to deserialize and return the models themselves.
-        errors : {'raise', 'ignore'}, default 'raise'
-            How to handle errors during loading if `load` is True.
-            - If 'raise', then an exception will be raised.
-            - If 'ignore', then the filepath for that model will be returned instead.
-
-        Returns
-        -------
-        dict of str to {str, object}
-            File system paths of all models, or the models themselves if `load` is True.
-
-        """
-        if not load and errors != 'raise':
-            raise ValueError("cannot specify `errors` when `load` is False")
-        if errors not in ['raise', 'ignore']:
-            raise ValueError("`errors` must be one of {'raise', 'ignore'}")
-
-        Message = _ExperimentRunService.GetArtifacts
-        msg = Message(id=self._id)
-        data = _utils.proto_to_json(msg)
-        response = requests.get("http://{}/v1/experiment-run/getArtifacts".format(self._socket),
-                                params=data, headers=self._auth)
-        response.raise_for_status()
-
-        response_msg = _utils.json_to_proto(response.json(), Message.Response)
-        models = {artifact.key: artifact.path
-                  for artifact in response_msg.artifacts
-                  if artifact.artifact_type == _CommonService.ArtifactTypeEnum.MODEL}
-        if not load:
-            return models
-        else:
-            for name, filepath in six.viewitems(models):
-                try:
-                    models[name] = _utils.load(filepath)
-                except Exception as e:
-                    if errors == 'raise':
-                        raise e
-                    elif errors == 'ignore':
-                        pass
-            return models
-
     def log_image(self, key, path, image=None):
         """
         Logs the file system path of an image to this Experiment Run.
@@ -1480,56 +1413,6 @@ class ExperimentRun:
             return filepath
         else:
             return _utils.load(filepath)
-
-    def get_images(self, load=False, errors='raise'):
-        """
-        Gets file system paths of all images from this Experiment Run.
-
-        If `load` is True, this function will instead deserialize and return the images themselves.
-
-        Parameters
-        ----------
-        load : bool, default False
-            Whether or not to deserialize and return the models themselves.
-        errors : {'raise', 'ignore'}, default 'raise'
-            How to handle errors during loading if `load` is True.
-            - If 'raise', then an exception will be raised.
-            - If 'ignore', then the filepath for that image will be returned instead.
-
-        Returns
-        -------
-        dict of str to {str, object}
-            File system paths of all images, or the images themselves if `load` is True.
-
-        """
-        if not load and errors != 'raise':
-            raise ValueError("cannot specify `errors` when `load` is False")
-        if errors not in ['raise', 'ignore']:
-            raise ValueError("`errors` must be one of {'raise', 'ignore'}")
-
-        Message = _ExperimentRunService.GetArtifacts
-        msg = Message(id=self._id)
-        data = _utils.proto_to_json(msg)
-        response = requests.get("http://{}/v1/experiment-run/getArtifacts".format(self._socket),
-                                params=data, headers=self._auth)
-        response.raise_for_status()
-
-        response_msg = _utils.json_to_proto(response.json(), Message.Response)
-        images = {artifact.key: artifact.path
-                  for artifact in response_msg.artifacts
-                  if artifact.artifact_type == _CommonService.ArtifactTypeEnum.IMAGE}
-        if not load:
-            return images
-        else:
-            for name, filepath in six.viewitems(images):
-                try:
-                    images[name] = _utils.load(filepath)
-                except Exception as e:
-                    if errors == 'raise':
-                        raise e
-                    elif errors == 'ignore':
-                        pass
-            return images
 
     def log_observation(self, key, value):
         """
