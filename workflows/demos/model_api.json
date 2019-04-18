@@ -1,0 +1,183 @@
+{
+  "input": {
+    "type": "list",
+    "fields": [
+      {
+        "name": "age",
+        "type": "float"
+      },
+      {
+        "name": "capital-gain",
+        "type": "float"
+      },
+      {
+        "name": "capital-loss",
+        "type": "float"
+      },
+      {
+        "name": "hours-per-week",
+        "type": "float"
+      },
+      {
+        "name": "workclass_local-gov",
+        "type": "float"
+      },
+      {
+        "name": "workclass_private",
+        "type": "float"
+      },
+      {
+        "name": "workclass_self-emp-inc",
+        "type": "float"
+      },
+      {
+        "name": "workclass_self-emp-not-inc",
+        "type": "float"
+      },
+      {
+        "name": "workclass_state-gov",
+        "type": "float"
+      },
+      {
+        "name": "workclass_without-pay",
+        "type": "float"
+      },
+      {
+        "name": "education_11th",
+        "type": "float"
+      },
+      {
+        "name": "education_12th",
+        "type": "float"
+      },
+      {
+        "name": "education_1st-4th",
+        "type": "float"
+      },
+      {
+        "name": "education_5th-6th",
+        "type": "float"
+      },
+      {
+        "name": "education_7th-8th",
+        "type": "float"
+      },
+      {
+        "name": "education_9th",
+        "type": "float"
+      },
+      {
+        "name": "education_assoc-acdm",
+        "type": "float"
+      },
+      {
+        "name": "education_assoc-voc",
+        "type": "float"
+      },
+      {
+        "name": "education_bachelors",
+        "type": "float"
+      },
+      {
+        "name": "education_doctorate",
+        "type": "float"
+      },
+      {
+        "name": "education_hs-grad",
+        "type": "float"
+      },
+      {
+        "name": "education_masters",
+        "type": "float"
+      },
+      {
+        "name": "education_preschool",
+        "type": "float"
+      },
+      {
+        "name": "education_prof-school",
+        "type": "float"
+      },
+      {
+        "name": "education_some-college",
+        "type": "float"
+      },
+      {
+        "name": "relationship_not-in-family",
+        "type": "float"
+      },
+      {
+        "name": "relationship_other-relative",
+        "type": "float"
+      },
+      {
+        "name": "relationship_own-child",
+        "type": "float"
+      },
+      {
+        "name": "relationship_unmarried",
+        "type": "float"
+      },
+      {
+        "name": "relationship_wife",
+        "type": "float"
+      },
+      {
+        "name": "occupation_armed-forces",
+        "type": "float"
+      },
+      {
+        "name": "occupation_craft-repair",
+        "type": "float"
+      },
+      {
+        "name": "occupation_exec-managerial",
+        "type": "float"
+      },
+      {
+        "name": "occupation_farming-fishing",
+        "type": "float"
+      },
+      {
+        "name": "occupation_handlers-cleaners",
+        "type": "float"
+      },
+      {
+        "name": "occupation_machine-op-inspct",
+        "type": "float"
+      },
+      {
+        "name": "occupation_other-service",
+        "type": "float"
+      },
+      {
+        "name": "occupation_priv-house-serv",
+        "type": "float"
+      },
+      {
+        "name": "occupation_prof-specialty",
+        "type": "float"
+      },
+      {
+        "name": "occupation_protective-serv",
+        "type": "float"
+      },
+      {
+        "name": "occupation_sales",
+        "type": "float"
+      },
+      {
+        "name": "occupation_tech-support",
+        "type": "float"
+      },
+      {
+        "name": "occupation_transport-moving",
+        "type": "float"
+      }
+    ]
+  },
+  "output": {
+    "name": ">50k",
+    "type": "float"
+  }
+}
