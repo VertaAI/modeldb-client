@@ -1303,7 +1303,7 @@ class ExperimentRun:
         """
         _utils.validate_flat_key(key)
 
-        self._log_artifact(key, dataset, _CommonService.ArtifactTypeEnum.DATA)
+        self._log_artifact("train_data", dataset, _CommonService.ArtifactTypeEnum.DATA)
 
     def get_dataset(self, key):
         """
