@@ -2,6 +2,7 @@ import six
 import six.moves.cPickle as pickle
 from six.moves.urllib.parse import urlparse
 
+import os
 import re
 import ast
 import json
@@ -51,6 +52,9 @@ class ModelDBClient:
     _GRPC_PREFIX = "Grpc-Metadata-"
 
     def __init__(self, host="localhost", port="8080", email=None, dev_key=None):
+        if email is None: email = os.environ.get('MODELDB_EMAIL')
+        if dev_key is None: dev_key = os.environ.get('MODELDB_DEV_KEY')
+
         if email is None and dev_key is None:
             auth = None
         elif email is not None and dev_key is not None:
