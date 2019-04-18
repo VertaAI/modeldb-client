@@ -1023,7 +1023,7 @@ class ExperimentRun:
         response.raise_for_status()
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
-        artifact = response_msg.artifacts[0]
+        artifact = {artifact.key: artifact for artifact in response_msg.artifacts}[key]
         if artifact.path_only:
             return artifact.path
         else:
