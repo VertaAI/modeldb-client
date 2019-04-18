@@ -1335,6 +1335,20 @@ class ExperimentRun:
             except pickle.UnpicklingError:
                 return dataset
 
+    def log_deployment_model(self, model, requirements, model_api):
+        # log model
+        self._log_artifact("model.pkl", model, _CommonService.ArtifactTypeEnum.MODEL)
+
+        # log requirements
+        if isinstance(requirements, six.string_types):
+            requirements = open(requirements, 'rb')
+        self._log_artifact("requirements.txt", requirements, _CommonService.ArtifactTypeEnum.BLOB)
+
+        # log api
+        if isinstance(model_api, six.string_types):
+            model_api = open(model_api, 'rb')
+        self._log_artifact("model_api.json", model_api, _CommonService.ArtifactTypeEnum.BLOB)
+
     def log_model(self, key, model):
         """
         Logs a model artifact to this Experiment Run.
