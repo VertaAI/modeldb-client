@@ -4,6 +4,7 @@ from six.moves.urllib.parse import urlparse
 
 import re
 import ast
+import json
 import time
 import warnings
 
@@ -1324,8 +1325,6 @@ class ExperimentRun:
             Filesystem path of the dataset, the dataset object, or bytes representing the dataset.
 
         """
-        _utils.validate_flat_key(key)
-
         dataset = self._get_artifact(key)
         if isinstance(dataset, six.string_types):
             return dataset
@@ -1348,6 +1347,30 @@ class ExperimentRun:
         if isinstance(model_api, six.string_types):
             model_api = open(model_api, 'rb')
         self._log_artifact("model_api.json", model_api, _CommonService.ArtifactTypeEnum.BLOB)
+
+    def predict(self, x):
+        model_api = json.loads(self.get_artifact("model_api.json"))
+        input_headers = [field['name'] for field in model_api['input']['fields']]
+        input_data = dict(zip(input_headers, x))
+
+        status_url = "http://{}/api/v1/deployment/status/{}".format(self._socket, self._id)
+        status = requests.get(status_url).json()
+        if not status.get('api'):  # wait for deployment
+            print("Model is deploying; please wait...", end='')
+            while not status.get('api'):
+                print(".", end='')
+                time.sleep(3)
+                status = requests.get(status_url).json()
+            print("Model deployed.")
+
+        prediction_url = "http://{}{}".format(self._socket, status['api'])
+        input_request = {'token': status['token'],
+                         'data': input_data}
+        response = requests.post(prediction_url, data=input_request)
+        if not response.ok:
+            print("Error making prediction; model may still be warming up")
+        else:
+            print(response.json())
 
     def log_model(self, key, model):
         """
@@ -1387,8 +1410,6 @@ class ExperimentRun:
             Filesystem path of the model, the model object, or bytes representing the model.
 
         """
-        _utils.validate_flat_key(key)
-
         model = self._get_artifact(key)
         if isinstance(model, six.string_types):
             return model
@@ -1457,8 +1478,6 @@ class ExperimentRun:
             Filesystem path of the image, the image object, or bytes representing the image.
 
         """
-        _utils.validate_flat_key(key)
-
         image = self._get_artifact(key)
         if isinstance(image, six.string_types):
             return image
@@ -1506,8 +1525,6 @@ class ExperimentRun:
             Filesystem path of the artifact, the artifact object, or bytes representing the artifact.
 
         """
-        _utils.validate_flat_key(key)
-
         artifact = self._get_artifact(key)
         if isinstance(artifact, six.string_types):
             return artifact
