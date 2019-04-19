@@ -1,5 +1,2 @@
 # outputs, e.g. models
 output/
-
-# virtual environment
-venv/
