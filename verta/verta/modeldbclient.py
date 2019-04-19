@@ -1309,6 +1309,13 @@ class ExperimentRun:
         _utils.validate_flat_key(key)
 
         self._log_artifact("train_data", dataset, _CommonService.ArtifactTypeEnum.DATA)
+        # also log under the non-fake key in case want to get back later
+        if key != "train_data":
+            try:
+                dataset.seek(0)
+            except AttributeError:
+                pass
+            self._log_artifact(key, dataset, _CommonService.ArtifactTypeEnum.DATA)
 
     def get_dataset(self, key):
         """
