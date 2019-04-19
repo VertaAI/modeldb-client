@@ -997,7 +997,7 @@ class ExperimentRun:
             # upload artifact to artifact store
             url = self._get_url_for_artifact(key, "PUT")
             artifact_stream = _utils.ensure_bytestream(artifact)
-            response = requests.put(url, files={'file': artifact_stream})
+            response = requests.put(url, data=artifact_stream)
             response.raise_for_status()
 
     def _get_artifact(self, key):
@@ -1036,7 +1036,7 @@ class ExperimentRun:
             response = requests.get(url)
             response.raise_for_status()
 
-            return b'\r\n'.join(response.content.split(six.ensure_binary('\r\n'))[3:-2])
+            return response.content
 
     def log_attribute(self, key, value):
         """
