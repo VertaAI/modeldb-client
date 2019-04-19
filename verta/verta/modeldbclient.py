@@ -1376,10 +1376,10 @@ class ExperimentRun:
 
         prediction_url = "http://{}{}".format(self._socket, status['api'])
         input_request = {'token': status['token'],
-                         'data': input_data}
+                         'data': json.dumps(input_data)}
         response = requests.post(prediction_url, data=input_request)
         if not response.ok:
-            print("Error making prediction; model may still be warming up")
+            print(response.text)
         else:
             print(response.json())
 
