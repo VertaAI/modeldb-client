@@ -6,6 +6,11 @@ pip install -r requirements.txt
 cd tests
 ```
 
+Note that on macOS, importing `matplotlib` can raise an error depending on how Python was installed.
+Refer to [this StackOverflow post](https://stackoverflow.com/a/21789908/) for a solution.
+
+---
+
 To execute tests, run:
 
 ```
