@@ -1022,7 +1022,9 @@ class ExperimentRun:
         response.raise_for_status()
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
-        artifact = {artifact.key: artifact for artifact in response_msg.artifacts}[key]
+        artifact = {artifact.key: artifact for artifact in response_msg.artifacts}.get(key)
+        if artifact is None:
+            raise KeyError("no artifact found with key {}".format(key))
         if artifact.path_only:
             return artifact.path
         else:
@@ -1082,8 +1084,11 @@ class ExperimentRun:
         response.raise_for_status()
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
-        return {attribute.key: _utils.val_proto_to_python(attribute.value)
-                for attribute in response_msg.attributes}[key]
+        attribute =  {attribute.key: _utils.val_proto_to_python(attribute.value)
+                      for attribute in response_msg.attributes}.get(key)
+        if attribute is None:
+            raise KeyError("no attribute found with key {}".format(key))
+        return attribute
 
     def get_attributes(self):
         """
@@ -1156,8 +1161,11 @@ class ExperimentRun:
         response.raise_for_status()
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
-        return {metric.key: _utils.val_proto_to_python(metric.value)
-                for metric in response_msg.metrics}[key]
+        metric = {metric.key: _utils.val_proto_to_python(metric.value)
+                  for metric in response_msg.metrics}.get(key)
+        if metric is None:
+            raise KeyError("no metric found with key {}".format(key))
+        return metric
 
     def get_metrics(self):
         """
@@ -1262,8 +1270,11 @@ class ExperimentRun:
         response.raise_for_status()
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
-        return {hyperparameter.key: _utils.val_proto_to_python(hyperparameter.value)
-                for hyperparameter in response_msg.hyperparameters}[key]
+        hyperparameter = {hyperparameter.key: _utils.val_proto_to_python(hyperparameter.value)
+                          for hyperparameter in response_msg.hyperparameters}.get(key)
+        if hyperparameter is None:
+            raise KeyError("no hyperparameter found with key {}".format(key))
+        return hyperparameter
 
     def get_hyperparameters(self):
         """
