@@ -73,7 +73,7 @@ def python_to_val_proto(val):
     """
     if val is None:
         return Value(null_value=NULL_VALUE)
-    if isinstance(val, bool):  # did you know that `bool` is a subclass of `int`?
+    elif isinstance(val, bool):  # did you know that `bool` is a subclass of `int`?
         return Value(bool_value=val)
     elif isinstance(val, float) or isinstance(val, six.integer_types):
         return Value(number_value=val)
