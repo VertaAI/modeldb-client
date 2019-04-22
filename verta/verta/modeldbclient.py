@@ -974,8 +974,15 @@ class ExperimentRun:
         artifact_type : int
             Variant of `_CommonService.ArtifactTypeEnum`.
 
+        Raises
+        ------
+        ValueError
+            If `artifact` is an empty string.
+
         """
         path_only = isinstance(artifact, six.string_types)
+        if path_only and not len(artifact):
+            raise ValueError("`artifact` cannot be an empty string")
 
         # log key-path to ModelDB
         Message = _ExperimentRunService.LogArtifact
