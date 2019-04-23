@@ -1378,10 +1378,8 @@ class ExperimentRun:
         input_request = {'token': status['token'],
                          'data': json.dumps(input_data)}
         response = requests.post(prediction_url, data=input_request)
-        if not response.ok:
-            print(response.text)
-        else:
-            print(response.json())
+        response.raise_for_status()
+        return response.json()
 
     def log_model(self, key, model):
         """
