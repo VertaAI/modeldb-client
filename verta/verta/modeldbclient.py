@@ -1360,25 +1360,26 @@ class ExperimentRun:
         self._log_artifact("model_api.json", model_api, _CommonService.ArtifactTypeEnum.BLOB)
 
     def predict(self, x):
-        model_api = json.loads(self.get_artifact("model_api.json"))
-        input_headers = [field['name'] for field in model_api['input']['fields']]
-        input_data = dict(zip(input_headers, x))
+        if not hasattr(self, '_input_headers'):
+            model_api = json.loads(self.get_artifact("model_api.json"))
+            self._input_headers = [field['name'] for field in model_api['input']['fields']]
+        input_data = dict(zip(self._input_headers, x))
 
-        status_url = "http://{}/api/v1/deployment/status/{}".format(self._socket, self._id)
-        status = requests.get(status_url).json()
-        if not status.get('api'):  # wait for deployment
-            print("Model is deploying; please wait...", end='')
-            while not status.get('api'):
-                print(".", end='')
-                time.sleep(3)
-                status = requests.get(status_url).json()
-            print("Model deployed.")
+        if not hasattr(self, '_prediction_token'):
+            status_url = "http://{}/api/v1/deployment/status/{}".format(self._socket, self._id)
+            response = requests.get(status_url)
+            response.raise_for_status()
+            status = response.json()
+            try:
+                self._prediction_token = status['token']
+            except KeyError:
+                six.raise_from(RuntimeError("deployment is not ready"), None)
 
-        prediction_url = "http://{}{}".format(self._socket, status['api'])
-        input_request = {'token': status['token'],
+        prediction_url = "http://{}/api/v1/predict/{}".format(self._socket, self._id)
+        input_request = {'token': self._prediction_token,
                          'data': json.dumps(input_data)}
         response = requests.post(prediction_url, data=input_request)
-        response.raise_for_status()
+        response.raise_for_status()  # TODO: try refetching api and token
         return response.json()
 
     def log_model(self, key, model):
