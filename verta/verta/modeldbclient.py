@@ -1331,8 +1331,9 @@ class ExperimentRun:
 
         Returns
         -------
-        str or object or bytes
-            Filesystem path of the dataset, the dataset object, or bytes representing the dataset.
+        str or object or file-like
+            Filesystem path of the dataset, the dataset object, or a bytestream representing the
+            dataset.
 
         """
         _utils.validate_flat_key(key)
@@ -1344,7 +1345,7 @@ class ExperimentRun:
             try:
                 return pickle.loads(dataset)
             except pickle.UnpicklingError:
-                return dataset
+                return six.BytesIO(dataset)
 
     def log_model(self, key, model):
         """
@@ -1380,8 +1381,8 @@ class ExperimentRun:
 
         Returns
         -------
-        str or object or bytes
-            Filesystem path of the model, the model object, or bytes representing the model.
+        str or object or file-like
+            Filesystem path of the model, the model object, or a bytestream representing the model.
 
         """
         _utils.validate_flat_key(key)
@@ -1393,7 +1394,7 @@ class ExperimentRun:
             try:
                 return pickle.loads(model)
             except pickle.UnpicklingError:
-                return model
+                return six.BytesIO(model)
 
     def log_image(self, key, image):
         """
@@ -1450,8 +1451,8 @@ class ExperimentRun:
 
         Returns
         -------
-        str or PIL Image or bytes
-            Filesystem path of the image, the image object, or bytes representing the image.
+        str or PIL Image or file-like
+            Filesystem path of the image, the image object, or a bytestream representing the image.
 
         """
         _utils.validate_flat_key(key)
@@ -1463,7 +1464,7 @@ class ExperimentRun:
             try:
                 return PIL.Image.open(six.BytesIO(image))
             except IOError:
-                return image
+                return six.BytesIO(image)
 
     def log_artifact(self, key, artifact):
         """
@@ -1500,7 +1501,8 @@ class ExperimentRun:
         Returns
         -------
         str or bytes
-            Filesystem path of the artifact, the artifact object, or bytes representing the artifact.
+            Filesystem path of the artifact, the artifact object, or a bytestream representing the
+            artifact.
 
         """
         _utils.validate_flat_key(key)
@@ -1512,7 +1514,7 @@ class ExperimentRun:
             try:
                 return pickle.loads(artifact)
             except pickle.UnpicklingError:
-                return artifact
+                return six.BytesIO(artifact)
 
     def log_observation(self, key, value):
         """
