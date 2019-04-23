@@ -1379,8 +1379,11 @@ class ExperimentRun:
         input_request = {'token': self._prediction_token,
                          'data': json.dumps(input_data)}
         response = requests.post(prediction_url, data=input_request)
-        response.raise_for_status()  # TODO: try refetching api and token
-        return response.json()
+        if not response.ok:
+            return None  # silence error for now
+            # TODO: try refetching api and token
+        else:
+            return response.json()
 
     def log_model(self, key, model):
         """
