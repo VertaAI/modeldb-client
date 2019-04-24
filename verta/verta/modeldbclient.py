@@ -863,6 +863,10 @@ class ExperimentRun:
         self._socket = socket
         self._id = expt_run.id
 
+        # for deployment
+        self._input_headers = None
+        self._prediction_token = None
+
     @property
     def name(self):
         Message = _ExperimentRunService.GetExperimentRunById
@@ -1360,12 +1364,12 @@ class ExperimentRun:
         self._log_artifact("model_api.json", model_api, _CommonService.ArtifactTypeEnum.BLOB)
 
     def predict(self, x):
-        if not hasattr(self, '_input_headers'):
+        if self._input_headers is None:
             model_api = json.loads(self.get_artifact("model_api.json"))
             self._input_headers = [field['name'] for field in model_api['input']['fields']]
         input_data = dict(zip(self._input_headers, x))
 
-        if not hasattr(self, '_prediction_token'):
+        if self._prediction_token is None:
             status_url = "http://{}/api/v1/deployment/status/{}".format(self._socket, self._id)
             response = requests.get(status_url)
             response.raise_for_status()
