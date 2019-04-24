@@ -2,8 +2,9 @@ import six
 import six.moves.cPickle as pickle
 from six.moves.urllib.parse import urlparse
 
-import re
 import ast
+import os
+import re
 import time
 import warnings
 
@@ -50,6 +51,13 @@ class ModelDBClient:
     _GRPC_PREFIX = "Grpc-Metadata-"
 
     def __init__(self, host, port=None, email=None, dev_key=None):
+        if email is None and 'MODELDB_EMAIL' in os.environ:
+            email = os.environ['MODELDB_EMAIL']
+            print("set email from environment")
+        if dev_key is None and 'MODELDB_DEV_KEY' in os.environ:
+            dev_key = os.environ.get('MODELDB_DEV_KEY')
+            print("set developer key from environment")
+
         if email is None and dev_key is None:
             auth = None
         elif email is not None and dev_key is not None:
