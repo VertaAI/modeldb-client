@@ -937,6 +937,20 @@ class ExperimentRun:
         else:
             response.raise_for_status()
 
+    def _set_prediction_token(self):
+        status_url = "http://{}/api/v1/deployment/status/{}".format(self._socket, self._id)
+        response = requests.get(status_url)
+        response.raise_for_status()
+        status = response.json()
+        try:
+            self._prediction_token = status['token']
+        except KeyError:
+            six.raise_from(RuntimeError("deployment is not ready"), None)
+
+    def _set_input_headers(self):
+        model_api = json.loads(self.get_artifact("model_api.json"))
+        self._input_headers = [field['name'] for field in model_api['input']['fields']]
+
     def _get_url_for_artifact(self, key, method):
         """
         Obtains a URL to use for accessing stored artifacts.
@@ -1364,30 +1378,25 @@ class ExperimentRun:
         self._log_artifact("model_api.json", model_api, _CommonService.ArtifactTypeEnum.BLOB)
 
     def predict(self, x):
-        if self._input_headers is None:
-            model_api = json.loads(self.get_artifact("model_api.json"))
-            self._input_headers = [field['name'] for field in model_api['input']['fields']]
-        input_data = dict(zip(self._input_headers, x))
-
         if self._prediction_token is None:
-            status_url = "http://{}/api/v1/deployment/status/{}".format(self._socket, self._id)
-            response = requests.get(status_url)
-            response.raise_for_status()
-            status = response.json()
-            try:
-                self._prediction_token = status['token']
-            except KeyError:
-                six.raise_from(RuntimeError("deployment is not ready"), None)
-
+            self._set_prediction_token()
+        if self._input_headers is None:
+            self._set_input_headers()
+        
+        input_data = dict(zip(self._input_headers, x))
         prediction_url = "http://{}/api/v1/predict/{}".format(self._socket, self._id)
         input_request = {'token': self._prediction_token,
                          'data': json.dumps(input_data)}
         response = requests.post(prediction_url, data=input_request)
         if not response.ok:
-            return None  # silence error for now
-            # TODO: try refetching api and token
-        else:
-            return response.json()
+            self._set_prediction_token()  # try refetching token
+            response = requests.post(prediction_url, data=input_request)
+            if not response.ok:
+                self._set_input_headers()  # try refetching input headers
+                response = requests.post(prediction_url, data=input_request)
+                if not response.ok:
+                    return None  # silence error for now
+        return response.json()
 
     def log_model(self, key, model):
         """
