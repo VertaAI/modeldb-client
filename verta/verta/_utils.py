@@ -214,11 +214,22 @@ def ensure_bytestream(obj):
     file-like
         Buffered bytestream.
 
+    Raises
+    ------
+    ValueError
+        If `obj` contains no data.
+
     """
-    try:  # check if obj is file-like
+    if hasattr(obj, 'read'):  # check if `obj` is file-like
+        try:  # reset cursor to beginning of stream in case user forgot
+            obj.seek(0)
+        except AttributeError:
+            pass
+        # read to cast into binary
         contents = obj.read()
-    except AttributeError:  # obj is not file-like
-        bytestring = pickle.dumps(obj)
-    else:
+        if not len(contents):
+            raise ValueError("object contains no data")
         bytestring = six.ensure_binary(contents)
+    else:  # `obj` is not file-like
+        bytestring = pickle.dumps(obj)
     return six.BytesIO(bytestring)
