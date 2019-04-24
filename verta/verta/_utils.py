@@ -8,7 +8,7 @@ from google.protobuf import json_format
 from google.protobuf.struct_pb2 import Value, NULL_VALUE
 
 
-_VALID_FLAT_KEY_CHARS = set(string.ascii_letters + string.digits + '_')
+_VALID_FLAT_KEY_CHARS = set(string.ascii_letters + string.digits + '_-')
 
 
 def proto_to_json(msg):
@@ -126,8 +126,8 @@ def validate_flat_key(key):
     To prevent bugs with querying (which allow dot-delimited nested keys), flat keys (such as those
     used for individual metrics) must not contain periods.
 
-    Furthermore, to prevent potential bugs with the backend down the line, keys should be restricted
-    to alphanumeric characters and underscores until we can verify robustness.
+    Furthermore, to prevent potential bugs with the back end down the line, keys should be restricted
+    to alphanumeric characters, underscores, and dashes until we can verify robustness.
 
     Parameters
     ----------
@@ -142,7 +142,7 @@ def validate_flat_key(key):
     """
     for c in key:
         if c not in _VALID_FLAT_KEY_CHARS:
-            raise ValueError("`key` may only contain alphanumeric characters and underscores")
+            raise ValueError("`key` may only contain alphanumeric characters, underscores, and dashes")
 
 
 def ensure_bytestream(obj):
