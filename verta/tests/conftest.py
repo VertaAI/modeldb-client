@@ -7,11 +7,6 @@ import pytest
 import utils
 
 
-HOST_ENV_VAR = "MODELDB_HOST"
-PORT_ENV_VAR = "MODELDB_PORT"
-EMAIL_ENV_VAR = "MODELDB_EMAIL"
-DEV_KEY_ENV_VAR = "MODELDB_DEV_KEY"
-
 DEFAULT_HOST = "localhost"
 DEFAULT_PORT = "8080"
 DEFAULT_EMAIL = None
@@ -20,22 +15,22 @@ DEFAULT_DEV_KEY = None
 
 @pytest.fixture(scope='session')
 def host():
-    return os.environ.get(HOST_ENV_VAR, DEFAULT_HOST)
+    return os.environ.get("VERTA_HOST", DEFAULT_HOST)
 
 
 @pytest.fixture(scope='session')
 def port():
-    return os.environ.get(PORT_ENV_VAR, DEFAULT_PORT)
+    return os.environ.get("VERTA_PORT", DEFAULT_PORT)
 
 
 @pytest.fixture(scope='session')
 def email():
-    return os.environ.get(EMAIL_ENV_VAR, DEFAULT_EMAIL)
+    return os.environ.get("VERTA_EMAIL", DEFAULT_EMAIL)
 
 
 @pytest.fixture(scope='session')
 def dev_key():
-    return os.environ.get(DEV_KEY_ENV_VAR, DEFAULT_DEV_KEY)
+    return os.environ.get("VERTA_DEV_KEY", DEFAULT_DEV_KEY)
 
 
 @pytest.fixture(scope='session')
