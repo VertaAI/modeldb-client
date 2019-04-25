@@ -285,6 +285,9 @@ class Project:
         self._socket = socket
         self._id = proj.id
 
+    def __repr__(self):
+        return "<Project \"{}\">".format(self.name)
+
     @property
     def name(self):
         Message = _ProjectService.GetProjectById
@@ -423,6 +426,9 @@ class Experiment:
         self._auth = auth
         self._socket = socket
         self._id = expt.id
+
+    def __repr__(self):
+        return "<Experiment \"{}\">".format(self.name)
 
     @property
     def name(self):
@@ -861,6 +867,9 @@ class ExperimentRun:
         self._auth = auth
         self._socket = socket
         self._id = expt_run.id
+
+    def __repr__(self):
+        return "<ExperimentRun \"{}\">".format(self.name)
 
     @property
     def name(self):
