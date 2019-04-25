@@ -51,11 +51,11 @@ class ModelDBClient:
     _GRPC_PREFIX = "Grpc-Metadata-"
 
     def __init__(self, host, port=None, email=None, dev_key=None):
-        if email is None and 'MODELDB_EMAIL' in os.environ:
-            email = os.environ['MODELDB_EMAIL']
+        if email is None and 'VERTA_EMAIL' in os.environ:
+            email = os.environ['VERTA_EMAIL']
             print("set email from environment")
-        if dev_key is None and 'MODELDB_DEV_KEY' in os.environ:
-            dev_key = os.environ.get('MODELDB_DEV_KEY')
+        if dev_key is None and 'VERTA_DEV_KEY' in os.environ:
+            dev_key = os.environ.get('VERTA_DEV_KEY')
             print("set developer key from environment")
 
         if email is None and dev_key is None:
