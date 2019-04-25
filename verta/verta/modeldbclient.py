@@ -26,9 +26,9 @@ class ModelDBClient:
 
     Parameters
     ----------
-    host : str, default "localhost"
+    host : str
         Hostname of the node running the ModelDB backend.
-    port : str or int, default "8080"
+    port : str or int, optional
         Port number to which the ModelDB backend is listening.
     email : str, optional
         Authentication credentials for managed service. If this does not sound familiar, then there
@@ -49,7 +49,7 @@ class ModelDBClient:
     """
     _GRPC_PREFIX = "Grpc-Metadata-"
 
-    def __init__(self, host="localhost", port="8080", email=None, dev_key=None):
+    def __init__(self, host, port=None, email=None, dev_key=None):
         if email is None and dev_key is None:
             auth = None
         elif email is not None and dev_key is not None:
@@ -69,7 +69,7 @@ class ModelDBClient:
             host = host.netloc
 
         # verify connection
-        socket = "{}:{}".format(host, port)
+        socket = host if port is None else "{}:{}".format(host, port)
         try:
             response = requests.get("http://{}/v1/project/verifyConnection".format(socket), headers=auth)
         except requests.ConnectionError:
