@@ -2,6 +2,7 @@ import six
 import six.moves.cPickle as pickle
 
 import json
+import numbers
 import string
 
 from google.protobuf import json_format
@@ -72,7 +73,7 @@ def python_to_val_proto(val):
         return Value(null_value=NULL_VALUE)
     elif isinstance(val, bool):  # did you know that `bool` is a subclass of `int`?
         return Value(bool_value=val)
-    elif isinstance(val, float) or isinstance(val, six.integer_types):
+    elif isinstance(val, numbers.Real):
         return Value(number_value=val)
     elif isinstance(val, six.string_types):
         return Value(string_value=val)
