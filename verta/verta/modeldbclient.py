@@ -68,10 +68,6 @@ class ModelDBClient:
             # TODO(conrado): support subpaths? (e.g. example.com/backend)
             host = host.netloc
 
-        m = re.compile('.*:[0-9]+').match(host)
-        if m:
-            raise ValueError("argument `host` already contains a port; please split and provide as separate arguments")
-
         # verify connection
         socket = "{}:{}".format(host, port)
         try:
