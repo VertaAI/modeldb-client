@@ -60,10 +60,12 @@ class ModelDBClient:
 
         if email is None and dev_key is None:
             auth = None
+            scheme = "http"
         elif email is not None and dev_key is not None:
             auth = {self._GRPC_PREFIX+'email': email,
                     self._GRPC_PREFIX+'developer_key': dev_key,
                     self._GRPC_PREFIX+'source': "PythonClient"}
+            scheme = "https"
         else:
             raise ValueError("`email` and `dev_key` must be provided together")
 
@@ -79,13 +81,14 @@ class ModelDBClient:
         # verify connection
         socket = host if port is None else "{}:{}".format(host, port)
         try:
-            response = requests.get("http://{}/v1/project/verifyConnection".format(socket), headers=auth)
+            response = requests.get("{}://{}/v1/project/verifyConnection".format(scheme, socket), headers=auth)
         except requests.ConnectionError:
             raise requests.ConnectionError("connection failed; please check `host` and `port`")
         response.raise_for_status()
         print("connection successfully established")
 
         self._auth = auth
+        self._scheme = scheme
         self._socket = socket
 
         self.proj = None
@@ -99,7 +102,7 @@ class ModelDBClient:
             Message = _ExperimentRunService.GetExperimentRunsInProject
             msg = Message(project_id=self.proj._id)
             data = _utils.proto_to_json(msg)
-            response = requests.get("http://{}/v1/experiment-run/getExperimentRunsInProject".format(self._socket),
+            response = requests.get("{}://{}/v1/experiment-run/getExperimentRunsInProject".format(self._scheme, self._socket),
                                     params=data, headers=self._auth)
             response.raise_for_status()
 
@@ -282,6 +285,7 @@ class Project:
                 print("created new Project: {}".format(proj.name))
 
         self._auth = auth
+        self._scheme = "http" if auth is None else "https"
         self._socket = socket
         self._id = proj.id
 
@@ -293,7 +297,7 @@ class Project:
         Message = _ProjectService.GetProjectById
         msg = Message(id=self._id)
         data = _utils.proto_to_json(msg)
-        response = requests.get("http://{}/v1/project/getProjectById".format(self._socket),
+        response = requests.get("{}://{}/v1/project/getProjectById".format(self._scheme, self._socket),
                                 params=data, headers=self._auth)
         response.raise_for_status()
 
@@ -306,7 +310,7 @@ class Project:
         Message = _ExperimentRunService.GetExperimentRunsInProject
         msg = Message(project_id=self._id)
         data = _utils.proto_to_json(msg)
-        response = requests.get("http://{}/v1/experiment-run/getExperimentRunsInProject".format(self._socket),
+        response = requests.get("{}://{}/v1/experiment-run/getExperimentRunsInProject".format(self._scheme, self._socket),
                                 params=data, headers=self._auth)
         response.raise_for_status()
 
@@ -321,11 +325,13 @@ class Project:
 
     @staticmethod
     def _get(auth, socket, proj_name=None, _proj_id=None):
+        scheme = "http" if auth is None else "https"
+
         if _proj_id is not None:
             Message = _ProjectService.GetProjectById
             msg = Message(id=_proj_id)
             data = _utils.proto_to_json(msg)
-            response = requests.get("http://{}/v1/project/getProjectById".format(socket),
+            response = requests.get("{}://{}/v1/project/getProjectById".format(scheme, socket),
                                     params=data, headers=auth)
 
             if response.ok:
@@ -340,7 +346,7 @@ class Project:
             Message = _ProjectService.GetProjectByName
             msg = Message(name=proj_name)
             data = _utils.proto_to_json(msg)
-            response = requests.get("http://{}/v1/project/getProjectByName".format(socket),
+            response = requests.get("{}://{}/v1/project/getProjectByName".format(scheme, socket),
                                     params=data, headers=auth)
 
             if response.ok:
@@ -356,6 +362,8 @@ class Project:
 
     @staticmethod
     def _create(auth, socket, proj_name, desc=None, tags=None, attrs=None):
+        scheme = "http" if auth is None else "https"
+
         if attrs is not None:
             attrs = [_CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value))
                      for key, value in six.viewitems(attrs)]
@@ -363,7 +371,7 @@ class Project:
         Message = _ProjectService.CreateProject
         msg = Message(name=proj_name, description=desc, tags=tags, metadata=attrs)
         data = _utils.proto_to_json(msg)
-        response = requests.post("http://{}/v1/project/createProject".format(socket),
+        response = requests.post("{}://{}/v1/project/createProject".format(scheme, socket),
                                  json=data, headers=auth)
 
         if response.ok:
@@ -424,6 +432,7 @@ class Experiment:
             raise ValueError("insufficient arguments")
 
         self._auth = auth
+        self._scheme = "http" if auth is None else "https"
         self._socket = socket
         self._id = expt.id
 
@@ -435,7 +444,7 @@ class Experiment:
         Message = _ExperimentService.GetExperimentById
         msg = Message(id=self._id)
         data = _utils.proto_to_json(msg)
-        response = requests.get("http://{}/v1/experiment/getExperimentById".format(self._socket),
+        response = requests.get("{}://{}/v1/experiment/getExperimentById".format(self._scheme, self._socket),
                                 params=data, headers=self._auth)
         response.raise_for_status()
 
@@ -448,7 +457,7 @@ class Experiment:
         Message = _ExperimentRunService.GetExperimentRunsInExperiment
         msg = Message(experiment_id=self._id)
         data = _utils.proto_to_json(msg)
-        response = requests.get("http://{}/v1/experiment-run/getExperimentRunsInExperiment".format(self._socket),
+        response = requests.get("{}://{}/v1/experiment-run/getExperimentRunsInExperiment".format(self._scheme, self._socket),
                                 params=data, headers=self._auth)
         response.raise_for_status()
 
@@ -463,17 +472,19 @@ class Experiment:
 
     @staticmethod
     def _get(auth, socket, proj_id=None, expt_name=None, _expt_id=None):
+        scheme = "http" if auth is None else "https"
+
         if _expt_id is not None:
             Message = _ExperimentService.GetExperimentById
             msg = Message(id=_expt_id)
             data = _utils.proto_to_json(msg)
-            response = requests.get("http://{}/v1/experiment/getExperimentById".format(socket),
+            response = requests.get("{}://{}/v1/experiment/getExperimentById".format(scheme, socket),
                                     params=data, headers=auth)
         elif None not in (proj_id, expt_name):
             Message = _ExperimentService.GetExperimentByName
             msg = Message(project_id=proj_id, name=expt_name)
             data = _utils.proto_to_json(msg)
-            response = requests.get("http://{}/v1/experiment/getExperimentByName".format(socket),
+            response = requests.get("{}://{}/v1/experiment/getExperimentByName".format(scheme, socket),
                                     params=data, headers=auth)
         else:
             raise ValueError("insufficient arguments")
@@ -489,6 +500,8 @@ class Experiment:
 
     @staticmethod
     def _create(auth, socket, proj_id, expt_name, desc=None, tags=None, attrs=None):
+        scheme = "http" if auth is None else "https"
+
         if attrs is not None:
             attrs = [_CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value))
                      for key, value in six.viewitems(attrs)]
@@ -497,7 +510,7 @@ class Experiment:
         msg = Message(project_id=proj_id, name=expt_name,
                       description=desc, tags=tags, attributes=attrs)
         data = _utils.proto_to_json(msg)
-        response = requests.post("http://{}/v1/experiment/createExperiment".format(socket),
+        response = requests.post("{}://{}/v1/experiment/createExperiment".format(scheme, socket),
                                  json=data, headers=auth)
 
         if response.ok:
@@ -562,6 +575,7 @@ class ExperimentRuns:
 
     def __init__(self, auth, socket, expt_run_ids=None):
         self._auth = auth
+        self._scheme = "http" if auth is None else "https"
         self._socket = socket
         self._ids = expt_run_ids if expt_run_ids is not None else []
 
@@ -662,7 +676,7 @@ class ExperimentRuns:
         msg = Message(project_id=_proj_id, experiment_id=_expt_id, experiment_run_ids=expt_run_ids,
                       predicates=predicates, ids_only=not ret_all_info)
         data = _utils.proto_to_json(msg)
-        response = requests.post("http://{}/v1/experiment-run/findExperimentRuns".format(self._socket),
+        response = requests.post("{}://{}/v1/experiment-run/findExperimentRuns".format(self._scheme, self._socket),
                                  json=data, headers=self._auth)
         response.raise_for_status()
 
@@ -705,7 +719,7 @@ class ExperimentRuns:
         msg = Message(experiment_run_ids=self._ids,
                       sort_key=key, ascending=not descending, ids_only=not ret_all_info)
         data = _utils.proto_to_json(msg)
-        response = requests.get("http://{}/v1/experiment-run/sortExperimentRuns".format(self._socket),
+        response = requests.get("{}://{}/v1/experiment-run/sortExperimentRuns".format(self._scheme, self._socket),
                                 params=data, headers=self._auth)
         response.raise_for_status()
 
@@ -755,7 +769,7 @@ class ExperimentRuns:
         msg = Message(project_id=_proj_id, experiment_id=_expt_id, experiment_run_ids=expt_run_ids,
                       sort_key=key, ascending=False, top_k=k, ids_only=not ret_all_info)
         data = _utils.proto_to_json(msg)
-        response = requests.get("http://{}/v1/experiment-run/getTopExperimentRuns".format(self._socket),
+        response = requests.get("{}://{}/v1/experiment-run/getTopExperimentRuns".format(self._scheme, self._socket),
                                 params=data, headers=self._auth)
         response.raise_for_status()
 
@@ -805,7 +819,7 @@ class ExperimentRuns:
         msg = Message(project_id=_proj_id, experiment_id=_expt_id, experiment_run_ids=expt_run_ids,
                       sort_key=key, ascending=True, top_k=k, ids_only=not ret_all_info)
         data = _utils.proto_to_json(msg)
-        response = requests.get("http://{}/v1/experiment-run/getTopExperimentRuns".format(self._socket),
+        response = requests.get("{}://{}/v1/experiment-run/getTopExperimentRuns".format(self._scheme, self._socket),
                                 params=data, headers=self._auth)
         response.raise_for_status()
 
@@ -865,6 +879,7 @@ class ExperimentRun:
             raise ValueError("insufficient arguments")
 
         self._auth = auth
+        self._scheme = "http" if auth is None else "https"
         self._socket = socket
         self._id = expt_run.id
 
@@ -876,7 +891,7 @@ class ExperimentRun:
         Message = _ExperimentRunService.GetExperimentRunById
         msg = Message(id=self._id)
         data = _utils.proto_to_json(msg)
-        response = requests.get("http://{}/v1/experiment-run/getExperimentRunById".format(self._socket),
+        response = requests.get("{}://{}/v1/experiment-run/getExperimentRunById".format(self._scheme, self._socket),
                                 params=data, headers=self._auth)
         response.raise_for_status()
 
@@ -889,17 +904,19 @@ class ExperimentRun:
 
     @staticmethod
     def _get(auth, socket, proj_id=None, expt_id=None, expt_run_name=None, _expt_run_id=None):
+        scheme = "http" if auth is None else "https"
+
         if _expt_run_id is not None:
             Message = _ExperimentRunService.GetExperimentRunById
             msg = Message(id=_expt_run_id)
             data = _utils.proto_to_json(msg)
-            response = requests.get("http://{}/v1/experiment-run/getExperimentRunById".format(socket),
+            response = requests.get("{}://{}/v1/experiment-run/getExperimentRunById".format(scheme, socket),
                                     params=data, headers=auth)
         elif None not in (proj_id, expt_id, expt_run_name):
             Message = _ExperimentRunService.GetExperimentRunsInProject
             msg = Message(project_id=proj_id)
             data = _utils.proto_to_json(msg)
-            response = requests.get("http://{}/v1/experiment-run/getExperimentRunsInProject".format(socket),
+            response = requests.get("{}://{}/v1/experiment-run/getExperimentRunsInProject".format(scheme, socket),
                                     params=data, headers=auth)
             response.raise_for_status()
             if 'experiment_runs' in response.json():
@@ -924,6 +941,8 @@ class ExperimentRun:
 
     @staticmethod
     def _create(auth, socket, proj_id, expt_id, expt_run_name, desc=None, tags=None, attrs=None):
+        scheme = "http" if auth is None else "https"
+
         if attrs is not None:
             attrs = [_CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value))
                      for key, value in six.viewitems(attrs)]
@@ -932,7 +951,7 @@ class ExperimentRun:
         msg = Message(project_id=proj_id, experiment_id=expt_id, name=expt_run_name,
                       description=desc, tags=tags, attributes=attrs)
         data = _utils.proto_to_json(msg)
-        response = requests.post("http://{}/v1/experiment-run/createExperimentRun".format(socket),
+        response = requests.post("{}://{}/v1/experiment-run/createExperimentRun".format(scheme, socket),
                                  json=data, headers=auth)
 
         if response.ok:
@@ -964,7 +983,7 @@ class ExperimentRun:
         Message = _ExperimentRunService.GetUrlForArtifact
         msg = Message(id=self._id, key=key, method=method.upper())
         data = _utils.proto_to_json(msg)
-        response = requests.post("http://{}/v1/experiment-run/getUrlForArtifact".format(self._socket),
+        response = requests.post("{}://{}/v1/experiment-run/getUrlForArtifact".format(self._scheme, self._socket),
                                  json=data, headers=self._auth)
         response.raise_for_status()
 
@@ -1004,7 +1023,7 @@ class ExperimentRun:
                                                artifact_type=artifact_type)
         msg = Message(id=self._id, artifact=artifact_msg)
         data = _utils.proto_to_json(msg)
-        response = requests.post("http://{}/v1/experiment-run/logArtifact".format(self._socket),
+        response = requests.post("{}://{}/v1/experiment-run/logArtifact".format(self._scheme, self._socket),
                                  json=data, headers=self._auth)
         response.raise_for_status()
 
@@ -1037,7 +1056,7 @@ class ExperimentRun:
         Message = _ExperimentRunService.GetArtifacts
         msg = Message(id=self._id, key=key)
         data = _utils.proto_to_json(msg)
-        response = requests.get("http://{}/v1/experiment-run/getArtifacts".format(self._socket),
+        response = requests.get("{}://{}/v1/experiment-run/getArtifacts".format(self._scheme, self._socket),
                                 params=data, headers=self._auth)
         response.raise_for_status()
 
@@ -1075,7 +1094,7 @@ class ExperimentRun:
         attribute = _CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value))
         msg = _ExperimentRunService.LogAttribute(id=self._id, attribute=attribute)
         data = _utils.proto_to_json(msg)
-        response = requests.post("http://{}/v1/experiment-run/logAttribute".format(self._socket),
+        response = requests.post("{}://{}/v1/experiment-run/logAttribute".format(self._scheme, self._socket),
                                  json=data, headers=self._auth)
         response.raise_for_status()
 
@@ -1099,7 +1118,7 @@ class ExperimentRun:
         Message = _CommonService.GetAttributes
         msg = Message(id=self._id, attribute_keys=[key])
         data = _utils.proto_to_json(msg)
-        response = requests.get("http://{}/v1/experiment-run/getAttributes".format(self._socket),
+        response = requests.get("{}://{}/v1/experiment-run/getAttributes".format(self._scheme, self._socket),
                                 params=data, headers=self._auth)
         response.raise_for_status()
 
@@ -1123,7 +1142,7 @@ class ExperimentRun:
         Message = _CommonService.GetAttributes
         msg = Message(id=self._id, get_all=True)
         data = _utils.proto_to_json(msg)
-        response = requests.get("http://{}/v1/experiment-run/getAttributes".format(self._socket),
+        response = requests.get("{}://{}/v1/experiment-run/getAttributes".format(self._scheme, self._socket),
                                 params=data, headers=self._auth)
         response.raise_for_status()
 
@@ -1152,7 +1171,7 @@ class ExperimentRun:
         metric = _CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value))
         msg = _ExperimentRunService.LogMetric(id=self._id, metric=metric)
         data = _utils.proto_to_json(msg)
-        response = requests.post("http://{}/v1/experiment-run/logMetric".format(self._socket),
+        response = requests.post("{}://{}/v1/experiment-run/logMetric".format(self._scheme, self._socket),
                                  json=data, headers=self._auth)
         response.raise_for_status()
 
@@ -1176,7 +1195,7 @@ class ExperimentRun:
         Message = _ExperimentRunService.GetMetrics
         msg = Message(id=self._id)
         data = _utils.proto_to_json(msg)
-        response = requests.get("http://{}/v1/experiment-run/getMetrics".format(self._socket),
+        response = requests.get("{}://{}/v1/experiment-run/getMetrics".format(self._scheme, self._socket),
                                 params=data, headers=self._auth)
         response.raise_for_status()
 
@@ -1200,7 +1219,7 @@ class ExperimentRun:
         Message = _ExperimentRunService.GetMetrics
         msg = Message(id=self._id)
         data = _utils.proto_to_json(msg)
-        response = requests.get("http://{}/v1/experiment-run/getMetrics".format(self._socket),
+        response = requests.get("{}://{}/v1/experiment-run/getMetrics".format(self._scheme, self._socket),
                                 params=data, headers=self._auth)
         response.raise_for_status()
 
@@ -1228,7 +1247,7 @@ class ExperimentRun:
         hyperparameter = _CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value))
         msg = _ExperimentRunService.LogHyperparameter(id=self._id, hyperparameter=hyperparameter)
         data = _utils.proto_to_json(msg)
-        response = requests.post("http://{}/v1/experiment-run/logHyperparameter".format(self._socket),
+        response = requests.post("{}://{}/v1/experiment-run/logHyperparameter".format(self._scheme, self._socket),
                                  json=data, headers=self._auth)
         response.raise_for_status()
 
@@ -1261,7 +1280,7 @@ class ExperimentRun:
             hyperparameter = _CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value))
             msg = _ExperimentRunService.LogHyperparameter(id=self._id, hyperparameter=hyperparameter)
             data = _utils.proto_to_json(msg)
-            response = requests.post("http://{}/v1/experiment-run/logHyperparameter".format(self._socket),
+            response = requests.post("{}://{}/v1/experiment-run/logHyperparameter".format(self._scheme, self._socket),
                                      json=data, headers=self._auth)
             response.raise_for_status()
 
@@ -1285,7 +1304,7 @@ class ExperimentRun:
         Message = _ExperimentRunService.GetHyperparameters
         msg = Message(id=self._id)
         data = _utils.proto_to_json(msg)
-        response = requests.get("http://{}/v1/experiment-run/getHyperparameters".format(self._socket),
+        response = requests.get("{}://{}/v1/experiment-run/getHyperparameters".format(self._scheme, self._socket),
                                 params=data, headers=self._auth)
         response.raise_for_status()
 
@@ -1309,7 +1328,7 @@ class ExperimentRun:
         Message = _ExperimentRunService.GetHyperparameters
         msg = Message(id=self._id)
         data = _utils.proto_to_json(msg)
-        response = requests.get("http://{}/v1/experiment-run/getHyperparameters".format(self._socket),
+        response = requests.get("{}://{}/v1/experiment-run/getHyperparameters".format(self._scheme, self._socket),
                                 params=data, headers=self._auth)
         response.raise_for_status()
 
@@ -1557,7 +1576,7 @@ class ExperimentRun:
         observation = _ExperimentRunService.Observation(attribute=attribute)  # TODO: support Artifacts
         msg = _ExperimentRunService.LogObservation(id=self._id, observation=observation)
         data = _utils.proto_to_json(msg)
-        response = requests.post("http://{}/v1/experiment-run/logObservation".format(self._socket),
+        response = requests.post("{}://{}/v1/experiment-run/logObservation".format(self._scheme, self._socket),
                                  json=data, headers=self._auth)
         response.raise_for_status()
 
@@ -1581,7 +1600,7 @@ class ExperimentRun:
         Message = _ExperimentRunService.GetObservations
         msg = Message(id=self._id, observation_key=key)
         data = _utils.proto_to_json(msg)
-        response = requests.get("http://{}/v1/experiment-run/getObservations".format(self._socket),
+        response = requests.get("{}://{}/v1/experiment-run/getObservations".format(self._scheme, self._socket),
                                 params=data, headers=self._auth)
         response.raise_for_status()
 
@@ -1605,7 +1624,7 @@ class ExperimentRun:
         Message = _ExperimentRunService.GetExperimentRunById
         msg = Message(id=self._id)
         data = _utils.proto_to_json(msg)
-        response = requests.get("http://{}/v1/experiment-run/getExperimentRunById".format(self._socket),
+        response = requests.get("{}://{}/v1/experiment-run/getExperimentRunById".format(self._scheme, self._socket),
                                 params=data, headers=self._auth)
         response.raise_for_status()
 
