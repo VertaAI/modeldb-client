@@ -7,8 +7,8 @@ import pytest
 import utils
 
 
-DEFAULT_HOST = "localhost"
-DEFAULT_PORT = "8080"
+DEFAULT_HOST = None
+DEFAULT_PORT = None
 DEFAULT_EMAIL = None
 DEFAULT_DEV_KEY = None
 
