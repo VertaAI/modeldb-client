@@ -619,7 +619,8 @@ class ExperimentRuns:
         where : str or list of str
             Predicates specifying Experiment Runs to get.
         ret_all_info : bool, default False
-            If False, return an :class:`ExperimentRuns`. Otherwise, return an iterable of `protobuf` `Message`\ s.
+            If False, return an :class:`ExperimentRuns`. Otherwise, return an iterable of `protobuf`
+            `Message`\ s.
 
         Returns
         -------
@@ -692,7 +693,8 @@ class ExperimentRuns:
         """
         Sorts the Experiment Runs from this collection by `key`.
 
-        A `key` is a string containing a dot-delimited Experiment Run property such as ``metrics.accuracy``.
+        A `key` is a string containing a dot-delimited Experiment Run property such as
+        ``metrics.accuracy``.
 
         Parameters
         ----------
@@ -701,7 +703,8 @@ class ExperimentRuns:
         descending : bool, default False
             Order in which to return sorted Experiment Runs.
         ret_all_info : bool, default False
-            If False, return an :class:`ExperimentRuns`. Otherwise, return an iterable of `protobuf` `Message`\ s.
+            If False, return an :class:`ExperimentRuns`. Otherwise, return an iterable of `protobuf`
+            `Message`\ s.
 
         Returns
         -------
@@ -735,7 +738,8 @@ class ExperimentRuns:
         """
         Gets the Experiment Runs from this collection with the `k` highest `key`\ s.
 
-        A `key` is a string containing a dot-delimited Experiment Run property such as ``metrics.accuracy``.
+        A `key` is a string containing a dot-delimited Experiment Run property such as
+        ``metrics.accuracy``.
 
         Parameters
         ----------
@@ -744,7 +748,8 @@ class ExperimentRuns:
         k : int
             Number of Experiment Runs to get.
         ret_all_info : bool, default False
-            If False, return an :class:`ExperimentRuns`. Otherwise, return an iterable of `protobuf` `Message`\ s.
+            If False, return an :class:`ExperimentRuns`. Otherwise, return an iterable of `protobuf`
+            `Message`\ s.
 
         Returns
         -------
@@ -794,7 +799,8 @@ class ExperimentRuns:
         k : int
             Number of Experiment Runs to get.
         ret_all_info : bool, default False
-            If False, return an :class:`ExperimentRuns`. Otherwise, return an iterable of `protobuf` `Message`\ s.
+            If False, return an :class:`ExperimentRuns`. Otherwise, return an iterable of `protobuf`
+            `Message`\ s.
 
         Returns
         -------
@@ -1386,6 +1392,80 @@ class ExperimentRun:
                 return pickle.loads(dataset)
             except pickle.UnpicklingError:
                 return six.BytesIO(dataset)
+
+    def log_model_for_deployment(self, model, requirements, model_api, dataset=None):
+        """
+        Logs a model artifact, a requirements file, and an API file to deploy on Verta.
+
+        `requirements` is a pip requirements file specifying packages necessary to run `model`.
+
+        `model_api` is a JSON file specifying the structure and datatypes of `model`'s inputs and
+        outputs. Its format can be found in the Verta user documentation.
+
+        Parameters
+        ----------
+        model : str or file-like or object
+            Model or some representation thereof.
+            - If str, then it will be interpreted as a filepath, its contents read as bytes, and
+              uploaded as an artifact.
+            - If file-like, then the contents will be read as bytes and uploaded as an artifact.
+            - Otherwise, the object will be serialized and uploaded as an artifact.
+        requirements : str or file-like
+            pip requirements file to deploy the model.
+            - If str, then it will be interpreted as a filepath, its contents read as bytes, and
+              uploaded as an artifact.
+            - If file-like, then the contents will be read as bytes and uploaded as an artifact.
+        model_api : str or file-like
+            API JSON file to interface with the deployment.
+            - If str, then it will be interpreted as a filepath, its contents read as bytes, and
+              uploaded as an artifact.
+            - If file-like, then the contents will be read as bytes and uploaded as an artifact.
+        dataset : str or file-like or object, optional
+            Dataset or some representation thereof.
+            - If str, then it will be interpreted as a filepath, its contents read as bytes, and
+              uploaded as an artifact.
+            - If file-like, then the contents will be read as bytes and uploaded as an artifact.
+            - If object, then the object will be serialized and uploaded as an artifact.
+            - If not provided, then another dataset under this ExperimentRun will be repurposed
+              as the training dataset.
+
+        """
+        if dataset is None:
+            # see if there's a dataset we can use
+            Message = _ExperimentRunService.GetArtifacts
+            msg = Message(id=self._id)
+            data = _utils.proto_to_json(msg)
+            response = requests.get("{}://{}/v1/experiment-run/getArtifacts".format(self._scheme, self._socket),
+                                    params=data, headers=self._auth)
+            response.raise_for_status()
+            # convert artifacts list into datasets dict
+            artifacts = response.json()['artifacts']
+            datasets = {}
+            for artifact in artifacts:
+                if artifact.get('artifact_type', 0) == _CommonService.ArtifactTypeEnum.DATA and not artifact.get('path_only'):
+                    datasets[artifact.pop('key', '')] = artifact
+            # look through datasets
+            if not datasets:
+                raise ValueError("a training dataset must be provided")
+            if 'train_data' not in datasets:
+                # fetch another dataset
+                dataset = self.get_dataset(datasets.popitem()[0])
+        
+        # open files
+        if isinstance(model, six.string_types):
+            model = open(model, 'rb')
+        if isinstance(requirements, six.string_types):
+            requirements = open(requirements, 'rb')
+        if isinstance(model_api, six.string_types):
+            model_api = open(model_api, 'rb')
+        if isinstance(dataset, six.string_types):
+            dataset = open(dataset, 'rb')
+
+        self._log_artifact("model.pkl", model, _CommonService.ArtifactTypeEnum.MODEL)
+        self._log_artifact("requirements.txt", requirements, _CommonService.ArtifactTypeEnum.BLOB)
+        self._log_artifact("model_api.json", model_api, _CommonService.ArtifactTypeEnum.BLOB)
+        if dataset is not None:
+            self._log_artifact("train_data", dataset, _CommonService.ArtifactTypeEnum.DATA)
 
     def log_model(self, key, model):
         """
