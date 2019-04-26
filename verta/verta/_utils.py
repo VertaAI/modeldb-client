@@ -30,6 +30,7 @@ def proto_to_json(msg):
 
     """
     return json.loads(json_format.MessageToJson(msg,
+                                                including_default_value_fields=True,
                                                 preserving_proto_field_name=True,
                                                 use_integers_for_enums=True))
 
