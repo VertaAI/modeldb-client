@@ -1,11 +1,8 @@
-grpcio-tools
-joblib
 jupyter
 matplotlib
 pandas
 scikit-learn
 tensorflow
-torchvision
 xgboost
 
 verta
