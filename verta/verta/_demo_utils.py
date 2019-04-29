@@ -7,7 +7,7 @@ import os
 import requests
 
 
-class ModelDeployment:
+class DeployedModel:
     """
     Object for interacting with deployed models.
 
