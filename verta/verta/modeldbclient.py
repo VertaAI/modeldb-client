@@ -1403,6 +1403,17 @@ class ExperimentRun:
         """
         _utils.validate_flat_key(key)
 
+        # convert model to bytestream
+        bytestream = six.BytesIO()
+        try:
+            model.save(bytestream)
+        except AttributeError:
+            pass
+
+        if bytestream.getbuffer().nbytes:
+            bytestream.seek(0)
+            model = bytestream
+
         self._log_artifact(key, model, _CommonService.ArtifactTypeEnum.MODEL)
 
     def get_model(self, key):
