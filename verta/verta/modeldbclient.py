@@ -1442,10 +1442,7 @@ class ExperimentRun:
         if isinstance(model, six.string_types):
             return model
         else:
-            try:
-                return pickle.loads(model)
-            except pickle.UnpicklingError:
-                return six.BytesIO(model)
+            return _artifact_utils.deserialize_model(model)
 
     def log_image(self, key, image):
         """
