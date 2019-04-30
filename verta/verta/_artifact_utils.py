@@ -1,6 +1,10 @@
 import six
 import six.moves.cPickle as pickle
 
+import csv
+import json
+import sys
+
 from verta import _utils
 
 try:
@@ -183,3 +187,88 @@ def deserialize_model(bytestring):
     except pickle.UnpicklingError:  # not a pickled object
         pass
     return bytestream
+
+
+def generate_model_api(data, serialization_method, model_type, num_outputs=1):
+    """
+    Generates the model API JSON from a model and data.
+
+    `data` must begin with a header row, which is used to determine the API's field names. The first
+    data row is then used to determine the API's field types.
+
+    Parameters
+    ----------
+    data : str or file-like or pd.DataFrame
+        Filepath to data CSV, CSV file handle, or DataFrame.
+    serialization_method : {"joblib", "cloudpickle", "pickle"}
+        Serialization method used to produce the model bytestream.
+    model_type : {"scikit", "xgboost", "tensorflow", "unknown"}
+        Framework with which the model was built.
+    num_outputs : int
+        Number of output columns on the right-hand side of the CSV.
+
+    Returns
+    -------
+    stringstream : file-like
+        Model API JSON.
+
+    """
+    if serialization_method not in {"joblib", "cloudpickle", "pickle", "unknown"}:
+        raise ValueError("`serialization_method` must be one of {'joblib', 'cloudpickle', 'pickle'}")
+    if model_type not in {"scikit", "xgboost", "tensorflow", "unknown"}:
+        raise ValueError("`model_type` must be one of {'scikit', 'xgboost', 'tensorflow', 'unknown'}")
+    if num_outputs < 1:
+        raise ValueError("`num_outputs` must be 1 or greater")
+
+    # get first two rows from data
+    if isinstance(data, six.string_types):  # if `data` is a filepath
+        data = open(data, 'r')
+    if hasattr(data, 'read'):  # if `data` is file-like
+        try:  # reset cursor to beginning in case user forgot
+            data.seek(0)
+        except AttributeError:
+            pass
+
+        # read header and first data row
+        reader = csv.reader(data)
+        header = next(reader)
+        row = next(reader)
+
+        del reader
+        try:  # reset cursor to beginning as a courtesy
+            data.seek(0)
+        except AttributeError:
+            pass
+    elif hasattr(data, 'iloc'):  # if `data` is a DataFrame
+        header = data.columns
+        row = df.iloc[0]
+    else:
+        raise ValueError("`data` must be a filepath, a file object, or a DataFrame")
+
+    # parse data
+    fields = []
+    for col_name, val in zip(header, row):
+        try:
+            float(val)
+        except ValueError:
+            val_type = "str"
+        else:
+            val_type = "float"
+
+        fields.append({'name': col_name, 'type': val_type})
+
+    input_fields, output_fields = fields[:-num_outputs], fields[-num_outputs:]
+    if not len(input_fields):
+        raise ValueError("`num_outputs` must be less than the total number of columns")
+
+    model_api = {
+        'model_type': model_type,
+        'python_version': sys.version_info[0],
+        'deserialization': serialization_method,
+        'input': {'type': "list", 'fields': input_fields} if len(input_fields) > 1 else input_fields[0],
+        'output': {'type': "list", 'fields': output_fields} if len(output_fields) > 1 else output_fields[0],
+    }
+    stringstream = six.StringIO()
+    json.dump(model_api, stringstream)
+    stringstream.seek(0)
+    return stringstream
