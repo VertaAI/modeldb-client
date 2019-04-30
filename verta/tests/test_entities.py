@@ -41,27 +41,27 @@ class TestExperimentRuns:
         expt = client.set_experiment()
         expt_run_ids = []
 
-        expt_run_ids.extend(client.set_experiment_run()._id for _ in range(12))
+        expt_run_ids.extend(client.set_experiment_run()._id for _ in range(3))
         for expt_run_id, expt_run in zip(expt_run_ids, expt.expt_runs):
             assert expt_run_id == expt_run._id
 
-        expt_run_ids.extend(client.set_experiment_run()._id for _ in range(12))
+        expt_run_ids.extend(client.set_experiment_run()._id for _ in range(3))
         for expt_run_id, expt_run in zip(expt_run_ids, expt.expt_runs):
             assert expt_run_id == expt_run._id
 
     def test_magic_len(self, client):
         client.set_project()
         expt = client.set_experiment()
-        expt_run_ids = [client.set_experiment_run()._id for _ in range(12)]
+        expt_run_ids = [client.set_experiment_run()._id for _ in range(3)]
 
         assert len(expt_run_ids) == len(expt.expt_runs)
 
     def test_magic_add(self, client):
         client.set_project()
         expt1 = client.set_experiment()
-        expt1_run_ids = [client.set_experiment_run()._id for _ in range(12)]
+        expt1_run_ids = [client.set_experiment_run()._id for _ in range(3)]
         expt2 = client.set_experiment()
-        expt2_run_ids = [client.set_experiment_run()._id for _ in range(12)]
+        expt2_run_ids = [client.set_experiment_run()._id for _ in range(3)]
 
         # simple concatenation
         for expt_run_id, expt_run in zip(expt1_run_ids + expt2_run_ids,
@@ -79,8 +79,8 @@ class TestExperimentRuns:
         client.set_project()
         expt = client.set_experiment()
 
-        metric_vals = random.sample(range(36), 12)
-        hyperparam_vals = random.sample(range(36), 12)
+        metric_vals = random.sample(range(36), 3)
+        hyperparam_vals = random.sample(range(36), 3)
         for metric_val, hyperparam_val in zip(metric_vals, hyperparam_vals):
             run = client.set_experiment_run()
             run.log_metric('val', metric_val)
@@ -102,7 +102,7 @@ class TestExperimentRuns:
         client.set_project()
         expt = client.set_experiment()
 
-        vals = random.sample(range(36), 12)
+        vals = random.sample(range(36), 3)
         for val in vals:
             client.set_experiment_run().log_metric('val', val)
 
@@ -114,20 +114,20 @@ class TestExperimentRuns:
         client.set_project()
         expt = client.set_experiment()
 
-        metric_vals = random.sample(range(36), 12)
-        hyperparam_vals = random.sample(range(36), 12)
+        metric_vals = random.sample(range(36), 3)
+        hyperparam_vals = random.sample(range(36), 3)
         for metric_val, hyperparam_val in zip(metric_vals, hyperparam_vals):
             run = client.set_experiment_run()
             run.log_metric('val', metric_val)
             run.log_hyperparameter('val', hyperparam_val)
 
-        k = random.randrange(12)
+        k = random.randrange(3)
         top_run_ids = [run._id for run in sorted(expt.expt_runs,
                                                  key=lambda run: run.get_metric('val'), reverse=True)][:k]
         for expt_run_id, expt_run in zip(top_run_ids, expt.expt_runs.top_k("metrics.val", k)):
             assert expt_run_id == expt_run._id
 
-        k = random.randrange(12)
+        k = random.randrange(3)
         top_run_ids = [run._id for run in sorted(expt.expt_runs,
                                                  key=lambda run: run.get_metric('val'), reverse=True)][:k]
         for expt_run_id, expt_run in zip(top_run_ids, expt.expt_runs.top_k("metrics.val", k)):
@@ -137,20 +137,20 @@ class TestExperimentRuns:
         client.set_project()
         expt = client.set_experiment()
 
-        metric_vals = random.sample(range(36), 12)
-        hyperparam_vals = random.sample(range(36), 12)
+        metric_vals = random.sample(range(36), 3)
+        hyperparam_vals = random.sample(range(36), 3)
         for metric_val, hyperparam_val in zip(metric_vals, hyperparam_vals):
             run = client.set_experiment_run()
             run.log_metric('val', metric_val)
             run.log_hyperparameter('val', hyperparam_val)
 
-        k = random.randrange(12)
+        k = random.randrange(3)
         bottom_run_ids = [run._id for run in sorted(expt.expt_runs,
                                                     key=lambda run: run.get_metric('val'))][:k]
         for expt_run_id, expt_run in zip(bottom_run_ids, expt.expt_runs.bottom_k("metrics.val", k)):
             assert expt_run_id == expt_run._id
 
-        k = random.randrange(12)
+        k = random.randrange(3)
         bottom_run_ids = [run._id for run in sorted(expt.expt_runs,
                                                     key=lambda run: run.get_metric('val'))][:k]
         for expt_run_id, expt_run in zip(bottom_run_ids, expt.expt_runs.bottom_k("metrics.val", k)):

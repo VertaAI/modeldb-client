@@ -8,7 +8,7 @@ class TestGetChildren:
         expt_ids = []
 
         proj = client.set_project()
-        for _ in range(4):
+        for _ in range(3):
             expt_ids.append(client.set_experiment()._id)
 
         response = requests.get("http://{}/v1/experiment/getExperimentsInProject".format(client._socket),
@@ -21,10 +21,10 @@ class TestGetChildren:
 
         proj = client.set_project()
         expt = client.set_experiment()
-        for _ in range(4):
+        for _ in range(3):
             run_ids.append(client.set_experiment_run()._id)
         expt = client.set_experiment()
-        for _ in range(4):
+        for _ in range(3):
             run_ids.append(client.set_experiment_run()._id)
 
         response = requests.get("http://{}/v1/experiment-run/getExperimentRunsInProject".format(client._socket),
@@ -37,7 +37,7 @@ class TestGetChildren:
 
         proj = client.set_project()
         expt = client.set_experiment()
-        for _ in range(4):
+        for _ in range(3):
             run_ids.append(client.set_experiment_run()._id)
 
         response = requests.get("http://{}/v1/experiment-run/getExperimentRunsInExperiment".format(client._socket),
