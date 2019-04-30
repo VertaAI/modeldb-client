@@ -80,10 +80,6 @@ def python_to_val_proto(val):
         return Value(number_value=val)
     elif isinstance(val, six.string_types):
         return Value(string_value=val)
-    elif isinstance(val, dict):
-        raise NotImplementedError()
-    elif isinstance(val, list):
-        raise NotImplementedError()
     else:
         raise ValueError("unsupported type {}; consider using log_artifact() instead".format(type(val)))
 
@@ -115,12 +111,8 @@ def val_proto_to_python(msg):
             return number_value
     if msg.HasField("string_value"):
         return msg.string_value
-    if msg.HasField("struct_value"):
-        raise NotImplementedError()
-    if msg.HasField("list_value"):
-        raise NotImplementedError()
     else:
-        raise ValueError("Value is empty")
+        raise NotImplementedError("retrieved value type is not supported")
 
 
 def validate_flat_key(key):
