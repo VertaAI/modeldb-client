@@ -21,7 +21,7 @@ def deserialize_model(bytestring):
 
     Returns
     -------
-    bytestream : obj or file-like
+    model : obj or file-like
         Model or buffered bytestream representing the model.
 
     """
