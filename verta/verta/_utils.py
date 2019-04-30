@@ -1,5 +1,6 @@
 import six
 
+from datetime import datetime
 import json
 import numbers
 import os
@@ -224,3 +225,16 @@ def generate_default_name():
 
     """
     return "{}{}".format(os.getpid(), str(time.time()).replace('.', ''))
+
+
+def now():
+    """
+    Returns the current Unix timestamp with millisecond resolution.
+
+    Returns
+    -------
+    now : int
+        Current Unix timestamp in milliseconds.
+
+    """
+    return int(datetime.now().timestamp()*10**3)
