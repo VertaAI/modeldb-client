@@ -52,59 +52,62 @@ class TestHyperparameters:
         assert experiment_run.get_hyperparameters() == self.hyperparameters
 
 
-def test_attributes(experiment_run):
+class TestAttributes:
     attributes = {
         utils.gen_str(): utils.gen_str(),
         utils.gen_str(): utils.gen_int(),
         utils.gen_str(): utils.gen_float(),
     }
 
-    for key, val in six.viewitems(attributes):
-        experiment_run.log_attribute(key, val)
+    def test_single(self, experiment_run):
+        for key, val in six.viewitems(self.attributes):
+            experiment_run.log_attribute(key, val)
 
-    with pytest.raises(KeyError):
-        experiment_run.get_attribute(utils.gen_str())
+        with pytest.raises(KeyError):
+            experiment_run.get_attribute(utils.gen_str())
 
-    for key, val in six.viewitems(attributes):
-        assert experiment_run.get_attribute(key) == val
+        for key, val in six.viewitems(self.attributes):
+            assert experiment_run.get_attribute(key) == val
 
-    assert experiment_run.get_attributes() == attributes
+        assert experiment_run.get_attributes() == self.attributes
 
 
-def test_metrics(experiment_run):
+class TestMetrics:
     metrics = {
         utils.gen_str(): utils.gen_str(),
         utils.gen_str(): utils.gen_int(),
         utils.gen_str(): utils.gen_float(),
     }
 
-    for key, val in six.viewitems(metrics):
-        experiment_run.log_metric(key, val)
+    def test_single(self, experiment_run):
+        for key, val in six.viewitems(self.metrics):
+            experiment_run.log_metric(key, val)
 
-    with pytest.raises(KeyError):
-        experiment_run.get_metric(utils.gen_str())
+        with pytest.raises(KeyError):
+            experiment_run.get_metric(utils.gen_str())
 
-    for key, val in six.viewitems(metrics):
-        assert experiment_run.get_metric(key) == val
+        for key, val in six.viewitems(self.metrics):
+            assert experiment_run.get_metric(key) == val
 
-    assert experiment_run.get_metrics() == metrics
+        assert experiment_run.get_metrics() == self.metrics
 
 
-def test_observations(experiment_run):
+class TestObservations:
     observations = {
         utils.gen_str(): [utils.gen_str(), utils.gen_str()],
         utils.gen_str(): [utils.gen_int(), utils.gen_int()],
         utils.gen_str(): [utils.gen_float(), utils.gen_float()],
     }
 
-    for key, vals in six.viewitems(observations):
-        for val in vals:
-            experiment_run.log_observation(key, val)
+    def test_single(self, experiment_run):
+        for key, vals in six.viewitems(self.observations):
+            for val in vals:
+                experiment_run.log_observation(key, val)
 
-    with pytest.raises(KeyError):
-        experiment_run.get_observation(utils.gen_str())
+        with pytest.raises(KeyError):
+            experiment_run.get_observation(utils.gen_str())
 
-    for key, val in six.viewitems(observations):
-        assert experiment_run.get_observation(key) == val
+        for key, val in six.viewitems(self.observations):
+            assert experiment_run.get_observation(key) == val
 
-    assert experiment_run.get_observations() == observations
+        assert experiment_run.get_observations() == self.observations
