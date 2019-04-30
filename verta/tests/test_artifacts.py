@@ -49,6 +49,22 @@ class TestArtifacts:
         with pytest.raises(KeyError):
             experiment_run.get_artifact(utils.gen_str())
 
+    # def test_conflict(self, experiment_run):
+    #     artifacts = {
+    #         utils.gen_str(): {utils.gen_str(): utils.gen_str() for _ in range(6)},
+    #         utils.gen_str(): {utils.gen_str(): utils.gen_str() for _ in range(6)},
+    #         utils.gen_str(): {utils.gen_str(): utils.gen_str() for _ in range(6)},
+    #     }
+
+    #     for key, artifact in six.viewitems(artifacts):
+    #         experiment_run.log_artifact(key, artifact)
+    #         with pytest.raises(ValueError):
+    #             experiment_run.log_artifact(key, artifact)
+
+    #     for key, artifact in reversed(list(six.viewitems(artifacts))):
+    #         with pytest.raises(ValueError):
+    #             experiment_run.log_artifact(key, artifact)
+
 
 class TestDatasets:
     def test_path(self, experiment_run):
@@ -65,6 +81,22 @@ class TestDatasets:
         experiment_run.log_dataset(key, dataset)
         assert np.array_equal(experiment_run.get_dataset(key), dataset)
 
+    # def test_conflict(self, experiment_run):
+    #     artifacts = {
+    #         utils.gen_str(): {utils.gen_str(): utils.gen_str() for _ in range(6)},
+    #         utils.gen_str(): {utils.gen_str(): utils.gen_str() for _ in range(6)},
+    #         utils.gen_str(): {utils.gen_str(): utils.gen_str() for _ in range(6)},
+    #     }
+
+    #     for key, artifact in six.viewitems(artifacts):
+    #         experiment_run.log_dataset(key, artifact)
+    #         with pytest.raises(ValueError):
+    #             experiment_run.log_dataset(key, artifact)
+
+    #     for key, artifact in reversed(list(six.viewitems(artifacts))):
+    #         with pytest.raises(ValueError):
+    #             experiment_run.log_dataset(key, artifact)
+
 
 class TestModels:
     def test_path(self, experiment_run):
@@ -80,6 +112,22 @@ class TestModels:
 
         experiment_run.log_model(key, model)
         assert experiment_run.get_model(key).get_params() == model.get_params()
+
+    # def test_conflict(self, experiment_run):
+    #     artifacts = {
+    #         utils.gen_str(): {utils.gen_str(): utils.gen_str() for _ in range(6)},
+    #         utils.gen_str(): {utils.gen_str(): utils.gen_str() for _ in range(6)},
+    #         utils.gen_str(): {utils.gen_str(): utils.gen_str() for _ in range(6)},
+    #     }
+
+    #     for key, artifact in six.viewitems(artifacts):
+    #         experiment_run.log_model(key, artifact)
+    #         with pytest.raises(ValueError):
+    #             experiment_run.log_model(key, artifact)
+
+    #     for key, artifact in reversed(list(six.viewitems(artifacts))):
+    #         with pytest.raises(ValueError):
+    #             experiment_run.log_model(key, artifact)
 
 
 class TestImages:
@@ -131,3 +179,19 @@ class TestImages:
         experiment_run.log_image(key, img)
         assert(np.array_equal(np.asarray(experiment_run.get_image(key).getdata()),
                               np.asarray(img.getdata())))
+
+    # def test_conflict(self, experiment_run):
+    #     artifacts = {
+    #         utils.gen_str(): {utils.gen_str(): utils.gen_str() for _ in range(6)},
+    #         utils.gen_str(): {utils.gen_str(): utils.gen_str() for _ in range(6)},
+    #         utils.gen_str(): {utils.gen_str(): utils.gen_str() for _ in range(6)},
+    #     }
+
+    #     for key, artifact in six.viewitems(artifacts):
+    #         experiment_run.log_image(key, artifact)
+    #         with pytest.raises(ValueError):
+    #             experiment_run.log_image(key, artifact)
+
+    #     for key, artifact in reversed(list(six.viewitems(artifacts))):
+    #         with pytest.raises(ValueError):
+    #             experiment_run.log_image(key, artifact)

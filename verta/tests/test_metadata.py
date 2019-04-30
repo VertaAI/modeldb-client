@@ -51,6 +51,16 @@ class TestHyperparameters:
 
         assert experiment_run.get_hyperparameters() == self.hyperparameters
 
+    def test_conflict(self, experiment_run):
+        for key, val in six.viewitems(self.hyperparameters):
+            experiment_run.log_hyperparameter(key, val)
+            with pytest.raises(ValueError):
+                experiment_run.log_hyperparameter(key, val)
+
+        for key, val in reversed(list(six.viewitems(self.hyperparameters))):
+            with pytest.raises(ValueError):
+                experiment_run.log_hyperparameter(key, val)
+
 
 class TestAttributes:
     attributes = {
@@ -71,6 +81,16 @@ class TestAttributes:
 
         assert experiment_run.get_attributes() == self.attributes
 
+    # def test_conflict(self, experiment_run):
+    #     for key, val in six.viewitems(self.attributes):
+    #         experiment_run.log_attribute(key, val)
+    #         with pytest.raises(ValueError):
+    #             experiment_run.log_attribute(key, val)
+
+    #     for key, val in reversed(list(six.viewitems(self.attributes))):
+    #         with pytest.raises(ValueError):
+    #             experiment_run.log_attribute(key, val)
+
 
 class TestMetrics:
     metrics = {
@@ -90,6 +110,16 @@ class TestMetrics:
             assert experiment_run.get_metric(key) == val
 
         assert experiment_run.get_metrics() == self.metrics
+
+    def test_conflict(self, experiment_run):
+        for key, val in six.viewitems(self.metrics):
+            experiment_run.log_metric(key, val)
+            with pytest.raises(ValueError):
+                experiment_run.log_metric(key, val)
+
+        for key, val in reversed(list(six.viewitems(self.metrics))):
+            with pytest.raises(ValueError):
+                experiment_run.log_metric(key, val)
 
 
 class TestObservations:
