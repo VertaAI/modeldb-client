@@ -1,1 +1,1 @@
-from .modeldbclient import ModelDBClient
+from .client import Client

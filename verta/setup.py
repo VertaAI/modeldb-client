@@ -9,7 +9,7 @@ setup(
     version="0.8.6",
     maintainer="Michael Liu",
     maintainer_email="miliu@verta.ai",
-    description="Python client for interfacing with ModelDB",
+    description="Python client for interfacing with ModelDB and the Verta platform",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://www.verta.ai/",
