@@ -1032,7 +1032,12 @@ class ExperimentRun:
         data = _utils.proto_to_json(msg)
         response = requests.post("{}://{}/v1/experiment-run/logArtifact".format(self._scheme, self._socket),
                                  json=data, headers=self._auth)
-        response.raise_for_status()
+        if not response.ok:
+            if response.status_code == 409:
+                raise ValueError("artifact with key {} already exists;"
+                                 " consider using observations instead".format(key))
+            else:
+                response.raise_for_status()
 
         if not path_only:
             # upload artifact to artifact store
@@ -1103,7 +1108,12 @@ class ExperimentRun:
         data = _utils.proto_to_json(msg)
         response = requests.post("{}://{}/v1/experiment-run/logAttribute".format(self._scheme, self._socket),
                                  json=data, headers=self._auth)
-        response.raise_for_status()
+        if not response.ok:
+            if response.status_code == 409:
+                raise ValueError("attribute with key {} already exists;"
+                                 " consider using observations instead".format(key))
+            else:
+                response.raise_for_status()
 
     def get_attribute(self, key):
         """
@@ -1180,7 +1190,12 @@ class ExperimentRun:
         data = _utils.proto_to_json(msg)
         response = requests.post("{}://{}/v1/experiment-run/logMetric".format(self._scheme, self._socket),
                                  json=data, headers=self._auth)
-        response.raise_for_status()
+        if not response.ok:
+            if response.status_code == 409:
+                raise ValueError("metric with key {} already exists"
+                                 " consider using observations instead".format(key))
+            else:
+                response.raise_for_status()
 
     def get_metric(self, key):
         """
@@ -1256,7 +1271,12 @@ class ExperimentRun:
         data = _utils.proto_to_json(msg)
         response = requests.post("{}://{}/v1/experiment-run/logHyperparameter".format(self._scheme, self._socket),
                                  json=data, headers=self._auth)
-        response.raise_for_status()
+        if not response.ok:
+            if response.status_code == 409:
+                raise ValueError("hyperparameter with key {} already exists"
+                                 " consider using observations instead".format(key))
+            else:
+                response.raise_for_status()
 
     def log_hyperparameters(self, hyperparams=None, **hyperparams_kwargs):
         """
@@ -1282,6 +1302,20 @@ class ExperimentRun:
         # validate all keys first
         for key in six.viewkeys(hyperparams):
             _utils.validate_flat_key(key)
+
+        # check for presence of all keys first
+        Message = _ExperimentRunService.GetHyperparameters
+        msg = Message(id=self._id)
+        data = _utils.proto_to_json(msg)
+        response = requests.get("http://{}/v1/experiment-run/getHyperparameters".format(self._socket),
+                                params=data, headers=self._auth)
+        response.raise_for_status()
+        response_msg = _utils.json_to_proto(response.json(), Message.Response)
+        keys = set(hyperparameter.key for hyperparameter in response_msg.hyperparameters)
+        intersection = keys & set(six.viewkeys(hyperparams))
+        if intersection:
+            raise ValueError("hyperparameter with key {} already exists"
+                             " consider using observations instead".format(intersection.pop()))
 
         for key, value in six.viewitems(hyperparams):
             hyperparameter = _CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value))
