@@ -3,7 +3,9 @@ import six.moves.cPickle as pickle
 
 import json
 import numbers
+import os
 import string
+import time
 
 from google.protobuf import json_format
 from google.protobuf.struct_pb2 import Value, NULL_VALUE
@@ -186,3 +188,19 @@ def ensure_bytestream(obj):
     else:  # `obj` is not file-like
         bytestring = pickle.dumps(obj)
     return six.BytesIO(bytestring)
+
+def generate_default_name():
+    """
+    Generates a string that can be used as a default entity name while avoiding collisions.
+
+    The generated string is a concatenation of the current process ID and the current Unix timestamp,
+    such that a collision should only occur if a single process produces two of an entity at the same
+    nanosecond.
+
+    Returns
+    -------
+    name : str
+        String generated from the current process ID and Unix timestamp.
+
+    """
+    return "{}{}".format(os.getpid(), str(time.time()).replace('.', ''))
