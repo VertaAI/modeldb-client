@@ -167,13 +167,16 @@ def ensure_bytestream(obj):
         If `obj` contains no data.
 
     """
-    if hasattr(obj, 'read'):  # check if `obj` is file-like
-        try:  # reset cursor to beginning of stream in case user forgot
+    if hasattr(obj, 'read'):  # if `obj` is file-like
+        try:  # reset cursor to beginning in case user forgot
             obj.seek(0)
         except AttributeError:
             pass
-        # read to cast into binary
-        contents = obj.read()
+        contents = obj.read()  # read to cast into binary
+        try:  # reset cursor to beginning as a courtesy
+            obj.seek(0)
+        except AttributeError:
+            pass
         if not len(contents):
             raise ValueError("object contains no data")
         bytestring = six.ensure_binary(contents)
