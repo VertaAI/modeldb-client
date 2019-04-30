@@ -16,6 +16,7 @@ from ._protos.public.modeldb import ProjectService_pb2 as _ProjectService
 from ._protos.public.modeldb import ExperimentService_pb2 as _ExperimentService
 from ._protos.public.modeldb import ExperimentRunService_pb2 as _ExperimentRunService
 from . import _utils
+from . import _artifact_utils
 
 
 class ModelDBClient:
@@ -1403,6 +1404,17 @@ class ExperimentRun:
         """
         _utils.validate_flat_key(key)
 
+        # convert model to bytestream
+        bytestream = six.BytesIO()
+        try:
+            model.save(bytestream)
+        except AttributeError:
+            pass
+
+        if bytestream.getbuffer().nbytes:
+            bytestream.seek(0)
+            model = bytestream
+
         self._log_artifact(key, model, _CommonService.ArtifactTypeEnum.MODEL)
 
     def get_model(self, key):
@@ -1430,10 +1442,7 @@ class ExperimentRun:
         if isinstance(model, six.string_types):
             return model
         else:
-            try:
-                return pickle.loads(model)
-            except pickle.UnpicklingError:
-                return six.BytesIO(model)
+            return _artifact_utils.deserialize_model(model)
 
     def log_image(self, key, image):
         """
