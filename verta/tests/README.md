@@ -33,7 +33,7 @@ pytest -s
 
 The test configuration script attempts to read the following environment variables:
 
-- `MODELDB_HOST`
-- `MODELDB_PORT`
-- `MODELDB_EMAIL`
-- `MODELDB_DEV_KEY`
+- `VERTA_HOST`
+- `VERTA_PORT`
+- `VERTA_EMAIL`
+- `VERTA_DEV_KEY`
