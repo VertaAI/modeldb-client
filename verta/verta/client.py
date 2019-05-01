@@ -1438,19 +1438,19 @@ class ExperimentRun:
         model : str or file-like or object
             Model or some representation thereof.
             - If str, then it will be interpreted as a filepath, its contents read as bytes, and
-              uploaded as an artifact.
+            uploaded as an artifact.
             - If file-like, then the contents will be read as bytes and uploaded as an artifact.
             - Otherwise, the object will be serialized and uploaded as an artifact.
         dataset : str or file-like or object
             Dataset or some representation thereof.
             - If str, then it will be interpreted as a filepath, its contents read as bytes, and
-              uploaded as an artifact.
+            uploaded as an artifact.
             - If file-like, then the contents will be read as bytes and uploaded as an artifact.
             - Otherwise, the object will be serialized and uploaded as an artifact.
         requirements : str or file-like
             pip requirements file to deploy the model.
             - If str, then it will be interpreted as a filepath, its contents read as bytes, and
-              uploaded as an artifact.
+            uploaded as an artifact.
             - If file-like, then the contents will be read as bytes and uploaded as an artifact.
 
         """
