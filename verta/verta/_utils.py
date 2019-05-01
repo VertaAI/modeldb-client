@@ -1,5 +1,4 @@
 import six
-import six.moves.cPickle as pickle
 
 import json
 import numbers
@@ -139,50 +138,6 @@ def validate_flat_key(key):
     for c in key:
         if c not in _VALID_FLAT_KEY_CHARS:
             raise ValueError("`key` may only contain alphanumeric characters, underscores, and dashes")
-
-
-def ensure_bytestream(obj):
-    """
-    Converts an object into a bytestream.
-
-    If `obj` is file-like, its contents will be read into memory and then wrapped in a bytestream.
-    This has a performance cost, but checking beforehand whether an arbitrary file-like object
-    returns bytes is an implementation nightmare.
-
-    If `obj` is not file-like, it will be serialized and then wrapped in a bytestream.
-
-    Parameters
-    ----------
-    obj : file-like or object
-        Object to convert into a bytestream.
-
-    Returns
-    -------
-    file-like
-        Buffered bytestream.
-
-    Raises
-    ------
-    ValueError
-        If `obj` contains no data.
-
-    """
-    if hasattr(obj, 'read'):  # if `obj` is file-like
-        try:  # reset cursor to beginning in case user forgot
-            obj.seek(0)
-        except AttributeError:
-            pass
-        contents = obj.read()  # read to cast into binary
-        try:  # reset cursor to beginning as a courtesy
-            obj.seek(0)
-        except AttributeError:
-            pass
-        if not len(contents):
-            raise ValueError("object contains no data")
-        bytestring = six.ensure_binary(contents)
-    else:  # `obj` is not file-like
-        bytestring = pickle.dumps(obj)
-    return six.BytesIO(bytestring)
 
 def generate_default_name():
     """

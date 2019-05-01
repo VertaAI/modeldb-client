@@ -1041,7 +1041,7 @@ class ExperimentRun:
         if not path_only:
             # upload artifact to artifact store
             url = self._get_url_for_artifact(key, "PUT")
-            artifact_stream = _utils.ensure_bytestream(artifact)
+            artifact_stream = _artifact_utils.ensure_bytestream(artifact)
             response = requests.put(url, data=artifact_stream)
             response.raise_for_status()
 
