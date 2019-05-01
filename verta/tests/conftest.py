@@ -1,7 +1,7 @@
 import os
 import shutil
 
-from verta import ModelDBClient
+from verta import Client
 
 import pytest
 import utils
@@ -44,7 +44,7 @@ def output_path():
 
 @pytest.fixture
 def client(host, port, email, dev_key):
-    client = ModelDBClient(host, port, email, dev_key)
+    client = Client(host, port, email, dev_key)
 
     yield client
 

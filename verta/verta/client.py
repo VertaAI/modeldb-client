@@ -19,7 +19,7 @@ from . import _utils
 from . import _artifact_utils
 
 
-class ModelDBClient:
+class Client:
     """
     Object for interfacing with the ModelDB backend.
 
@@ -245,7 +245,7 @@ class Project:
     Runs.
 
     There should not be a need to instantiate this class directly; please use
-    :meth:`ModelDBClient.set_project`.
+    :meth:`Client.set_project`.
 
     Attributes
     ----------
@@ -390,7 +390,7 @@ class Experiment:
     Runs.
 
     There should not be a need to instantiate this class directly; please use
-    :meth:`ModelDBClient.set_experiment`.
+    :meth:`Client.set_experiment`.
 
     Attributes
     ----------
@@ -845,7 +845,7 @@ class ExperimentRun:
     This class provides read/write functionality for Experiment Run metadata.
 
     There should not be a need to instantiate this class directly; please use
-    :meth:`ModelDBClient.set_experiment_run`.
+    :meth:`Client.set_experiment_run`.
 
     Attributes
     ----------
