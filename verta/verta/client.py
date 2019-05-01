@@ -5,7 +5,6 @@ from six.moves.urllib.parse import urlparse
 import ast
 import os
 import re
-import time
 import warnings
 
 import PIL
@@ -322,7 +321,7 @@ class Project:
 
     @staticmethod
     def _generate_default_name():
-        return "Project {}".format(str(time.time()).replace('.', ''))
+        return "Project {}".format(_utils.generate_default_name())
 
     @staticmethod
     def _get(auth, socket, proj_name=None, _proj_id=None):
@@ -469,7 +468,7 @@ class Experiment:
 
     @staticmethod
     def _generate_default_name():
-        return "Experiment {}".format(str(time.time()).replace('.', ''))
+        return "Experiment {}".format(_utils.generate_default_name())
 
     @staticmethod
     def _get(auth, socket, proj_id=None, expt_name=None, _expt_id=None):
@@ -907,7 +906,7 @@ class ExperimentRun:
 
     @staticmethod
     def _generate_default_name():
-        return "ExperimentRun {}".format(str(time.time()).replace('.', ''))
+        return "ExperimentRun {}".format(_utils.generate_default_name())
 
     @staticmethod
     def _get(auth, socket, proj_id=None, expt_id=None, expt_run_name=None, _expt_run_id=None):
