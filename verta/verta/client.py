@@ -1426,7 +1426,7 @@ class ExperimentRun:
             except pickle.UnpicklingError:
                 return six.BytesIO(dataset)
 
-    def log_model_for_deployment(self, model, requirements, model_api, dataset=None):
+    def log_model_for_deployment(self, model, requirements, model_api, dataset):
         """
         Logs a model artifact, a requirements file, and an API file to deploy on Verta.
 
@@ -1453,40 +1453,14 @@ class ExperimentRun:
             - If str, then it will be interpreted as a filepath, its contents read as bytes, and
               uploaded as an artifact.
             - If file-like, then the contents will be read as bytes and uploaded as an artifact.
-        dataset : str or file-like or object, optional
+        dataset : str or file-like or object
             Dataset or some representation thereof.
             - If str, then it will be interpreted as a filepath, its contents read as bytes, and
               uploaded as an artifact.
             - If file-like, then the contents will be read as bytes and uploaded as an artifact.
-            - If object, then the object will be serialized and uploaded as an artifact.
-            - If not provided, then another dataset under this ExperimentRun will be repurposed
-              as the training dataset.
+            - Otherwise, the object will be serialized and uploaded as an artifact.
 
         """
-        if dataset is None:
-            # see if there's a dataset we can use
-            Message = _ExperimentRunService.GetArtifacts
-            msg = Message(id=self._id)
-            data = _utils.proto_to_json(msg)
-            response = requests.get("{}://{}/v1/experiment-run/getArtifacts".format(self._scheme, self._socket),
-                                    params=data, headers=self._auth)
-            response.raise_for_status()
-            # recover missing default fields and integer enum values
-            response_msg = _utils.json_to_proto(response.json(), Message.Response)
-            response_json = _utils.proto_to_json(response_msg)
-            artifacts = response_json['artifacts']
-            # convert artifacts list into datasets dict
-            datasets = {}
-            for artifact in artifacts:
-                if artifact['artifact_type'] == _CommonService.ArtifactTypeEnum.DATA and not artifact['path_only']:
-                    datasets[artifact.pop('key')] = artifact
-            # look through datasets
-            if not datasets:
-                raise ValueError("a training dataset must be provided")
-            if 'train_data' not in datasets:
-                # fetch another dataset
-                dataset = self.get_dataset(datasets.popitem()[0])
-
         # open files
         if isinstance(model, six.string_types):
             model = open(model, 'rb')
@@ -1501,8 +1475,7 @@ class ExperimentRun:
         self._log_artifact("model.pkl", model, _CommonService.ArtifactTypeEnum.MODEL)
         self._log_artifact("requirements.txt", requirements, _CommonService.ArtifactTypeEnum.BLOB)
         self._log_artifact("model_api.json", model_api, _CommonService.ArtifactTypeEnum.BLOB)
-        if dataset is not None:
-            self._log_artifact("train_data", dataset, _CommonService.ArtifactTypeEnum.DATA)
+        self._log_artifact("train_data", dataset, _CommonService.ArtifactTypeEnum.DATA)
 
     def log_model(self, key, model):
         """
