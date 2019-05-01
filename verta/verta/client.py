@@ -1497,7 +1497,7 @@ class ExperimentRun:
         if isinstance(dataset, six.string_types):
             dataset = open(dataset, 'rb')
 
-        model = _artifact_utils.serialize_model(model)
+        model, method, model_type = _artifact_utils.serialize_model(model)
         self._log_artifact("model.pkl", model, _CommonService.ArtifactTypeEnum.MODEL)
         self._log_artifact("requirements.txt", requirements, _CommonService.ArtifactTypeEnum.BLOB)
         self._log_artifact("model_api.json", model_api, _CommonService.ArtifactTypeEnum.BLOB)
@@ -1521,7 +1521,7 @@ class ExperimentRun:
         """
         _utils.validate_flat_key(key)
 
-        model = _artifact_utils.serialize_model(model)
+        model, _, _ = _artifact_utils.serialize_model(model)
 
         self._log_artifact(key, model, _CommonService.ArtifactTypeEnum.MODEL)
 

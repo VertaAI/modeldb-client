@@ -25,7 +25,7 @@ def ensure_bytestream(obj):
 
     If `obj` is file-like, its contents will be read into memory and then wrapped in a bytestream.
     This has a performance cost, but checking beforehand whether an arbitrary file-like object
-    returns bytes is an implementation nightmare.
+    returns bytes rather than encoded characters is an implementation nightmare.
 
     If `obj` is not file-like, it will be serialized and then wrapped in a bytestream.
 
@@ -93,8 +93,6 @@ def ensure_bytestream(obj):
         return bytestream, "pickle"
 
 
-
-
 def serialize_model(model):
     """
     Serializes a model into a bytestream, attempting various methods.
@@ -114,18 +112,46 @@ def serialize_model(model):
         Framework with which the model was built.
 
     """
-    # try to use model-specific serializations
-    bytestream = six.BytesIO()
-    try:
-        model.save(bytestream)
-    except AttributeError:
-        model, method = ensure_bytestream(model)
-    else:
-        bytestream.seek(0)
-        model = bytestream
-        method = "tensorflow"
+    if hasattr(model, 'read'):  # if `model` is file-like
+        try:  # attempt to deserialize
+            try:  # reset cursor to beginning in case user forgot
+                model.seek(0)
+            except AttributeError:
+                pass
+            model = deserialize_model(model.read())
+        except pickle.UnpicklingError:  # unrecognized model
+            bytestream = ensure_bytestream(model)  # pass along file-like
+            method = None
+            model_type = "unknown"
+        finally:
+            try:  # reset cursor to beginning as a courtesy
+                model.seek(0)
+            except AttributeError:
+                pass
 
-    return model, method
+    module_name = model.__class__.__module__ or "unknown"
+    package_name = module_name.split('.')[0]
+
+    if package_name == 'sklearn':
+        model_type = "scikit"
+        bytestream, method = ensure_bytestream(model)
+    elif package_name == 'tensorflow':
+        model_type = "tensorflow"
+        if "keras" in module_name.split('.'):  # Keras provides a model.save() method
+            bytestream = six.BytesIO()
+            model.save(bytestream)
+            bytestream.seek(0)
+            method = None
+        else:
+            bytestream, method = ensure_bytestream(model)
+    elif package_name == 'xgboost':
+        model_type = "xgboost"
+        bytestream, method = ensure_bytestream(model)
+    else:
+        model_type = "unknown"
+        bytestream, method = ensure_bytestream(model)
+
+    return bytestream, method, model_type
 
 
 def deserialize_model(bytestring):
