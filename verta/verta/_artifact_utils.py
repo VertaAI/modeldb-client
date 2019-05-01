@@ -4,8 +4,18 @@ import six.moves.cPickle as pickle
 from verta import _utils
 
 try:
+    import joblib
+except ImportError:  # joblib not installed
+    pass
+
+try:
+    import cloudpickle
+except ImportError:  # cloudpickle not installed
+    pass
+
+try:
     from tensorflow import keras
-except ImportError:
+except ImportError:  # TensorFlow not installed
     pass
 
 
@@ -26,11 +36,15 @@ def ensure_bytestream(obj):
 
     Returns
     -------
-    file-like
-        Buffered bytestream.
+    bytestream : file-like
+        Buffered bytestream of the serialized artifacts.
+    method : {"joblib", "cloudpickle", "pickle", None}
+        Serialization method used to produce the bytestream.
 
     Raises
     ------
+    pickle.PicklingError
+        If `obj` cannot be serialized.
     ValueError
         If `obj` contains no data.
 
@@ -48,9 +62,37 @@ def ensure_bytestream(obj):
         if not len(contents):
             raise ValueError("object contains no data")
         bytestring = six.ensure_binary(contents)
+        bytestream = six.BytesIO(bytestring)
+        bytestream.seek(0)
+        return bytestream, None
     else:  # `obj` is not file-like
-        bytestring = pickle.dumps(obj)
-    return six.BytesIO(bytestring)
+        bytestream = six.BytesIO()
+
+        try:
+            joblib.dump(obj, bytestream)
+        except NameError:  # joblib not installed
+            pass
+        except pickle.PicklingError:  # can't be handled by joblib
+            pass
+        else:
+            bytestream.seek(0)
+            return bytestream, "joblib"
+
+        try:
+            cloudpickle.dump(obj, bytestream)
+        except NameError:  # cloudpickle not installed
+            pass
+        except pickle.PicklingError:  # can't be handled by cloudpickle
+            pass
+        else:
+            bytestream.seek(0)
+            return bytestream, "cloudpickle"
+
+        pickle.dump(obj, bytestream)
+        bytestream.seek(0)
+        return bytestream, "pickle"
+
+
 
 
 def serialize_model(model):
@@ -64,8 +106,12 @@ def serialize_model(model):
 
     Returns
     -------
-    file-like
-        Buffered bytestream.
+    bytestream : file-like
+        Buffered bytestream of the serialized model.
+    method : {"joblib", "cloudpickle", "pickle", None}
+        Serialization method used to produce the bytestream.
+    model_type : {"scikit", "xgboost", "tensorflow", "unknown"}
+        Framework with which the model was built.
 
     """
     # try to use model-specific serializations
@@ -73,12 +119,13 @@ def serialize_model(model):
     try:
         model.save(bytestream)
     except AttributeError:
-        model = ensure_bytestream(model)
+        model, method = ensure_bytestream(model)
     else:
         bytestream.seek(0)
         model = bytestream
+        method = "tensorflow"
 
-    return model
+    return model, method
 
 
 def deserialize_model(bytestring):

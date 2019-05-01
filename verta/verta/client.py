@@ -1041,7 +1041,7 @@ class ExperimentRun:
         if not path_only:
             # upload artifact to artifact store
             url = self._get_url_for_artifact(key, "PUT")
-            artifact_stream = _artifact_utils.ensure_bytestream(artifact)
+            artifact_stream, _ = _artifact_utils.ensure_bytestream(artifact)
             response = requests.put(url, data=artifact_stream)
             response.raise_for_status()
 
@@ -1486,7 +1486,7 @@ class ExperimentRun:
             if 'train_data' not in datasets:
                 # fetch another dataset
                 dataset = self.get_dataset(datasets.popitem()[0])
-        
+
         # open files
         if isinstance(model, six.string_types):
             model = open(model, 'rb')
