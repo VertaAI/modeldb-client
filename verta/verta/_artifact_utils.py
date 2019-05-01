@@ -200,7 +200,7 @@ def generate_model_api(data, serialization_method, model_type, num_outputs=1):
     ----------
     data : str or file-like or pd.DataFrame
         Filepath to data CSV, CSV file handle, or DataFrame.
-    serialization_method : {"joblib", "cloudpickle", "pickle"}
+    serialization_method : {"joblib", "cloudpickle", "pickle", None}
         Serialization method used to produce the model bytestream.
     model_type : {"scikit", "xgboost", "tensorflow", "unknown"}
         Framework with which the model was built.
@@ -213,8 +213,8 @@ def generate_model_api(data, serialization_method, model_type, num_outputs=1):
         Model API JSON.
 
     """
-    if serialization_method not in {"joblib", "cloudpickle", "pickle", "unknown"}:
-        raise ValueError("`serialization_method` must be one of {'joblib', 'cloudpickle', 'pickle'}")
+    if serialization_method not in {"joblib", "cloudpickle", "pickle", None}:
+        raise ValueError("`serialization_method` must be one of {'joblib', 'cloudpickle', 'pickle', None}")
     if model_type not in {"scikit", "xgboost", "tensorflow", "unknown"}:
         raise ValueError("`model_type` must be one of {'scikit', 'xgboost', 'tensorflow', 'unknown'}")
     if num_outputs < 1:
@@ -241,7 +241,7 @@ def generate_model_api(data, serialization_method, model_type, num_outputs=1):
             pass
     elif hasattr(data, 'iloc'):  # if `data` is a DataFrame
         header = data.columns
-        row = df.iloc[0]
+        row = data.iloc[0]
     else:
         raise ValueError("`data` must be a filepath, a file object, or a DataFrame")
 
@@ -265,9 +265,11 @@ def generate_model_api(data, serialization_method, model_type, num_outputs=1):
         'model_type': model_type,
         'python_version': sys.version_info[0],
         'deserialization': serialization_method,
-        'input': {'type': "list", 'fields': input_fields} if len(input_fields) > 1 else input_fields[0],
-        'output': {'type': "list", 'fields': output_fields} if len(output_fields) > 1 else output_fields[0],
+        'input': {'type': "list", 'fields': input_fields},
+        'output': {'type': "list", 'fields': output_fields},
     }
+    if serialization_method is None:
+        del model_api['deserialization']
     stringstream = six.StringIO()
     json.dump(model_api, stringstream)
     stringstream.seek(0)

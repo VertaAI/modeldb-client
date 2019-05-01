@@ -16,6 +16,7 @@ from ._protos.public.modeldb import ExperimentService_pb2 as _ExperimentService
 from ._protos.public.modeldb import ExperimentRunService_pb2 as _ExperimentRunService
 from . import _utils
 from . import _artifact_utils
+from . import utils
 
 
 class Client:
@@ -1426,14 +1427,11 @@ class ExperimentRun:
             except pickle.UnpicklingError:
                 return six.BytesIO(dataset)
 
-    def log_model_for_deployment(self, model, requirements, model_api, dataset):
+    def log_model_for_deployment(self, model, dataset, requirements):
         """
-        Logs a model artifact, a requirements file, and an API file to deploy on Verta.
+        Logs a model artifact, a requirements file, and a dataset to deploy on Verta.
 
         `requirements` is a pip requirements file specifying packages necessary to run `model`.
-
-        `model_api` is a JSON file specifying the structure and datatypes of `model`'s inputs and
-        outputs. Its format can be found in the Verta user documentation.
 
         Parameters
         ----------
@@ -1443,39 +1441,35 @@ class ExperimentRun:
               uploaded as an artifact.
             - If file-like, then the contents will be read as bytes and uploaded as an artifact.
             - Otherwise, the object will be serialized and uploaded as an artifact.
-        requirements : str or file-like
-            pip requirements file to deploy the model.
-            - If str, then it will be interpreted as a filepath, its contents read as bytes, and
-              uploaded as an artifact.
-            - If file-like, then the contents will be read as bytes and uploaded as an artifact.
-        model_api : str or file-like
-            API JSON file to interface with the deployment.
-            - If str, then it will be interpreted as a filepath, its contents read as bytes, and
-              uploaded as an artifact.
-            - If file-like, then the contents will be read as bytes and uploaded as an artifact.
         dataset : str or file-like or object
             Dataset or some representation thereof.
             - If str, then it will be interpreted as a filepath, its contents read as bytes, and
               uploaded as an artifact.
             - If file-like, then the contents will be read as bytes and uploaded as an artifact.
             - Otherwise, the object will be serialized and uploaded as an artifact.
+        requirements : str or file-like
+            pip requirements file to deploy the model.
+            - If str, then it will be interpreted as a filepath, its contents read as bytes, and
+              uploaded as an artifact.
+            - If file-like, then the contents will be read as bytes and uploaded as an artifact.
 
         """
         # open files
         if isinstance(model, six.string_types):
             model = open(model, 'rb')
-        if isinstance(requirements, six.string_types):
-            requirements = open(requirements, 'rb')
-        if isinstance(model_api, six.string_types):
-            model_api = open(model_api, 'rb')
         if isinstance(dataset, six.string_types):
             dataset = open(dataset, 'rb')
+        if isinstance(requirements, six.string_types):
+            requirements = open(requirements, 'rb')
 
         model, method, model_type = _artifact_utils.serialize_model(model)
+        model_api = _artifact_utils.generate_model_api(dataset, method, model_type)
+
         self._log_artifact("model.pkl", model, _CommonService.ArtifactTypeEnum.MODEL)
+        self._log_artifact("train_data", dataset, _CommonService.ArtifactTypeEnum.DATA)
         self._log_artifact("requirements.txt", requirements, _CommonService.ArtifactTypeEnum.BLOB)
         self._log_artifact("model_api.json", model_api, _CommonService.ArtifactTypeEnum.BLOB)
-        self._log_artifact("train_data", dataset, _CommonService.ArtifactTypeEnum.DATA)
+
 
     def log_model(self, key, model):
         """
