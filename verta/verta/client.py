@@ -1471,12 +1471,15 @@ class ExperimentRun:
             response = requests.get("{}://{}/v1/experiment-run/getArtifacts".format(self._scheme, self._socket),
                                     params=data, headers=self._auth)
             response.raise_for_status()
+            # recover missing default fields and integer enum values
+            response_msg = _utils.json_to_proto(response.json(), Message.Response)
+            response_json = _utils.proto_to_json(response_msg)
+            artifacts = response_json['artifacts']
             # convert artifacts list into datasets dict
-            artifacts = response.json()['artifacts']
             datasets = {}
             for artifact in artifacts:
-                if artifact.get('artifact_type', 0) == _CommonService.ArtifactTypeEnum.DATA and not artifact.get('path_only'):
-                    datasets[artifact.pop('key', '')] = artifact
+                if artifact['artifact_type'] == _CommonService.ArtifactTypeEnum.DATA and not artifact['path_only']:
+                    datasets[artifact.pop('key')] = artifact
             # look through datasets
             if not datasets:
                 raise ValueError("a training dataset must be provided")
