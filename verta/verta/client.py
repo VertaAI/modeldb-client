@@ -1749,9 +1749,4 @@ class ExperimentRun:
         response.raise_for_status()
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
-        observations = {}
-        for observation in response_msg.experiment_run.observations:  # TODO: support Artifacts
-            key = observation.attribute.key
-            value = observation.attribute.value
-            observations.setdefault(key, []).append(_utils.val_proto_to_python(value))
-        return observations
+        return _utils.unravel_observations(response_msg.experiment_run.observations)
