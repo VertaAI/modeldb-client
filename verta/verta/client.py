@@ -902,37 +902,21 @@ class ExperimentRun:
                                 params=data, headers=self._auth)
         response.raise_for_status()
 
-        run_json = response.json()['experiment_run']
-        return '\n'.join(map(str, zip(
-            ['{}: '.format(field_name)
-            for field_name in
-            ('name', 'description', 'tags', 'attributes', 'id', 'project_id',
-            'experiment_id', 'hyperparameters', 'observations', 'metrics', 'artifacts')],
-            [field for field in [
-            run_json.get('name', ''),
-            run_json.get('description', ''),
-            run_json.get('tags', ''),
-            {attribute['key']: attribute['value']
-            for attribute
-            in run_json.get('attributes', '')},
-            run_json.get('id', ''),
-            run_json.get('project_id', ''),
-            run_json.get('experiment_id', ''),
-            {hyperparam['key']: hyperparam['value']
-            for hyperparam
-            in run_json.get('hyperparameters', '')},
-            [(observation_dict, observation_dict.setdefault(observation['attribute']['key'], []).append(observation['attribute']['value']))
-            for observation_dict
-            in ({},)
-            for observation
-            in run_json.get('observations', '')][0][0],
-            {metric['key']: metric['value']
-            for metric
-            in run_json.get('metrics', '')},
-            [artifact['key']
-            for artifact
-            in run_json.get('artifacts', '')],
-        ] if field])))
+        response_msg = _utils.json_to_proto(response.json(), Message.Response)
+        run_msg = response_msg.experiment_run
+        return '\n'.join((
+            "name: {}".format(run_msg.name),
+            "description: {}".format(run_msg.description),
+            "tags: {}".format(run_msg.tags),
+            "attributes: {}".format(_utils.unravel_key_values(run_msg.attributes)),
+            "id: {}".format(run_msg.id),
+            "experiment id: {}".format(run_msg.experiment_id),
+            "project id: {}".format(run_msg.project_id),
+            "hyperparameters: {}".format(_utils.unravel_key_values(run_msg.hyperparameters)),
+            "observations: {}".format(_utils.unravel_observations(run_msg.observations)),
+            "metrics: {}".format(_utils.unravel_key_values(run_msg.metrics)),
+            "artifact keys: {}".format(_utils.unravel_artifacts(run_msg.artifacts)),
+        ))
 
 
     @property
