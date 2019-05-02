@@ -5,16 +5,13 @@ import csv
 import json
 import sys
 
+import cloudpickle
+
 from verta import _utils
 
 try:
     import joblib
 except ImportError:  # joblib not installed
-    pass
-
-try:
-    import cloudpickle
-except ImportError:  # cloudpickle not installed
     pass
 
 try:
@@ -73,6 +70,14 @@ def ensure_bytestream(obj):
         bytestream = six.BytesIO()
 
         try:
+            pickle.dump(obj, bytestream)
+        except pickle.PicklingError:  # can't be handled by pickle
+            pass
+        else:
+            bytestream.seek(0)
+            return bytestream, "pickle"
+
+        try:
             joblib.dump(obj, bytestream)
         except NameError:  # joblib not installed
             pass
@@ -82,19 +87,9 @@ def ensure_bytestream(obj):
             bytestream.seek(0)
             return bytestream, "joblib"
 
-        try:
-            cloudpickle.dump(obj, bytestream)
-        except NameError:  # cloudpickle not installed
-            pass
-        except pickle.PicklingError:  # can't be handled by cloudpickle
-            pass
-        else:
-            bytestream.seek(0)
-            return bytestream, "cloudpickle"
-
-        pickle.dump(obj, bytestream)
+        cloudpickle.dump(obj, bytestream)
         bytestream.seek(0)
-        return bytestream, "pickle"
+        return bytestream, "cloudpickle"
 
 
 def serialize_model(model):
