@@ -46,6 +46,7 @@ extensions = [
 
 autodoc_member_order = 'bysource'
 autodoc_mock_imports = [
+    'cloudpickle',
     'google',
     'joblib',
     'pathlib2',
