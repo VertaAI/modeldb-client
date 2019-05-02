@@ -136,6 +136,26 @@ def unravel_key_values(rpt_key_value_msg):
             in rpt_key_value_msg}
 
 
+def unravel_artifacts(rpt_artifact_msg):
+    """
+    Converts a repeated Artifact field of a protobuf message into a list of names.
+
+    Parameters
+    ----------
+    rpt_artifact_msg : google.protobuf.pyext._message.RepeatedCompositeContainer
+        Repeated Artifact field of a protobuf message.
+
+    Returns
+    -------
+    list of str
+        Names of artifacts.
+
+    """
+    return [artifact.key
+            for artifact
+            in rpt_artifact_msg]
+
+
 def unravel_observations(rpt_obs_msg):
     """
     Converts a repeated Observation field of a protobuf message into a dictionary.
