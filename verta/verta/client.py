@@ -113,7 +113,7 @@ class Client:
                             if expt_run.experiment_id == self.expt._id]
             return ExperimentRuns(self._auth, self._socket, expt_run_ids)
 
-    def set_project(self, proj_name=None, desc=None, tags=None, attrs=None):
+    def set_project(self, proj_name=None, desc=None, tags=None, attrs=None, _proj_id=None):
         """
         Attaches a Project to this Client.
 
@@ -133,6 +133,9 @@ class Client:
             Tags of the Project.
         attrs : dict of str to {None, bool, float, int, str}, optional
             Attributes of the Project.
+        _proj_id : str
+            ID of the project. This parameter cannot be provided alongside `proj_name`, and other
+            parameters will be ignored.
 
         Returns
         -------
@@ -150,7 +153,8 @@ class Client:
 
         proj = Project(self._auth, self._socket,
                        proj_name,
-                       desc, tags, attrs)
+                       desc, tags, attrs,
+                       _proj_id)
 
         self.proj = proj
         return proj
