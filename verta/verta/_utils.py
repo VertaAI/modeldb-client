@@ -9,6 +9,8 @@ import time
 from google.protobuf import json_format
 from google.protobuf.struct_pb2 import Value, NULL_VALUE
 
+from ._protos.public.modeldb import CommonService_pb2 as _CommonService
+
 
 _VALID_FLAT_KEY_CHARS = set(string.ascii_letters + string.digits + '_-')
 
@@ -114,6 +116,73 @@ def val_proto_to_python(msg):
         raise NotImplementedError("retrieved value type is not supported")
 
 
+def unravel_key_values(rpt_key_value_msg):
+    """
+    Converts a repeated KeyValue field of a protobuf message into a dictionary.
+
+    Parameters
+    ----------
+    rpt_key_value_msg : google.protobuf.pyext._message.RepeatedCompositeContainer
+        Repeated KeyValue field of a protobuf message.
+
+    Returns
+    -------
+    dict of str to {None, bool, float, int, str}
+        Names and values.
+
+    """
+    return {key_value.key: val_proto_to_python(key_value.value)
+            for key_value
+            in rpt_key_value_msg}
+
+
+def unravel_artifacts(rpt_artifact_msg):
+    """
+    Converts a repeated Artifact field of a protobuf message into a list of names.
+
+    Parameters
+    ----------
+    rpt_artifact_msg : google.protobuf.pyext._message.RepeatedCompositeContainer
+        Repeated Artifact field of a protobuf message.
+
+    Returns
+    -------
+    list of str
+        Names of artifacts.
+
+    """
+    return [artifact.key
+            for artifact
+            in rpt_artifact_msg]
+
+
+def unravel_observations(rpt_obs_msg):
+    """
+    Converts a repeated Observation field of a protobuf message into a dictionary.
+
+    Parameters
+    ----------
+    rpt_obs_msg : google.protobuf.pyext._message.RepeatedCompositeContainer
+        Repeated Observation field of a protobuf message.
+
+    Returns
+    -------
+    dict of str to list of {None, bool, float, int, str}
+        Names and observation sequences.
+
+    """
+    observations = {}
+    for observation in rpt_obs_msg:
+        if observation.WhichOneof("oneOf") == "attribute":
+            key = observation.attribute.key
+            value = observation.attribute.value
+        elif observation.WhichOneof("oneOf") == "artifact":
+            key = observation.artifact.key
+            value = "{} artifact".format(_CommonService.ArtifactTypeEnum.ArtifactType.Name(observation.artifact.artifact_type))
+        observations.setdefault(key, []).append(val_proto_to_python(value))  # TODO: attach timestamp
+    return observations
+
+
 def validate_flat_key(key):
     """
     Checks whether `key` contains invalid characters.
@@ -138,6 +207,7 @@ def validate_flat_key(key):
     for c in key:
         if c not in _VALID_FLAT_KEY_CHARS:
             raise ValueError("`key` may only contain alphanumeric characters, underscores, and dashes")
+
 
 def generate_default_name():
     """
