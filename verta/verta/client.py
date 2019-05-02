@@ -16,6 +16,7 @@ from ._protos.public.modeldb import ExperimentService_pb2 as _ExperimentService
 from ._protos.public.modeldb import ExperimentRunService_pb2 as _ExperimentRunService
 from . import _utils
 from . import _artifact_utils
+from . import utils
 
 
 class Client:
@@ -1041,7 +1042,7 @@ class ExperimentRun:
         if not path_only:
             # upload artifact to artifact store
             url = self._get_url_for_artifact(key, "PUT")
-            artifact_stream = _utils.ensure_bytestream(artifact)
+            artifact_stream, _ = _artifact_utils.ensure_bytestream(artifact)
             response = requests.put(url, data=artifact_stream)
             response.raise_for_status()
 
@@ -1426,14 +1427,11 @@ class ExperimentRun:
             except pickle.UnpicklingError:
                 return six.BytesIO(dataset)
 
-    def log_model_for_deployment(self, model, requirements, model_api, dataset=None):
+    def log_model_for_deployment(self, model, dataset, requirements):
         """
-        Logs a model artifact, a requirements file, and an API file to deploy on Verta.
+        Logs a model artifact, a requirements file, and a dataset to deploy on Verta.
 
         `requirements` is a pip requirements file specifying packages necessary to run `model`.
-
-        `model_api` is a JSON file specifying the structure and datatypes of `model`'s inputs and
-        outputs. Its format can be found in the Verta user documentation.
 
         Parameters
         ----------
@@ -1443,62 +1441,35 @@ class ExperimentRun:
               uploaded as an artifact.
             - If file-like, then the contents will be read as bytes and uploaded as an artifact.
             - Otherwise, the object will be serialized and uploaded as an artifact.
+        dataset : str or file-like or object
+            Dataset or some representation thereof.
+            - If str, then it will be interpreted as a filepath, its contents read as bytes, and
+              uploaded as an artifact.
+            - If file-like, then the contents will be read as bytes and uploaded as an artifact.
+            - Otherwise, the object will be serialized and uploaded as an artifact.
         requirements : str or file-like
             pip requirements file to deploy the model.
             - If str, then it will be interpreted as a filepath, its contents read as bytes, and
               uploaded as an artifact.
             - If file-like, then the contents will be read as bytes and uploaded as an artifact.
-        model_api : str or file-like
-            API JSON file to interface with the deployment.
-            - If str, then it will be interpreted as a filepath, its contents read as bytes, and
-              uploaded as an artifact.
-            - If file-like, then the contents will be read as bytes and uploaded as an artifact.
-        dataset : str or file-like or object, optional
-            Dataset or some representation thereof.
-            - If str, then it will be interpreted as a filepath, its contents read as bytes, and
-              uploaded as an artifact.
-            - If file-like, then the contents will be read as bytes and uploaded as an artifact.
-            - If object, then the object will be serialized and uploaded as an artifact.
-            - If not provided, then another dataset under this ExperimentRun will be repurposed
-              as the training dataset.
 
         """
-        if dataset is None:
-            # see if there's a dataset we can use
-            Message = _ExperimentRunService.GetArtifacts
-            msg = Message(id=self._id)
-            data = _utils.proto_to_json(msg)
-            response = requests.get("{}://{}/v1/experiment-run/getArtifacts".format(self._scheme, self._socket),
-                                    params=data, headers=self._auth)
-            response.raise_for_status()
-            # convert artifacts list into datasets dict
-            artifacts = response.json()['artifacts']
-            datasets = {}
-            for artifact in artifacts:
-                if artifact.get('artifact_type', 0) == _CommonService.ArtifactTypeEnum.DATA and not artifact.get('path_only'):
-                    datasets[artifact.pop('key', '')] = artifact
-            # look through datasets
-            if not datasets:
-                raise ValueError("a training dataset must be provided")
-            if 'train_data' not in datasets:
-                # fetch another dataset
-                dataset = self.get_dataset(datasets.popitem()[0])
-        
         # open files
         if isinstance(model, six.string_types):
             model = open(model, 'rb')
-        if isinstance(requirements, six.string_types):
-            requirements = open(requirements, 'rb')
-        if isinstance(model_api, six.string_types):
-            model_api = open(model_api, 'rb')
         if isinstance(dataset, six.string_types):
             dataset = open(dataset, 'rb')
+        if isinstance(requirements, six.string_types):
+            requirements = open(requirements, 'rb')
+
+        model, method, model_type = _artifact_utils.serialize_model(model)
+        model_api = _artifact_utils.generate_model_api(dataset, method, model_type)
 
         self._log_artifact("model.pkl", model, _CommonService.ArtifactTypeEnum.MODEL)
+        self._log_artifact("train_data", dataset, _CommonService.ArtifactTypeEnum.DATA)
         self._log_artifact("requirements.txt", requirements, _CommonService.ArtifactTypeEnum.BLOB)
         self._log_artifact("model_api.json", model_api, _CommonService.ArtifactTypeEnum.BLOB)
-        if dataset is not None:
-            self._log_artifact("train_data", dataset, _CommonService.ArtifactTypeEnum.DATA)
+
 
     def log_model(self, key, model):
         """
@@ -1517,16 +1488,7 @@ class ExperimentRun:
         """
         _utils.validate_flat_key(key)
 
-        # convert model to bytestream
-        bytestream = six.BytesIO()
-        try:
-            model.save(bytestream)
-        except AttributeError:
-            pass
-
-        if bytestream.getbuffer().nbytes:
-            bytestream.seek(0)
-            model = bytestream
+        model, _, _ = _artifact_utils.serialize_model(model)
 
         self._log_artifact(key, model, _CommonService.ArtifactTypeEnum.MODEL)
 
