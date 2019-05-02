@@ -895,7 +895,45 @@ class ExperimentRun:
         self._id = expt_run.id
 
     def __repr__(self):
-        return "<ExperimentRun \"{}\">".format(self.name)
+        Message = _ExperimentRunService.GetExperimentRunById
+        msg = Message(id=self._id)
+        data = _utils.proto_to_json(msg)
+        response = requests.get("{}://{}/v1/experiment-run/getExperimentRunById".format(self._scheme, self._socket),
+                                params=data, headers=self._auth)
+        response.raise_for_status()
+
+        run_json = response.json()['experiment_run']
+        return '\n'.join(map(str, zip(
+            ['{}: '.format(field_name)
+            for field_name in
+            ('name', 'description', 'tags', 'attributes', 'id', 'project_id',
+            'experiment_id', 'hyperparameters', 'observations', 'metrics', 'artifacts')],
+            [field for field in [
+            run_json.get('name', ''),
+            run_json.get('description', ''),
+            run_json.get('tags', ''),
+            {attribute['key']: attribute['value']
+            for attribute
+            in run_json.get('attributes', '')},
+            run_json.get('id', ''),
+            run_json.get('project_id', ''),
+            run_json.get('experiment_id', ''),
+            {hyperparam['key']: hyperparam['value']
+            for hyperparam
+            in run_json.get('hyperparameters', '')},
+            [(observation_dict, observation_dict.setdefault(observation['attribute']['key'], []).append(observation['attribute']['value']))
+            for observation_dict
+            in ({},)
+            for observation
+            in run_json.get('observations', '')][0][0],
+            {metric['key']: metric['value']
+            for metric
+            in run_json.get('metrics', '')},
+            [artifact['key']
+            for artifact
+            in run_json.get('artifacts', '')],
+        ] if field])))
+
 
     @property
     def name(self):
@@ -1144,8 +1182,7 @@ class ExperimentRun:
         response.raise_for_status()
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
-        attribute =  {attribute.key: _utils.val_proto_to_python(attribute.value)
-                      for attribute in response_msg.attributes}.get(key)
+        attribute =  _utils.unravel_key_values(response_msg.attributes).get(key)
         if attribute is None:
             raise KeyError("no attribute found with key {}".format(key))
         return attribute
@@ -1168,8 +1205,7 @@ class ExperimentRun:
         response.raise_for_status()
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
-        return {attribute.key: _utils.val_proto_to_python(attribute.value)
-                for attribute in response_msg.attributes}
+        return _utils.unravel_key_values(response_msg.attributes)
 
     def log_metric(self, key, value):
         """
@@ -1226,8 +1262,7 @@ class ExperimentRun:
         response.raise_for_status()
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
-        metric = {metric.key: _utils.val_proto_to_python(metric.value)
-                  for metric in response_msg.metrics}.get(key)
+        metric = _utils.unravel_key_values(response_msg.metrics).get(key)
         if metric is None:
             raise KeyError("no metric found with key {}".format(key))
         return metric
@@ -1250,8 +1285,7 @@ class ExperimentRun:
         response.raise_for_status()
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
-        return {metric.key: _utils.val_proto_to_python(metric.value)
-                for metric in response_msg.metrics}
+        return _utils.unravel_key_values(response_msg.metrics)
 
     def log_hyperparameter(self, key, value):
         """
@@ -1354,8 +1388,7 @@ class ExperimentRun:
         response.raise_for_status()
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
-        hyperparameter = {hyperparameter.key: _utils.val_proto_to_python(hyperparameter.value)
-                          for hyperparameter in response_msg.hyperparameters}.get(key)
+        hyperparameter = _utils.unravel_key_values(response_msg.hyperparameters).get(key)
         if hyperparameter is None:
             raise KeyError("no hyperparameter found with key {}".format(key))
         return hyperparameter
@@ -1378,8 +1411,7 @@ class ExperimentRun:
         response.raise_for_status()
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
-        return {hyperparameter.key: _utils.val_proto_to_python(hyperparameter.value)
-                for hyperparameter in response_msg.hyperparameters}
+        return _utils.unravel_key_values(response_msg.hyperparameters)
 
     def log_dataset(self, key, dataset):
         """

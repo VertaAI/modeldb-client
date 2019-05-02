@@ -114,6 +114,26 @@ def val_proto_to_python(msg):
         raise NotImplementedError("retrieved value type is not supported")
 
 
+def unravel_key_values(rpt_key_value_msg):
+    """
+    Converts a repeated KeyValue field of a protobuf message into a dictionary.
+
+    Parameters
+    ----------
+    rpt_key_value_msg : google.protobuf.pyext._message.RepeatedCompositeContainer
+        Repeated KeyValue field of a protobuf message.
+
+    Returns
+    -------
+    dict of str to {None, bool, float, int, str}
+        Names and values.
+
+    """
+    return {key_value.key: val_proto_to_python(key_value.value)
+            for key_value
+            in rpt_key_value_msg}
+
+
 def validate_flat_key(key):
     """
     Checks whether `key` contains invalid characters.
@@ -138,6 +158,7 @@ def validate_flat_key(key):
     for c in key:
         if c not in _VALID_FLAT_KEY_CHARS:
             raise ValueError("`key` may only contain alphanumeric characters, underscores, and dashes")
+
 
 def generate_default_name():
     """
