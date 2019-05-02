@@ -19,6 +19,7 @@ setup(
     ],
     python_requires=">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*",
     install_requires=[
+        "cloudpickle"
         "googleapis-common-protos>=1.5",
         "grpcio>=1.16",
         "pathlib2>=2.1",
