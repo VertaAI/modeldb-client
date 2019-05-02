@@ -6,7 +6,7 @@ with open("README.md", 'r') as f:
 
 setup(
     name="verta",
-    version="0.9.1",
+    version="0.9.3",
     maintainer="Michael Liu",
     maintainer_email="miliu@verta.ai",
     description="Python client for interfacing with ModelDB and the Verta platform",
@@ -19,7 +19,7 @@ setup(
     ],
     python_requires=">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*",
     install_requires=[
-        "cloudpickle"
+        "cloudpickle",
         "googleapis-common-protos>=1.5",
         "grpcio>=1.16",
         "pathlib2>=2.1",
