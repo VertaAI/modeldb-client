@@ -1206,6 +1206,47 @@ class ExperimentRun:
             else:
                 response.raise_for_status()
 
+    def log_attributes(self, attributes=None, **attributes_kwargs):
+        """
+        Logs attributes to this Experiment Run.
+
+        This function supports passing in a dictionary as well as argument unpacking.
+
+        Parameters
+        ----------
+        attributes : dict of str to {None, bool, float, int, str}
+            Names and values of attributes.
+
+        """
+        if attributes is not None and attributes_kwargs:
+            raise ValueError("too many arguments")
+        if attributes is None and not attributes_kwargs:
+            raise ValueError("insufficient arguments")
+
+        # rebind so don't have to duplicate code
+        if attributes_kwargs:
+            attributes = attributes_kwargs
+
+        # validate all keys first
+        for key in six.viewkeys(attributes):
+            _utils.validate_flat_key(key)
+
+        # build KeyValues
+        attribute_keyvals = []
+        for key, value in six.viewitems(attributes):
+            attribute_keyvals.append(_CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value)))
+
+        msg = _ExperimentRunService.LogAttributes(id=self._id, attributes=attribute_keyvals)
+        data = _utils.proto_to_json(msg)
+        response = requests.post("{}://{}/v1/experiment-run/logAttributes".format(self._scheme, self._socket),
+                                    json=data, headers=self._auth)
+        if not response.ok:
+            if response.status_code == 409:
+                raise ValueError("some attribute with some input key already exists;"
+                                 " consider using observations instead")
+            else:
+                response.raise_for_status()
+
     def get_attribute(self, key):
         """
         Gets the attribute with name `key` from this Experiment Run.
@@ -1281,8 +1322,49 @@ class ExperimentRun:
                                  json=data, headers=self._auth)
         if not response.ok:
             if response.status_code == 409:
-                raise ValueError("metric with key {} already exists"
+                raise ValueError("metric with key {} already exists;"
                                  " consider using observations instead".format(key))
+            else:
+                response.raise_for_status()
+
+    def log_metrics(self, metrics=None, **metrics_kwargs):
+        """
+        Logs metrics to this Experiment Run.
+
+        This function supports passing in a dictionary as well as argument unpacking.
+
+        Parameters
+        ----------
+        metrics : dict of str to {None, bool, float, int, str}
+            Names and values of metrics.
+
+        """
+        if metrics is not None and metrics_kwargs:
+            raise ValueError("too many arguments")
+        if metrics is None and not metrics_kwargs:
+            raise ValueError("insufficient arguments")
+
+        # rebind so don't have to duplicate code
+        if metrics_kwargs:
+            metrics = metrics_kwargs
+
+        # validate all keys first
+        for key in six.viewkeys(metrics):
+            _utils.validate_flat_key(key)
+
+        # build KeyValues
+        metric_keyvals = []
+        for key, value in six.viewitems(metrics):
+            metric_keyvals.append(_CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value)))
+
+        msg = _ExperimentRunService.LogMetrics(id=self._id, metrics=metric_keyvals)
+        data = _utils.proto_to_json(msg)
+        response = requests.post("{}://{}/v1/experiment-run/logMetrics".format(self._scheme, self._socket),
+                                    json=data, headers=self._auth)
+        if not response.ok:
+            if response.status_code == 409:
+                raise ValueError("some metric with some input key already exists;"
+                                 " consider using observations instead")
             else:
                 response.raise_for_status()
 
@@ -1360,7 +1442,7 @@ class ExperimentRun:
                                  json=data, headers=self._auth)
         if not response.ok:
             if response.status_code == 409:
-                raise ValueError("hyperparameter with key {} already exists"
+                raise ValueError("hyperparameter with key {} already exists;"
                                  " consider using observations instead".format(key))
             else:
                 response.raise_for_status()
@@ -1374,7 +1456,7 @@ class ExperimentRun:
         Parameters
         ----------
         hyperparams : dict of str to {None, bool, float, int, str}
-            Names and values of all hyperparameters.
+            Names and values of hyperparameters.
 
         """
         if hyperparams is not None and hyperparams_kwargs:
@@ -1390,27 +1472,21 @@ class ExperimentRun:
         for key in six.viewkeys(hyperparams):
             _utils.validate_flat_key(key)
 
-        # check for presence of all keys first
-        Message = _ExperimentRunService.GetHyperparameters
-        msg = Message(id=self._id)
-        data = _utils.proto_to_json(msg)
-        response = requests.get("http://{}/v1/experiment-run/getHyperparameters".format(self._socket),
-                                params=data, headers=self._auth)
-        response.raise_for_status()
-        response_msg = _utils.json_to_proto(response.json(), Message.Response)
-        keys = set(hyperparameter.key for hyperparameter in response_msg.hyperparameters)
-        intersection = keys & set(six.viewkeys(hyperparams))
-        if intersection:
-            raise ValueError("hyperparameter with key {} already exists"
-                             " consider using observations instead".format(intersection.pop()))
-
+        # build KeyValues
+        hyperparameter_keyvals = []
         for key, value in six.viewitems(hyperparams):
-            hyperparameter = _CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value))
-            msg = _ExperimentRunService.LogHyperparameter(id=self._id, hyperparameter=hyperparameter)
-            data = _utils.proto_to_json(msg)
-            response = requests.post("{}://{}/v1/experiment-run/logHyperparameter".format(self._scheme, self._socket),
-                                     json=data, headers=self._auth)
-            response.raise_for_status()
+            hyperparameter_keyvals.append(_CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value)))
+
+        msg = _ExperimentRunService.LogHyperparameters(id=self._id, hyperparameters=hyperparameter_keyvals)
+        data = _utils.proto_to_json(msg)
+        response = requests.post("{}://{}/v1/experiment-run/logHyperparameters".format(self._scheme, self._socket),
+                                    json=data, headers=self._auth)
+        if not response.ok:
+            if response.status_code == 409:
+                raise ValueError("some hyperparameter with some input key already exists;"
+                                 " consider using observations instead")
+            else:
+                response.raise_for_status()
 
     def get_hyperparameter(self, key):
         """
