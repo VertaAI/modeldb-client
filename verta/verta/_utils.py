@@ -289,6 +289,25 @@ def ensure_timestamp(timestamp):
         raise TypeError("unable to parse timestamp of type {}".format(type(timestamp)))
 
 
+def timestamp_to_str(timestamp):
+    """
+    Converts a Unix timestamp into a human-readable string representation.
+
+    Parameters
+    ----------
+    timestamp : int
+        Numerical Unix timestamp.
+
+    Returns
+    -------
+    str
+        Human-readable string representation of `timestamp`.
+
+    """
+    num_digits = len(str(timestamp))
+    return str(datetime.fromtimestamp(timestamp*10**(10 - num_digits)))
+
+
 def now():
     """
     Returns the current Unix timestamp with millisecond resolution.
