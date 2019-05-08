@@ -11,6 +11,11 @@ from google.protobuf.struct_pb2 import Value, NULL_VALUE
 
 from ._protos.public.modeldb import CommonService_pb2 as _CommonService
 
+try:
+    import pandas as pd
+except ImportError:  # pandas not installed
+    pass
+
 
 _VALID_FLAT_KEY_CHARS = set(string.ascii_letters + string.digits + '_-')
 
@@ -243,6 +248,45 @@ def timestamp_to_ms(timestamp):
     """
     num_integer_digits = len(str(timestamp).split('.')[0])
     return int(timestamp*10**(13 - num_integer_digits))
+
+
+def ensure_timestamp(timestamp):
+    """
+    Converts a representation of a datetime into a Unix timestamp with millisecond resolution.
+
+    If `timestamp` is provided as a string, this function attempts to use pandas (if installed) to
+    parse it into a Unix timestamp, since pandas can interally handle many different human-readable
+    datetime string representations. If pandas is not installed, this function will only handle an
+    ISO 8601 representation.
+
+    Parameters
+    ----------
+    timestamp : str or float or int
+        String representation of a datetime or numerical Unix timestamp.
+
+    Returns
+    -------
+    int
+        `timestamp` with millisecond resolution (13 integer digits).
+
+    """
+    if isinstance(timestamp, six.string_types):
+        try:  # attempt with pandas, which can parse many time string formats
+            return timestamp_to_ms(pd.Timestamp(timestamp).timestamp())
+        except NameError:  # pandas not installed
+            try:  # fall back on std lib, and parse as ISO 8601
+                timestamp_to_ms(datetime.fromisoformat(timestamp).timestamp())
+            except ValueError:
+                six.raise_from(ValueError("`timestamp` must be in ISO 8601 format,"
+                                          " e.g. \"2017-10-30T00:44:16+00:00\""),
+                               None)
+        except ValueError:  # can't be handled by pandas
+            six.raise_from(ValueError("unable to parse datetime string \"{}\"".format(timestamp)),
+                           None)
+    elif isinstance(timestamp, numbers.Real):
+        return timestamp_to_ms(timestamp)
+    else:
+        raise TypeError("unable to parse timestamp of type {}".format(type(timestamp)))
 
 
 def now():
