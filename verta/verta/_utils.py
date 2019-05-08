@@ -5,7 +5,6 @@ import json
 import numbers
 import os
 import string
-import time
 
 from google.protobuf import json_format
 from google.protobuf.struct_pb2 import Value, NULL_VALUE
@@ -224,7 +223,26 @@ def generate_default_name():
         String generated from the current process ID and Unix timestamp.
 
     """
-    return "{}{}".format(os.getpid(), str(time.time()).replace('.', ''))
+    return "{}{}".format(os.getpid(), str(datetime.now().timestamp()).replace('.', ''))
+
+
+def timestamp_to_ms(timestamp):
+    """
+    Converts a Unix timestamp into one with millisecond resolution.
+
+    Parameters
+    ----------
+    timestamp : float or int
+        Unix timestamp.
+
+    Returns
+    -------
+    int
+        `timestamp` with millisecond resolution (13 integer digits).
+
+    """
+    num_integer_digits = len(str(timestamp).split('.')[0])
+    return int(timestamp*10**(13 - num_integer_digits))
 
 
 def now():
@@ -237,4 +255,4 @@ def now():
         Current Unix timestamp in milliseconds.
 
     """
-    return int(datetime.now().timestamp()*10**3)
+    return timestamp_to_ms(datetime.now().timestamp())
