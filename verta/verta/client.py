@@ -1682,6 +1682,11 @@ class ExperimentRun:
             String representation of a datetime or numerical Unix timestamp. If not provided, the
             current time will be used.
 
+        Warnings
+        --------
+        If `timestamp` is provided by the user, it must contain timezone information. Otherwise,
+        it will be interpreted as UTC.
+
         """
         _utils.validate_flat_key(key)
 
