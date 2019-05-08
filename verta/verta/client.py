@@ -1726,7 +1726,7 @@ class ExperimentRun:
         if len(response_msg.observations) == 0:
             raise KeyError(key)
         else:
-            return [_utils.val_proto_to_python(observation.attribute.value)
+            return [_utils.unravel_observation(observation)[1:]  # drop key from tuple
                     for observation in response_msg.observations]  # TODO: support Artifacts
 
     def get_observations(self):

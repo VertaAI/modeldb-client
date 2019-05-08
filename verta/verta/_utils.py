@@ -161,6 +161,35 @@ def unravel_artifacts(rpt_artifact_msg):
             in rpt_artifact_msg]
 
 
+def unravel_observation(obs_msg):
+    """
+    Converts an Observation protobuf message into a more straightforward Python tuple.
+
+    This is useful because an Observation message has a oneof that's finicky to handle.
+
+    Returns
+    -------
+    str
+        Name of observation.
+    {None, bool, float, int, str}
+        Value of observation.
+    str
+        Human-readable timestamp.
+
+    """
+    if obs_msg.WhichOneof("oneOf") == "attribute":
+        key = obs_msg.attribute.key
+        value = obs_msg.attribute.value
+    elif obs_msg.WhichOneof("oneOf") == "artifact":
+        key = obs_msg.artifact.key
+        value = "{} artifact".format(_CommonService.ArtifactTypeEnum.ArtifactType.Name(obs_msg.artifact.artifact_type))
+    return (
+        key,
+        val_proto_to_python(value),
+        timestamp_to_str(obs_msg.timestamp),
+    )
+
+
 def unravel_observations(rpt_obs_msg):
     """
     Converts a repeated Observation field of a protobuf message into a dictionary.
@@ -172,19 +201,14 @@ def unravel_observations(rpt_obs_msg):
 
     Returns
     -------
-    dict of str to list of {None, bool, float, int, str}
+    dict of str to list of tuples ({None, bool, float, int, str}, str)
         Names and observation sequences.
 
     """
     observations = {}
-    for observation in rpt_obs_msg:
-        if observation.WhichOneof("oneOf") == "attribute":
-            key = observation.attribute.key
-            value = observation.attribute.value
-        elif observation.WhichOneof("oneOf") == "artifact":
-            key = observation.artifact.key
-            value = "{} artifact".format(_CommonService.ArtifactTypeEnum.ArtifactType.Name(observation.artifact.artifact_type))
-        observations.setdefault(key, []).append(val_proto_to_python(value))  # TODO: attach timestamp
+    for obs_msg in rpt_obs_msg:
+        key, value, timestamp = unravel_observation(obs_msg)
+        observations.setdefault(key, []).append((value, timestamp))
     return observations
 
 
