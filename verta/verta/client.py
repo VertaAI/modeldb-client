@@ -1447,9 +1447,9 @@ class ExperimentRun:
             except pickle.UnpicklingError:
                 return six.BytesIO(dataset)
 
-    def log_model_for_deployment(self, model, dataset, requirements):
+    def log_model_for_deployment(self, model, dataset_csv, requirements):
         """
-        Logs a model artifact, a requirements file, and a dataset to deploy on Verta.
+        Logs a model artifact, a requirements file, and a dataset CSV to deploy on Verta.
 
         `requirements` is a pip requirements file specifying packages necessary to run `model`.
 
@@ -1461,11 +1461,12 @@ class ExperimentRun:
             uploaded as an artifact.
             - If file-like, then the contents will be read as bytes and uploaded as an artifact.
             - Otherwise, the object will be serialized and uploaded as an artifact.
-        dataset : str or file-like or object
-            Dataset or some representation thereof.
+        dataset_csv : str or file-like or object
+            Dataset CSV or some representation thereof.
             - If str, then it will be interpreted as a filepath, its contents read as bytes, and
             uploaded as an artifact.
             - If file-like, then the contents will be read as bytes and uploaded as an artifact.
+            - If a pandas DataFrame, then it will be converted into a CSV and uploaded as an artifact.
             - Otherwise, the object will be serialized and uploaded as an artifact.
         requirements : str or file-like
             pip requirements file to deploy the model.
@@ -1477,16 +1478,21 @@ class ExperimentRun:
         # open files
         if isinstance(model, six.string_types):
             model = open(model, 'rb')
-        if isinstance(dataset, six.string_types):
-            dataset = open(dataset, 'rb')
+        if isinstance(dataset_csv, six.string_types):
+            dataset_csv = open(dataset_csv, 'rb')
         if isinstance(requirements, six.string_types):
             requirements = open(requirements, 'rb')
 
         model, method, model_type = _artifact_utils.serialize_model(model)
-        model_api = _artifact_utils.generate_model_api(dataset, method, model_type)
+        if hasattr(dataset_csv, 'to_csv'):  # if `dataset_csv` is a DataFrame
+            stringstream = six.StringIO()
+            dataset_csv.to_csv(stringstream, index=False)  # write as CSV
+            stringstream.seek(0)
+            dataset_csv = stringstream
+        model_api = _artifact_utils.generate_model_api(dataset_csv, method, model_type)
 
         self._log_artifact("model.pkl", model, _CommonService.ArtifactTypeEnum.MODEL)
-        self._log_artifact("train_data", dataset, _CommonService.ArtifactTypeEnum.DATA)
+        self._log_artifact("train_data", dataset_csv, _CommonService.ArtifactTypeEnum.DATA)
         self._log_artifact("requirements.txt", requirements, _CommonService.ArtifactTypeEnum.BLOB)
         self._log_artifact("model_api.json", model_api, _CommonService.ArtifactTypeEnum.BLOB)
 
