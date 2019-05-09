@@ -356,7 +356,7 @@ class Project:
 
             if response.ok:
                 response_msg = _utils.json_to_proto(response.json(), Message.Response)
-                return response_msg.project_by_user[0]
+                return response_msg.project_by_user
             else:
                 if response.status_code == 404 and response.json()['code'] == 5:
                     return None
@@ -374,7 +374,7 @@ class Project:
                      for key, value in six.viewitems(attrs)]
 
         Message = _ProjectService.CreateProject
-        msg = Message(name=proj_name, description=desc, tags=tags, metadata=attrs)
+        msg = Message(name=proj_name, description=desc, tags=tags, attributes=attrs)
         data = _utils.proto_to_json(msg)
         response = requests.post("{}://{}/v1/project/createProject".format(scheme, socket),
                                  json=data, headers=auth)
