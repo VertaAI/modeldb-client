@@ -1665,7 +1665,7 @@ class ExperimentRun:
             except pickle.UnpicklingError:
                 return six.BytesIO(artifact)
 
-    def log_observation(self, key, value):
+    def log_observation(self, key, value, timestamp=None):
         """
         Logs an observation to this Experiment Run.
 
@@ -1678,12 +1678,25 @@ class ExperimentRun:
             Name of the observation.
         value : one of {None, bool, float, int, str}
             Value of the observation.
+        timestamp: str or float or int, optional
+            String representation of a datetime or numerical Unix timestamp. If not provided, the
+            current time will be used.
+
+        Warnings
+        --------
+        If `timestamp` is provided by the user, it must contain timezone information. Otherwise,
+        it will be interpreted as UTC.
 
         """
         _utils.validate_flat_key(key)
 
+        if timestamp is None:
+            timestamp = _utils.now()
+        else:
+            timestamp = _utils.ensure_timestamp(timestamp)
+
         attribute = _CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value))
-        observation = _ExperimentRunService.Observation(attribute=attribute)  # TODO: support Artifacts
+        observation = _ExperimentRunService.Observation(attribute=attribute, timestamp=timestamp)  # TODO: support Artifacts
         msg = _ExperimentRunService.LogObservation(id=self._id, observation=observation)
         data = _utils.proto_to_json(msg)
         response = requests.post("{}://{}/v1/experiment-run/logObservation".format(self._scheme, self._socket),
@@ -1718,7 +1731,7 @@ class ExperimentRun:
         if len(response_msg.observations) == 0:
             raise KeyError(key)
         else:
-            return [_utils.val_proto_to_python(observation.attribute.value)
+            return [_utils.unravel_observation(observation)[1:]  # drop key from tuple
                     for observation in response_msg.observations]  # TODO: support Artifacts
 
     def get_observations(self):
