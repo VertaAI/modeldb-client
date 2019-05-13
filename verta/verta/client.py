@@ -1206,27 +1206,21 @@ class ExperimentRun:
             else:
                 response.raise_for_status()
 
-    def log_attributes(self, attributes=None, **attributes_kwargs):
+    def log_attributes(self, **attributes):
         """
-        Logs attributes to this Experiment Run.
-
-        This function supports passing in a dictionary as well as argument unpacking.
+        Logs potentially multiple attributes to this Experiment Run using keyword arguments.
 
         Parameters
         ----------
-        attributes : dict of str to {None, bool, float, int, str}
-            Names and values of attributes.
+        **attributes : {None, bool, float, int, str}
+            Attributes.
+
+        Examples
+        --------
+        >>> run.log_attributes(team="sales")
+        >>> run.log_attributes(**{"training_time_hours": 48})
 
         """
-        if attributes is not None and attributes_kwargs:
-            raise ValueError("too many arguments")
-        if attributes is None and not attributes_kwargs:
-            raise ValueError("insufficient arguments")
-
-        # rebind so don't have to duplicate code
-        if attributes_kwargs:
-            attributes = attributes_kwargs
-
         # validate all keys first
         for key in six.viewkeys(attributes):
             _utils.validate_flat_key(key)
@@ -1327,27 +1321,21 @@ class ExperimentRun:
             else:
                 response.raise_for_status()
 
-    def log_metrics(self, metrics=None, **metrics_kwargs):
+    def log_metrics(self, **metrics):
         """
-        Logs metrics to this Experiment Run.
-
-        This function supports passing in a dictionary as well as argument unpacking.
+        Logs potentially multiple metrics to this Experiment Run using keyword arguments.
 
         Parameters
         ----------
-        metrics : dict of str to {None, bool, float, int, str}
-            Names and values of metrics.
+        **metrics : {None, bool, float, int, str}
+            Metrics.
+
+        Examples
+        --------
+        >>> run.log_metrics(accuracy=0.87)
+        >>> run.log_metrics(**{"loss": 1.56})
 
         """
-        if metrics is not None and metrics_kwargs:
-            raise ValueError("too many arguments")
-        if metrics is None and not metrics_kwargs:
-            raise ValueError("insufficient arguments")
-
-        # rebind so don't have to duplicate code
-        if metrics_kwargs:
-            metrics = metrics_kwargs
-
         # validate all keys first
         for key in six.viewkeys(metrics):
             _utils.validate_flat_key(key)
@@ -1447,27 +1435,21 @@ class ExperimentRun:
             else:
                 response.raise_for_status()
 
-    def log_hyperparameters(self, hyperparams=None, **hyperparams_kwargs):
+    def log_hyperparameters(self, **hyperparams):
         """
-        Logs hyperparameters to this Experiment Run.
-
-        This function supports passing in a dictionary as well as argument unpacking.
+        Logs potentially multiple hyperparameters to this Experiment Run using keyword arguments.
 
         Parameters
         ----------
-        hyperparams : dict of str to {None, bool, float, int, str}
-            Names and values of hyperparameters.
+        **hyperparameters : {None, bool, float, int, str}
+            Hyperparameters.
+
+        Examples
+        --------
+        >>> run.log_hyperparameters(loss_fn="binary_cross_entropy")
+        >>> run.log_hyperparameters(**{"penalty": "l2"})
 
         """
-        if hyperparams is not None and hyperparams_kwargs:
-            raise ValueError("too many arguments")
-        if hyperparams is None and not hyperparams_kwargs:
-            raise ValueError("insufficient arguments")
-
-        # rebind so don't have to duplicate code
-        if hyperparams_kwargs:
-            hyperparams = hyperparams_kwargs
-
         # validate all keys first
         for key in six.viewkeys(hyperparams):
             _utils.validate_flat_key(key)

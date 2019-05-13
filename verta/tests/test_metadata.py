@@ -48,20 +48,6 @@ class TestHyperparameters:
 
         assert experiment_run.get_hyperparameters() == self.hyperparameters
 
-    def test_dict(self, experiment_run):
-        with pytest.raises(ValueError):
-            experiment_run.log_hyperparameters(self.hyperparameters, **self.hyperparameters)
-
-        experiment_run.log_hyperparameters(self.hyperparameters)
-
-        with pytest.raises(KeyError):
-            experiment_run.get_hyperparameter(utils.gen_str())
-
-        for key, val in six.viewitems(self.hyperparameters):
-            assert experiment_run.get_hyperparameter(key) == val
-
-        assert experiment_run.get_hyperparameters() == self.hyperparameters
-
     def test_unpack(self, experiment_run):
         experiment_run.log_hyperparameters(**self.hyperparameters)
 
@@ -84,11 +70,11 @@ class TestHyperparameters:
                 experiment_run.log_hyperparameter(key, val)
 
     def test_atomic(self, experiment_run):
-        experiment_run.log_hyperparameters(self.hyperparameters)
+        experiment_run.log_hyperparameters(**self.hyperparameters)
 
         for key, val in six.viewitems(self.hyperparameters):
             with pytest.raises(ValueError):
-                experiment_run.log_hyperparameters({
+                experiment_run.log_hyperparameters(**{
                     key: val,
                     utils.gen_str(): utils.gen_str(),
                 })
@@ -106,20 +92,6 @@ class TestAttributes:
     def test_single(self, experiment_run):
         for key, val in six.viewitems(self.attributes):
             experiment_run.log_attribute(key, val)
-
-        with pytest.raises(KeyError):
-            experiment_run.get_attribute(utils.gen_str())
-
-        for key, val in six.viewitems(self.attributes):
-            assert experiment_run.get_attribute(key) == val
-
-        assert experiment_run.get_attributes() == self.attributes
-
-    def test_dict(self, experiment_run):
-        with pytest.raises(ValueError):
-            experiment_run.log_attributes(self.attributes, **self.attributes)
-
-        experiment_run.log_attributes(self.attributes)
 
         with pytest.raises(KeyError):
             experiment_run.get_attribute(utils.gen_str())
@@ -151,11 +123,11 @@ class TestAttributes:
     #             experiment_run.log_attribute(key, val)
 
     def test_atomic(self, experiment_run):
-        experiment_run.log_attributes(self.attributes)
+        experiment_run.log_attributes(**self.attributes)
 
         for key, val in six.viewitems(self.attributes):
             with pytest.raises(ValueError):
-                experiment_run.log_attributes({
+                experiment_run.log_attributes(**{
                     key: val,
                     utils.gen_str(): utils.gen_str(),
                 })
@@ -173,20 +145,6 @@ class TestMetrics:
     def test_single(self, experiment_run):
         for key, val in six.viewitems(self.metrics):
             experiment_run.log_metric(key, val)
-
-        with pytest.raises(KeyError):
-            experiment_run.get_metric(utils.gen_str())
-
-        for key, val in six.viewitems(self.metrics):
-            assert experiment_run.get_metric(key) == val
-
-        assert experiment_run.get_metrics() == self.metrics
-
-    def test_dict(self, experiment_run):
-        with pytest.raises(ValueError):
-            experiment_run.log_metrics(self.metrics, **self.metrics)
-
-        experiment_run.log_metrics(self.metrics)
 
         with pytest.raises(KeyError):
             experiment_run.get_metric(utils.gen_str())
@@ -218,11 +176,11 @@ class TestMetrics:
                 experiment_run.log_metric(key, val)
 
     def test_atomic(self, experiment_run):
-        experiment_run.log_metrics(self.metrics)
+        experiment_run.log_metrics(**self.metrics)
 
         for key, val in six.viewitems(self.metrics):
             with pytest.raises(ValueError):
-                experiment_run.log_metrics({
+                experiment_run.log_metrics(**{
                     key: val,
                     utils.gen_str(): utils.gen_str(),
                 })
