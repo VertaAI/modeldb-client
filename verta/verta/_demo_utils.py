@@ -46,7 +46,7 @@ class DeployedModel:
         self._input_headers = None
 
         self._status_url = "https://{}/api/v1/deployment/status/{}".format(socket, model_id)
-        self._get_url_url = "https://{}/v1/experiment-run/getUrlForArtifact".format(socket)
+        self._get_url_url = "https://{}/v1/experiment-run/getUrlForArtifact".format(socket) # url to obtain artifact GET url
         self._prediction_url = "https://{}/api/v1/predict/{}".format(socket, model_id)
 
     def __repr__(self):
@@ -76,6 +76,7 @@ class DeployedModel:
         self._input_headers = [field['name'] for field in model_api['input']['fields']]
 
     def _predict(self, x):
+        """This is like ``DeployedModel.predict()``, but returns the raw ``Response`` for debugging."""
         if self._prediction_token is None:
             self._set_prediction_token()
         if self._input_headers is None:
