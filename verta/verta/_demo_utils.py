@@ -75,6 +75,17 @@ class DeployedModel:
 
         self._input_headers = [field['name'] for field in model_api['input']['fields']]
 
+    def _predict(self, x):
+        if self._prediction_token is None:
+            self._set_prediction_token()
+        if self._input_headers is None:
+            self._set_input_headers()
+
+        input_data = dict(zip(self._input_headers, x))
+        input_request = {'token': self._prediction_token,
+                         'data': json.dumps(input_data)}
+        return requests.post(self._prediction_url, data=input_request)
+
     @property
     def is_deployed(self):
         response = requests.get(self._status_url)
@@ -99,21 +110,14 @@ class DeployedModel:
             error, None is returned instead as a silent failure.
 
         """
-        if self._prediction_token is None:
-            self._set_prediction_token()
-        if self._input_headers is None:
-            self._set_input_headers()
+        response = self._predict(x)
 
-        input_data = dict(zip(self._input_headers, x))
-        input_request = {'token': self._prediction_token,
-                         'data': json.dumps(input_data)}
-        response = requests.post(self._prediction_url, data=input_request)
         if not response.ok:
-            self._set_prediction_token()  # try refetching token
-            response = requests.post(self._prediction_url, data=input_request)
+            self._prediction_token = None  # try refetching token
+            response = self._predict(x)
             if not response.ok:
-                self._set_input_headers()  # try refetching input headers
-                response = requests.post(self._prediction_url, data=input_request)
+                self._input_headers = None  # try refetching input headers
+                response = self._predict(x)
                 if not response.ok:
-                    return None  # silence error for now
+                    return ""  # silence error for now
         return response.json()
