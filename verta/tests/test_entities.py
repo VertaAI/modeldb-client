@@ -39,15 +39,15 @@ class TestExperimentRuns:
     def test_magic_getitem(self, client):
         client.set_project()
         expt = client.set_experiment()
-        expt_run_ids = []
+        local_expt_run_ids = set()
 
-        expt_run_ids.extend(client.set_experiment_run()._id for _ in range(3))
-        for expt_run_id, expt_run in zip(expt_run_ids, expt.expt_runs):
-            assert expt_run_id == expt_run._id
+        local_expt_run_ids.update(client.set_experiment_run()._id for _ in range(3))
+        backend_expt_run_ids = set(run._id for run in expt.expt_runs)
+        assert local_expt_run_ids == backend_expt_run_ids
 
-        expt_run_ids.extend(client.set_experiment_run()._id for _ in range(3))
-        for expt_run_id, expt_run in zip(expt_run_ids, expt.expt_runs):
-            assert expt_run_id == expt_run._id
+        local_expt_run_ids.update(client.set_experiment_run()._id for _ in range(3))
+        backend_expt_run_ids = set(run._id for run in expt.expt_runs)
+        assert local_expt_run_ids == backend_expt_run_ids
 
     def test_magic_len(self, client):
         client.set_project()
@@ -59,21 +59,15 @@ class TestExperimentRuns:
     def test_magic_add(self, client):
         client.set_project()
         expt1 = client.set_experiment()
-        expt1_run_ids = [client.set_experiment_run()._id for _ in range(3)]
+        local_expt1_run_ids = set(client.set_experiment_run()._id for _ in range(3))
         expt2 = client.set_experiment()
-        expt2_run_ids = [client.set_experiment_run()._id for _ in range(3)]
+        local_expt2_run_ids = set(client.set_experiment_run()._id for _ in range(3))
 
         # simple concatenation
-        for expt_run_id, expt_run in zip(expt1_run_ids + expt2_run_ids,
-                                         expt1.expt_runs + expt2.expt_runs):
-            assert expt_run_id == expt_run._id
+        assert local_expt1_run_ids | local_expt2_run_ids == set(run._id for run in expt1.expt_runs + expt2.expt_runs)
 
         # ignore duplicates
-        woven_run_ids = [id_ for pair in zip(expt1_run_ids, expt2_run_ids) for id_ in pair]
-        woven_expt_runs = expt1.expt_runs.__class__(client._auth, client._socket, woven_run_ids)
-        for expt_run_id, expt_run in zip(expt1_run_ids + expt2_run_ids,
-                                         expt1.expt_runs + woven_expt_runs):
-            assert expt_run_id == expt_run._id
+        assert local_expt1_run_ids == set(run._id for run in expt1.expt_runs + expt1.expt_runs)
 
     def test_find(self, client):
         client.set_project()
@@ -87,16 +81,14 @@ class TestExperimentRuns:
             run.log_hyperparameter('val', hyperparam_val)
 
         threshold = random.choice(metric_vals)
-        filtered_run_ids = [run._id for run in expt.expt_runs if run.get_metric('val') >= threshold]
-        for expt_run_id, expt_run in zip(filtered_run_ids,
-                                         expt.expt_runs.find("metrics.val >= {}".format(threshold))):
-            assert expt_run_id == expt_run._id
+        local_filtered_run_ids = set(run._id for run in expt.expt_runs if run.get_metric('val') >= threshold)
+        backend_filtered_run_ids = set(run._id for run in expt.expt_runs.find("metrics.val >= {}".format(threshold)))
+        assert local_filtered_run_ids == backend_filtered_run_ids
 
         threshold = random.choice(hyperparam_vals)
-        filtered_run_ids = [run._id for run in expt.expt_runs if run.get_hyperparameter('val') >= threshold]
-        for expt_run_id, expt_run in zip(filtered_run_ids,
-                                         expt.expt_runs.find("hyperparameters.val >= {}".format(threshold))):
-            assert expt_run_id == expt_run._id
+        local_filtered_run_ids = set(run._id for run in expt.expt_runs if run.get_hyperparameter('val') >= threshold)
+        backend_filtered_run_ids = set(run._id for run in expt.expt_runs.find("hyperparameters.val >= {}".format(threshold)))
+        assert local_filtered_run_ids == backend_filtered_run_ids
 
     def test_sort(self, client):
         client.set_project()
