@@ -45,12 +45,15 @@ class DeployedModel:
         self._prediction_token = None
         self._input_headers = None
 
+        self._status_url = "https://{}/api/v1/deployment/status/{}".format(socket, model_id)
+        self._get_url_url = "https://{}/v1/experiment-run/getUrlForArtifact".format(socket) # url to obtain artifact GET url
+        self._prediction_url = "https://{}/api/v1/predict/{}".format(socket, model_id)
+
     def __repr__(self):
         return "<Model {}>".format(self._id)
 
     def _set_prediction_token(self):
-        status_url = "https://{}/api/v1/deployment/status/{}".format(self._socket, self._id)
-        response = requests.get(status_url)
+        response = requests.get(self._status_url)
         response.raise_for_status()
         status = response.json()
         try:
@@ -60,9 +63,8 @@ class DeployedModel:
 
     def _set_input_headers(self, key="model_api.json"):
         # get url to get model_api.json from artifact store
-        get_url_url = "https://{}/v1/experiment-run/getUrlForArtifact".format(self._socket)
         params = {'id': self._id, 'key': key, 'method': "GET"}
-        response = requests.post(get_url_url, json=params, headers=self._auth)
+        response = requests.post(self._get_url_url, json=params, headers=self._auth)
         response.raise_for_status()
 
         # get model_api.json
@@ -73,10 +75,21 @@ class DeployedModel:
 
         self._input_headers = [field['name'] for field in model_api['input']['fields']]
 
+    def _predict(self, x):
+        """This is like ``DeployedModel.predict()``, but returns the raw ``Response`` for debugging."""
+        if self._prediction_token is None:
+            self._set_prediction_token()
+        if self._input_headers is None:
+            self._set_input_headers()
+
+        input_data = dict(zip(self._input_headers, x))
+        input_request = {'token': self._prediction_token,
+                         'data': json.dumps(input_data)}
+        return requests.post(self._prediction_url, data=input_request)
+
     @property
     def is_deployed(self):
-        status_url = "https://{}/api/v1/deployment/status/{}".format(self._socket, self._id)
-        response = requests.get(status_url)
+        response = requests.get(self._status_url)
         return response.ok and 'token' in response.json()
 
     def predict(self, x):
@@ -98,23 +111,14 @@ class DeployedModel:
             error, None is returned instead as a silent failure.
 
         """
-        if self._prediction_token is None:
-            self._set_prediction_token()
-        if self._input_headers is None:
-            self._set_input_headers()
-        
-        prediction_url = "https://{}/api/v1/predict/{}".format(self._socket, self._id)
-        input_data = dict(zip(self._input_headers, x))
-        input_request = {'token': self._prediction_token,
-                         'data': json.dumps(input_data)}
-        response = requests.post(prediction_url, data=input_request)
+        response = self._predict(x)
+
         if not response.ok:
-            self._set_prediction_token()  # try refetching token
-            response = requests.post(prediction_url, data=input_request)
+            self._prediction_token = None  # try refetching token
+            response = self._predict(x)
             if not response.ok:
-                self._set_input_headers()  # try refetching input headers
-                response = requests.post(prediction_url, data=input_request)
+                self._input_headers = None  # try refetching input headers
+                response = self._predict(x)
                 if not response.ok:
-                    return None  # silence error for now
+                    return ""  # silence error for now
         return response.json()
-    
