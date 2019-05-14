@@ -1561,7 +1561,7 @@ class ExperimentRun:
             except pickle.UnpicklingError:
                 return six.BytesIO(dataset)
 
-    def log_model_for_deployment(self, model, dataset_csv, requirements):
+    def log_model_for_deployment(self, model, dataset_csv, requirements, model_api=None):
         """
         Logs a model artifact, a requirements file, and a dataset CSV to deploy on Verta.
 
@@ -1587,6 +1587,12 @@ class ExperimentRun:
             - If str, then it will be interpreted as a filepath, its contents read as bytes, and
             uploaded as an artifact.
             - If file-like, then the contents will be read as bytes and uploaded as an artifact.
+        model_api : str or file-like, optional
+            Model API, specifying model deployment and predictions.
+            - If str, then it will be interpreted as a filepath, its contents read as bytes, and
+            uploaded as an artifact.
+            - If file-like, then the contents will be read as bytes and uploaded as an artifact.
+            - If not provided, then one will be generated based on `dataset_csv`.
 
         """
         # open files
@@ -1596,14 +1602,22 @@ class ExperimentRun:
             dataset_csv = open(dataset_csv, 'rb')
         if isinstance(requirements, six.string_types):
             requirements = open(requirements, 'rb')
+        if isinstance(model_api, six.string_types):
+            model_api = open(model_api, 'rb')
 
+        # prehandle model
         model, method, model_type = _artifact_utils.serialize_model(model)
+
+        # prehandle dataset_csv
         if hasattr(dataset_csv, 'to_csv'):  # if `dataset_csv` is a DataFrame
             stringstream = six.StringIO()
             dataset_csv.to_csv(stringstream, index=False)  # write as CSV
             stringstream.seek(0)
             dataset_csv = stringstream
-        model_api = _artifact_utils.generate_model_api(dataset_csv, method, model_type)
+
+        # prehandle model_api
+        if model_api is None:
+            model_api = _artifact_utils.generate_model_api(dataset_csv, method, model_type)
 
         self._log_artifact("model.pkl", model, _CommonService.ArtifactTypeEnum.MODEL)
         self._log_artifact("train_data", dataset_csv, _CommonService.ArtifactTypeEnum.DATA)
