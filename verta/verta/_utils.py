@@ -87,7 +87,7 @@ def python_to_val_proto(val):
     elif isinstance(val, six.string_types):
         return Value(string_value=val)
     else:
-        raise ValueError("unsupported type {}; consider using log_artifact() instead".format(type(val)))
+        raise TypeError("unsupported type {}; consider using log_artifact() instead".format(type(val)))
 
 
 def val_proto_to_python(msg):

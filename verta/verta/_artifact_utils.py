@@ -70,26 +70,29 @@ def ensure_bytestream(obj):
         bytestream = six.BytesIO()
 
         try:
-            pickle.dump(obj, bytestream)
-        except pickle.PicklingError:  # can't be handled by pickle
+            cloudpickle.dump(obj, bytestream)
+        except pickle.PicklingError:  # can't be handled by cloudpickle
             pass
         else:
             bytestream.seek(0)
-            return bytestream, "pickle"
+            return bytestream, "cloudpickle"
 
         try:
             joblib.dump(obj, bytestream)
-        except NameError:  # joblib not installed
-            pass
-        except pickle.PicklingError:  # can't be handled by joblib
+        except (NameError,  # joblib not installed
+                pickle.PicklingError):  # can't be handled by joblib
             pass
         else:
             bytestream.seek(0)
             return bytestream, "joblib"
 
-        cloudpickle.dump(obj, bytestream)
-        bytestream.seek(0)
-        return bytestream, "cloudpickle"
+        try:
+            pickle.dump(obj, bytestream)
+        except pickle.PicklingError:  # can't be handled by pickle
+            six.raise_from(pickle.PicklingError("unable to serialize artifact"), None)
+        else:
+            bytestream.seek(0)
+            return bytestream, "pickle"
 
 
 def serialize_model(model):
@@ -177,7 +180,7 @@ def deserialize_model(bytestring):
             OSError):  # not a Keras model
         bytestream.seek(0)
     try:
-        return pickle.load(bytestream)
+        return cloudpickle.load(bytestream)
     except pickle.UnpicklingError:  # not a pickled object
         bytestream.seek(0)
     return bytestream
