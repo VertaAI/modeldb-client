@@ -24,6 +24,13 @@ class TestProject:
             with pytest.warns(UserWarning):
                 client.set_project(proj.name, **kwargs)
 
+    def test_get_by_name(self, client):
+        client.set_project()
+        proj = client.set_project()
+        client.set_project()
+
+        assert proj._id == client.set_project(proj.name)._id
+
 
 class TestExperiment:
     def test_set_experiment_warning(self, client):
@@ -33,6 +40,47 @@ class TestExperiment:
         for kwargs in KWARGS_COMBOS:
             with pytest.warns(UserWarning):
                 client.set_experiment(expt.name, **kwargs)
+
+    def test_get_by_name(self, client):
+        client.set_project()
+        for _ in range(3):
+            client.set_experiment()
+        proj = client.set_project()
+        client.set_experiment()
+        expt = client.set_experiment()
+        client.set_experiment()
+
+        client.set_project(proj.name)
+        assert expt._id == client.set_experiment(expt.name)._id
+
+
+class TestExperimentRun:
+    def test_set_experiment_run_warning(self, client):
+        client.set_project()
+        client.set_experiment()
+        expt_run = client.set_experiment_run()
+
+        for kwargs in KWARGS_COMBOS:
+            with pytest.warns(UserWarning):
+                client.set_experiment_run(expt_run.name, **kwargs)
+
+    def test_get_by_name(self, client):
+        client.set_project()
+        client.set_experiment()
+        client.set_experiment_run()
+        client.set_experiment_run()
+        proj = client.set_project()
+        expt = client.set_experiment()
+        client.set_experiment_run()
+        run = client.set_experiment_run()
+        client.set_experiment_run()
+        client.set_experiment()
+        client.set_experiment_run()
+        client.set_experiment_run()
+
+        client.set_project(proj.name)
+        client.set_experiment(expt.name)
+        assert run._id == client.set_experiment_run(run.name)._id
 
 
 class TestExperimentRuns:
@@ -147,14 +195,3 @@ class TestExperimentRuns:
                                                     key=lambda run: run.get_metric('val'))][:k]
         for expt_run_id, expt_run in zip(bottom_run_ids, expt.expt_runs.bottom_k("metrics.val", k)):
             assert expt_run_id == expt_run._id
-
-
-class TestExperimentRun:
-    def test_set_experiment_run_warning(self, client):
-        client.set_project()
-        client.set_experiment()
-        expt_run = client.set_experiment_run()
-
-        for kwargs in KWARGS_COMBOS:
-            with pytest.warns(UserWarning):
-                client.set_experiment_run(expt_run.name, **kwargs)
