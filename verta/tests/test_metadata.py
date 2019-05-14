@@ -204,6 +204,7 @@ class TestObservations:
             experiment_run.get_observation(utils.gen_str())
 
         for key, val in six.viewitems(self.observations):
-            assert experiment_run.get_observation(key) == val
+            assert [obs_val for obs_val, _ in experiment_run.get_observation(key)] == val
 
-        assert experiment_run.get_observations() == self.observations
+        assert {key: [obs_val for obs_val, _ in obs_seq]
+                for key, obs_seq in experiment_run.get_observations().items()} == self.observations
