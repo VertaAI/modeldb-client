@@ -880,7 +880,7 @@ class ExperimentRun:
                     if any(param is not None for param in (desc, tags, attrs)):
                         warnings.warn("ExperimentRun with name {} already exists;"
                                       " cannot initialize `desc`, `tags`, or `attrs`".format(expt_run_name))
-                    expt_run = ExperimentRun._get(auth, socket, proj_id, expt_id, expt_run_name)
+                    expt_run = ExperimentRun._get(auth, socket, expt_id, expt_run_name)
                     print("set existing ExperimentRun: {}".format(expt_run.name))
                 else:
                     raise e
@@ -936,7 +936,7 @@ class ExperimentRun:
         return "ExperimentRun {}".format(_utils.generate_default_name())
 
     @staticmethod
-    def _get(auth, socket, proj_id=None, expt_id=None, expt_run_name=None, _expt_run_id=None):
+    def _get(auth, socket, expt_id=None, expt_run_name=None, _expt_run_id=None):
         scheme = "http" if auth is None else "https"
 
         if _expt_run_id is not None:
@@ -945,21 +945,12 @@ class ExperimentRun:
             data = _utils.proto_to_json(msg)
             response = requests.get("{}://{}/v1/experiment-run/getExperimentRunById".format(scheme, socket),
                                     params=data, headers=auth)
-        elif None not in (proj_id, expt_id, expt_run_name):
-            Message = _ExperimentRunService.GetExperimentRunsInProject
-            msg = Message(project_id=proj_id)
+        elif None not in (expt_id, expt_run_name):
+            Message = _ExperimentRunService.GetExperimentRunByName
+            msg = Message(experiment_id=expt_id, name=expt_run_name)
             data = _utils.proto_to_json(msg)
-            response = requests.get("{}://{}/v1/experiment-run/getExperimentRunsInProject".format(scheme, socket),
+            response = requests.get("{}://{}/v1/experiment-run/getExperimentRunByName".format(scheme, socket),
                                     params=data, headers=auth)
-            response.raise_for_status()
-            if 'experiment_runs' in response.json():
-                response_msg = _utils.json_to_proto(response.json(), Message.Response)
-                result = [expt_run
-                          for expt_run in response_msg.experiment_runs
-                          if expt_run.name == expt_run_name]
-                return result[-1] if len(result) else None
-            else:  # no expt_runs in proj
-                return None
         else:
             raise ValueError("insufficient arguments")
 
