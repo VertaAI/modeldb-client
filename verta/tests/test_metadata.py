@@ -48,7 +48,7 @@ class TestHyperparameters:
 
         assert experiment_run.get_hyperparameters() == self.hyperparameters
 
-    def test_unpack(self, experiment_run):
+    def test_batch(self, experiment_run):
         experiment_run.log_hyperparameters(**self.hyperparameters)
 
         with pytest.raises(KeyError):
@@ -70,6 +70,7 @@ class TestHyperparameters:
                 experiment_run.log_hyperparameter(key, val)
 
     def test_atomic(self, experiment_run):
+        """Test if batch completely fails even if only a single key conflicts."""
         experiment_run.log_hyperparameters(**self.hyperparameters)
 
         for key, val in six.viewitems(self.hyperparameters):
@@ -101,7 +102,7 @@ class TestAttributes:
 
         assert experiment_run.get_attributes() == self.attributes
 
-    def test_unpack(self, experiment_run):
+    def test_batch(self, experiment_run):
         experiment_run.log_attributes(**self.attributes)
 
         with pytest.raises(KeyError):
@@ -123,6 +124,7 @@ class TestAttributes:
     #             experiment_run.log_attribute(key, val)
 
     def test_atomic(self, experiment_run):
+        """Test if batch completely fails even if only a single key conflicts."""
         experiment_run.log_attributes(**self.attributes)
 
         for key, val in six.viewitems(self.attributes):
@@ -154,7 +156,7 @@ class TestMetrics:
 
         assert experiment_run.get_metrics() == self.metrics
 
-    def test_unpack(self, experiment_run):
+    def test_batch(self, experiment_run):
         experiment_run.log_metrics(**self.metrics)
 
         with pytest.raises(KeyError):
@@ -176,6 +178,7 @@ class TestMetrics:
                 experiment_run.log_metric(key, val)
 
     def test_atomic(self, experiment_run):
+        """Test if batch completely fails even if only a single key conflicts."""
         experiment_run.log_metrics(**self.metrics)
 
         for key, val in six.viewitems(self.metrics):
