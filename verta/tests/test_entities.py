@@ -35,6 +35,17 @@ class TestExperiment:
                 client.set_experiment(expt.name, **kwargs)
 
 
+class TestExperimentRun:
+    def test_set_experiment_run_warning(self, client):
+        client.set_project()
+        client.set_experiment()
+        expt_run = client.set_experiment_run()
+
+        for kwargs in KWARGS_COMBOS:
+            with pytest.warns(UserWarning):
+                client.set_experiment_run(expt_run.name, **kwargs)
+
+
 class TestExperimentRuns:
     def test_magic_getitem(self, client):
         client.set_project()
@@ -147,14 +158,3 @@ class TestExperimentRuns:
                                                     key=lambda run: run.get_metric('val'))][:k]
         for expt_run_id, expt_run in zip(bottom_run_ids, expt.expt_runs.bottom_k("metrics.val", k)):
             assert expt_run_id == expt_run._id
-
-
-class TestExperimentRun:
-    def test_set_experiment_run_warning(self, client):
-        client.set_project()
-        client.set_experiment()
-        expt_run = client.set_experiment_run()
-
-        for kwargs in KWARGS_COMBOS:
-            with pytest.warns(UserWarning):
-                client.set_experiment_run(expt_run.name, **kwargs)
