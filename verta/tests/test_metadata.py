@@ -7,6 +7,28 @@ import utils
 if six.PY2: FileNotFoundError = IOError
 
 
+class TestTags:
+    tags = [utils.gen_str() for _ in range(3)]
+
+    def test_single(self, experiment_run):
+        for tag in self.tags:
+            experiment_run.log_tag(tag)
+
+        assert set(experiment_run.get_tags()) == set(self.tags)
+
+    def test_multiple(self, experiment_run):
+        experiment_run.log_tags(self.tags)
+
+        assert set(experiment_run.get_tags()) == set(self.tags)
+
+    def test_duplicates(self, experiment_run):
+        experiment_run.log_tags(self.tags)
+        for tag in self.tags:
+            experiment_run.log_tag(tag)
+
+        assert set(experiment_run.get_tags()) == set(self.tags)
+
+
 class TestHyperparameters:
     hyperparameters = {
         utils.gen_str(): utils.gen_str(),

@@ -1112,6 +1112,71 @@ class ExperimentRun:
 
             return response.content
 
+    def log_tag(self, tag):
+        """
+        Logs a tag to this Experiment Run.
+
+        Tags are short textual labels used to help identify a run, such as its purpose or its environment.
+
+        Parameters
+        ----------
+        tag : str
+            Tag.
+
+        """
+        if not isinstance(tag, six.string_types):
+            raise TypeError("`tag` must be a string")
+
+        Message = _ExperimentRunService.AddExperimentRunTags
+        msg = Message(id=self._id, tags=[tag])
+        data = _utils.proto_to_json(msg)
+        response = requests.post("{}://{}/v1/experiment-run/addExperimentRunTags".format(self._scheme, self._socket),
+                                 json=data, headers=self._auth)
+        response.raise_for_status()
+
+    def log_tags(self, tags):
+        """
+        Logs multiple tags to this Experiment Run.
+
+        Parameters
+        ----------
+        tags : list of str
+            Tags.
+
+        """
+        if isinstance(tags, six.string_types):
+            raise TypeError("`tags` must be an iterable of strings")
+        for tag in tags:
+            if not isinstance(tag, six.string_types):
+                raise TypeError("`tags` must be an iterable of strings")
+
+        Message = _ExperimentRunService.AddExperimentRunTags
+        msg = Message(id=self._id, tags=tags)
+        data = _utils.proto_to_json(msg)
+        response = requests.post("{}://{}/v1/experiment-run/addExperimentRunTags".format(self._scheme, self._socket),
+                                 json=data, headers=self._auth)
+        response.raise_for_status()
+
+    def get_tags(self):
+        """
+        Gets all tags from this Experiment Run.
+
+        Returns
+        -------
+        list of str
+            All tags.
+
+        """
+        Message = _CommonService.GetTags
+        msg = Message(id=self._id)
+        data = _utils.proto_to_json(msg)
+        response = requests.get("{}://{}/v1/experiment-run/getExperimentRunTags".format(self._scheme, self._socket),
+                                params=data, headers=self._auth)
+        response.raise_for_status()
+
+        response_msg = _utils.json_to_proto(response.json(), Message.Response)
+        return response_msg.tags
+
     def log_attribute(self, key, value):
         """
         Logs an attribute to this Experiment Run.
