@@ -87,9 +87,13 @@ def ensure_bytestream(obj):
             bytestream.seek(0)
             return bytestream, "joblib"
 
-        cloudpickle.dump(obj, bytestream)
-        bytestream.seek(0)
-        return bytestream, "cloudpickle"
+        try:
+            cloudpickle.dump(obj, bytestream)
+        except pickle.PicklingError:  # can't be handled by cloudpickle
+            six.raise_from(pickle.PicklingError("unable to serialize artifact"), None)
+        else:
+            bytestream.seek(0)
+            return bytestream, "cloudpickle"
 
 
 def serialize_model(model):
