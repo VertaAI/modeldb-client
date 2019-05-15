@@ -1024,26 +1024,21 @@ class ExperimentRun:
             Name of the artifact.
         artifact : str or file-like or object
             Artifact or some representation thereof.
-            - If str, then the string will be logged as a path from your local filesystem.
+            - If str, then it will be interpreted as a filesystem path, its contents read as bytes,
+            and uploaded as an artifact.
             - If file-like, then the contents will be read as bytes and uploaded as an artifact.
             - Otherwise, the object will be serialized and uploaded as an artifact.
         artifact_type : int
             Variant of `_CommonService.ArtifactTypeEnum`.
 
-        Raises
-        ------
-        ValueError
-            If `artifact` is an empty string.
-
         """
-        path_only = isinstance(artifact, six.string_types)
-        if path_only and not len(artifact):
-            raise ValueError("`artifact` cannot be an empty string")
+        if isinstance(artifact, six.string_types):
+            artifact = open(artifact, 'rb')
 
-        # log key-path to ModelDB
+        # log key to ModelDB
         Message = _ExperimentRunService.LogArtifact
         artifact_msg = _CommonService.Artifact(key=key,
-                                               path=artifact if path_only else None, path_only=path_only,
+                                               path_only=False,
                                                artifact_type=artifact_type)
         msg = Message(id=self._id, artifact=artifact_msg)
         data = _utils.proto_to_json(msg)
@@ -1056,12 +1051,42 @@ class ExperimentRun:
             else:
                 response.raise_for_status()
 
-        if not path_only:
-            # upload artifact to artifact store
-            url = self._get_url_for_artifact(key, "PUT")
-            artifact_stream, _ = _artifact_utils.ensure_bytestream(artifact)
-            response = requests.put(url, data=artifact_stream)
-            response.raise_for_status()
+        # upload artifact to artifact store
+        url = self._get_url_for_artifact(key, "PUT")
+        artifact_stream, _ = _artifact_utils.ensure_bytestream(artifact)
+        response = requests.put(url, data=artifact_stream)
+        response.raise_for_status()
+
+    def _log_artifact_path(self, key, artifact_path, artifact_type):
+        """
+        Logs the filesystem path of an artifact to this Experiment Run.
+
+        Parameters
+        ----------
+        key : str
+            Name of the artifact.
+        artifact_path : str
+            Filesystem path of the artifact.
+        artifact_type : int
+            Variant of `_CommonService.ArtifactTypeEnum`.
+
+        """
+        # log key-path to ModelDB
+        Message = _ExperimentRunService.LogArtifact
+        artifact_msg = _CommonService.Artifact(key=key,
+                                               path=artifact_path,
+                                               path_only=True,
+                                               artifact_type=artifact_type)
+        msg = Message(id=self._id, artifact=artifact_msg)
+        data = _utils.proto_to_json(msg)
+        response = requests.post("{}://{}/v1/experiment-run/logArtifact".format(self._scheme, self._socket),
+                                 json=data, headers=self._auth)
+        if not response.ok:
+            if response.status_code == 409:
+                raise ValueError("artifact with key {} already exists;"
+                                 " consider using observations instead".format(key))
+            else:
+                response.raise_for_status()
 
     def _get_artifact(self, key):
         """
@@ -1521,7 +1546,8 @@ class ExperimentRun:
             Name of the dataset.
         dataset : str or file-like or object
             Dataset or some representation thereof.
-            - If str, then the string will be logged as a path from your local filesystem.
+            - If str, then it will be interpreted as a filesystem path, its contents read as bytes,
+            and uploaded as an artifact.
             - If file-like, then the contents will be read as bytes and uploaded as an artifact.
             - Otherwise, the object will be serialized and uploaded as an artifact.
 
@@ -1529,6 +1555,25 @@ class ExperimentRun:
         _utils.validate_flat_key(key)
 
         self._log_artifact(key, dataset, _CommonService.ArtifactTypeEnum.DATA)
+
+    def log_dataset_path(self, key, dataset_path):
+        """
+        Logs the filesystem path of an dataset to this Experiment Run.
+
+        This function makes no attempt to open a file at `dataset_path`. Only the path string itself
+        is logged.
+
+        Parameters
+        ----------
+        key : str
+            Name of the dataset.
+        dataset_path : str
+            Filesystem path of the dataset.
+
+        """
+        _utils.validate_flat_key(key)
+
+        self._log_artifact_path(key, dataset_path, _CommonService.ArtifactTypeEnum.DATA)
 
     def get_dataset(self, key):
         """
@@ -1569,27 +1614,27 @@ class ExperimentRun:
         ----------
         model : str or file-like or object
             Model or some representation thereof.
-            - If str, then it will be interpreted as a filepath, its contents read as bytes, and
-            uploaded as an artifact.
+            - If str, then it will be interpreted as a filesystem path, its contents read as bytes,
+            and uploaded as an artifact.
             - If file-like, then the contents will be read as bytes and uploaded as an artifact.
             - Otherwise, the object will be serialized and uploaded as an artifact.
         dataset_csv : str or file-like or object
             Dataset CSV or some representation thereof.
-            - If str, then it will be interpreted as a filepath, its contents read as bytes, and
-            uploaded as an artifact.
+            - If str, then it will be interpreted as a filesystem path, its contents read as bytes,
+            and uploaded as an artifact.
             - If file-like, then the contents will be read as bytes and uploaded as an artifact.
             - If a pandas DataFrame, then it will be converted into a CSV and uploaded as an artifact.
             - Otherwise, the object will be serialized and uploaded as an artifact.
         requirements : str or file-like
             pip requirements file specifying packages necessary to deploy the model.
-            - If str, then it will be interpreted as a filepath, its contents read as bytes, and
-            uploaded as an artifact.
+            - If str, then it will be interpreted as a filesystem path, its contents read as bytes,
+            and uploaded as an artifact.
             - If file-like, then the contents will be read as bytes and uploaded as an artifact.
         model_api : str or file-like, optional
             Model API, specifying model deployment and predictions. If one is not provided, the client
             will try its best to generate one based on `dataset_csv`.
-            - If str, then it will be interpreted as a filepath, its contents read as bytes, and
-            uploaded as an artifact.
+            - If str, then it will be interpreted as a filesystem path, its contents read as bytes,
+            and uploaded as an artifact.
             - If file-like, then the contents will be read as bytes and uploaded as an artifact.
             - If not provided, then one will be generated based on `dataset_csv`.
 
@@ -1636,7 +1681,8 @@ class ExperimentRun:
             Name of the model.
         model : str or file-like or object
             Model or some representation thereof.
-            - If str, then the string will be logged as a path from your local filesystem.
+            - If str, then it will be interpreted as a filesystem path, its contents read as bytes,
+            and uploaded as an artifact.
             - If file-like, then the contents will be read as bytes and uploaded as an artifact.
             - Otherwise, the object will be serialized and uploaded as an artifact.
 
@@ -1646,6 +1692,25 @@ class ExperimentRun:
         model, _, _ = _artifact_utils.serialize_model(model)
 
         self._log_artifact(key, model, _CommonService.ArtifactTypeEnum.MODEL)
+
+    def log_model_path(self, key, model_path):
+        """
+        Logs the filesystem path of an model to this Experiment Run.
+
+        This function makes no attempt to open a file at `model_path`. Only the path string itself
+        is logged.
+
+        Parameters
+        ----------
+        key : str
+            Name of the model.
+        model_path : str
+            Filesystem path of the model.
+
+        """
+        _utils.validate_flat_key(key)
+
+        self._log_artifact_path(key, model_path, _CommonService.ArtifactTypeEnum.MODEL)
 
     def get_model(self, key):
         """
@@ -1684,7 +1749,8 @@ class ExperimentRun:
             Name of the image.
         image : one of {str, file-like, pyplot, matplotlib Figure, PIL Image, object}
             Image or some representation thereof.
-            - If str, then the string will be logged as a path from your local filesystem.
+            - If str, then it will be interpreted as a filesystem path, its contents read as bytes,
+            and uploaded as an artifact.
             - If file-like, then the contents will be read as bytes and uploaded as an artifact.
             - If matplotlib pyplot, then the image will be serialized and uploaded as an artifact.
             - If matplotlib Figure, then the image will be serialized and uploaded as an artifact.
@@ -1713,6 +1779,25 @@ class ExperimentRun:
             image = bytestream
 
         self._log_artifact(key, image, _CommonService.ArtifactTypeEnum.IMAGE)
+
+    def log_image_path(self, key, image_path):
+        """
+        Logs the filesystem path of an image to this Experiment Run.
+
+        This function makes no attempt to open a file at `image_path`. Only the path string itself
+        is logged.
+
+        Parameters
+        ----------
+        key : str
+            Name of the image.
+        image_path : str
+            Filesystem path of the image.
+
+        """
+        _utils.validate_flat_key(key)
+
+        self._log_artifact_path(key, image_path, _CommonService.ArtifactTypeEnum.IMAGE)
 
     def get_image(self, key):
         """
@@ -1754,7 +1839,8 @@ class ExperimentRun:
             Name of the artifact.
         artifact : str or file-like or object
             Artifact or some representation thereof.
-            - If str, then the string will be logged as a path from your local filesystem.
+            - If str, then it will be interpreted as a filesystem path, its contents read as bytes,
+            and uploaded as an artifact.
             - If file-like, then the contents will be read as bytes and uploaded as an artifact.
             - Otherwise, the object will be serialized and uploaded as an artifact.
 
@@ -1762,6 +1848,25 @@ class ExperimentRun:
         _utils.validate_flat_key(key)
 
         self._log_artifact(key, artifact, _CommonService.ArtifactTypeEnum.BLOB)
+
+    def log_artifact_path(self, key, artifact_path):
+        """
+        Logs the filesystem path of an artifact to this Experiment Run.
+
+        This function makes no attempt to open a file at `artifact_path`. Only the path string itself
+        is logged.
+
+        Parameters
+        ----------
+        key : str
+            Name of the artifact.
+        artifact_path : str
+            Filesystem path of the artifact.
+
+        """
+        _utils.validate_flat_key(key)
+
+        self._log_artifact_path(key, artifact_path, _CommonService.ArtifactTypeEnum.BLOB)
 
     def get_artifact(self, key):
         """
