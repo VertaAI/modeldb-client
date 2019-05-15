@@ -120,5 +120,5 @@ class DeployedModel:
                 self._input_headers = None  # try refetching input headers
                 response = self._predict(x)
                 if not response.ok:
-                    return ""  # silence error for now
+                    return "model is warming up; please wait"
         return response.json()
