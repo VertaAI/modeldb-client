@@ -5,6 +5,7 @@ import json
 import numbers
 import os
 import string
+import subprocess
 
 from google.protobuf import json_format
 from google.protobuf.struct_pb2 import Value, NULL_VALUE
@@ -345,3 +346,16 @@ def now():
 
     """
     return timestamp_to_ms(datetime.now().timestamp())
+
+
+def get_env_dependencies():
+    """
+    Returns a list of packages present in the current Python environment.
+
+    Returns
+    -------
+    dependencies : list of str
+        Names of packages and their pinned version numbers in the current Python environment.
+
+    """
+    return subprocess.check_output(["pip", "freeze"], text=True).splitlines()
