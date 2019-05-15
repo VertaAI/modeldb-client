@@ -110,7 +110,7 @@ def serialize_model(model):
         Buffered bytestream of the serialized model.
     method : {"joblib", "cloudpickle", "pickle", None}
         Serialization method used to produce the bytestream.
-    model_type : {"scikit", "xgboost", "tensorflow", "unknown"}
+    model_type : {"scikit", "xgboost", "tensorflow", "custom"}
         Framework with which the model was built.
 
     """
@@ -124,14 +124,14 @@ def serialize_model(model):
         except pickle.UnpicklingError:  # unrecognized model
             bytestream = ensure_bytestream(model)  # pass along file-like
             method = None
-            model_type = "unknown"
+            model_type = "custom"
         finally:
             try:  # reset cursor to beginning as a courtesy
                 model.seek(0)
             except AttributeError:
                 pass
 
-    module_name = model.__class__.__module__ or "unknown"
+    module_name = model.__class__.__module__ or "custom"
     package_name = module_name.split('.')[0]
 
     if package_name == 'sklearn':
@@ -150,7 +150,7 @@ def serialize_model(model):
         model_type = "xgboost"
         bytestream, method = ensure_bytestream(model)
     else:
-        model_type = "unknown"
+        model_type = "custom"
         bytestream, method = ensure_bytestream(model)
 
     return bytestream, method, model_type
@@ -199,7 +199,7 @@ def generate_model_api(data, serialization_method, model_type, num_outputs=1):
         Filepath to data CSV, CSV file handle, or DataFrame.
     serialization_method : {"joblib", "cloudpickle", "pickle", None}
         Serialization method used to produce the model bytestream.
-    model_type : {"scikit", "xgboost", "tensorflow", "unknown"}
+    model_type : {"scikit", "xgboost", "tensorflow", "custom"}
         Framework with which the model was built.
     num_outputs : int
         Number of output columns on the right-hand side of the CSV.
@@ -212,8 +212,8 @@ def generate_model_api(data, serialization_method, model_type, num_outputs=1):
     """
     if serialization_method not in {"joblib", "cloudpickle", "pickle", None}:
         raise ValueError("`serialization_method` must be one of {'joblib', 'cloudpickle', 'pickle', None}")
-    if model_type not in {"scikit", "xgboost", "tensorflow", "unknown"}:
-        raise ValueError("`model_type` must be one of {'scikit', 'xgboost', 'tensorflow', 'unknown'}")
+    if model_type not in {"scikit", "xgboost", "tensorflow", "custom"}:
+        raise ValueError("`model_type` must be one of {'scikit', 'xgboost', 'tensorflow', 'custom'}")
     if num_outputs < 1:
         raise ValueError("`num_outputs` must be 1 or greater")
 
