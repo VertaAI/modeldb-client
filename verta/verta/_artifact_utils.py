@@ -262,8 +262,8 @@ def generate_model_api(data, serialization_method, model_type, num_outputs=1):
         'model_type': model_type,
         'python_version': sys.version_info[0],
         'deserialization': serialization_method,
-        'input': {'type': "list", 'fields': input_fields},
-        'output': {'type': "list", 'fields': output_fields},
+        'input': input_fields[0] if len(input_fields) == 1 else {'type': "list", 'fields': input_fields},
+        'output': output_fields[0] if len(output_fields) == 1 else {'type': "list", 'fields': output_fields},
     }
     if serialization_method is None:
         del model_api['deserialization']
