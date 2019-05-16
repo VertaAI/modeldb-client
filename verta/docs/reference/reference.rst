@@ -7,3 +7,4 @@ Reference
 
     Glossary <glossary>
     API <api>
+    Release Notes <changelog>
