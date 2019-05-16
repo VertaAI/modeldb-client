@@ -20,6 +20,25 @@ except ImportError:  # TensorFlow not installed
     pass
 
 
+def reset_stream(stream):
+    """
+    Resets the cursor of a stream to the beginning.
+
+    This is implemented with a try-except because not all file-like objects are guaranteed to have
+    a ``seek()`` method, so we carry on if we cannot reset the pointer.
+
+    Parameters
+    ----------
+    stream : file-like
+        A stream that may or may not implement ``seek()``.
+
+    """
+    try:
+        stream.seek(0)
+    except AttributeError:
+        pass
+
+
 def ensure_bytestream(obj):
     """
     Converts an object into a bytestream.
@@ -51,15 +70,9 @@ def ensure_bytestream(obj):
 
     """
     if hasattr(obj, 'read'):  # if `obj` is file-like
-        try:  # reset cursor to beginning in case user forgot
-            obj.seek(0)
-        except AttributeError:
-            pass
+        reset_stream(obj)  # reset cursor to beginning in case user forgot
         contents = obj.read()  # read to cast into binary
-        try:  # reset cursor to beginning as a courtesy
-            obj.seek(0)
-        except AttributeError:
-            pass
+        reset_stream(obj)  # reset cursor to beginning as a courtesy
         if not len(contents):
             raise ValueError("object contains no data")
         bytestring = six.ensure_binary(contents)
@@ -108,30 +121,24 @@ def serialize_model(model):
     -------
     bytestream : file-like
         Buffered bytestream of the serialized model.
-    method : {"joblib", "cloudpickle", "pickle", None}
+    method : {"joblib", "cloudpickle", "pickle", "keras", None}
         Serialization method used to produce the bytestream.
-    model_type : {"scikit", "xgboost", "tensorflow", "unknown"}
+    model_type : {"scikit", "xgboost", "tensorflow", "custom"}
         Framework with which the model was built.
 
     """
     if hasattr(model, 'read'):  # if `model` is file-like
         try:  # attempt to deserialize
-            try:  # reset cursor to beginning in case user forgot
-                model.seek(0)
-            except AttributeError:
-                pass
+            reset_stream(model)  # reset cursor to beginning in case user forgot
             model = deserialize_model(model.read())
         except pickle.UnpicklingError:  # unrecognized model
             bytestream = ensure_bytestream(model)  # pass along file-like
             method = None
-            model_type = "unknown"
+            model_type = "custom"
         finally:
-            try:  # reset cursor to beginning as a courtesy
-                model.seek(0)
-            except AttributeError:
-                pass
+            reset_stream(model)  # reset cursor to beginning as a courtesy
 
-    module_name = model.__class__.__module__ or "unknown"
+    module_name = model.__class__.__module__ or "custom"
     package_name = module_name.split('.')[0]
 
     if package_name == 'sklearn':
@@ -143,14 +150,14 @@ def serialize_model(model):
             bytestream = six.BytesIO()
             model.save(bytestream)
             bytestream.seek(0)
-            method = None
+            method = "keras"
         else:
             bytestream, method = ensure_bytestream(model)
     elif package_name == 'xgboost':
         model_type = "xgboost"
         bytestream, method = ensure_bytestream(model)
     else:
-        model_type = "unknown"
+        model_type = "custom"
         bytestream, method = ensure_bytestream(model)
 
     return bytestream, method, model_type
@@ -197,9 +204,9 @@ def generate_model_api(data, serialization_method, model_type, num_outputs=1):
     ----------
     data : str or file-like or pd.DataFrame
         Filepath to data CSV, CSV file handle, or DataFrame.
-    serialization_method : {"joblib", "cloudpickle", "pickle", None}
+    serialization_method : {"joblib", "cloudpickle", "pickle", "keras"}
         Serialization method used to produce the model bytestream.
-    model_type : {"scikit", "xgboost", "tensorflow", "unknown"}
+    model_type : {"scikit", "xgboost", "tensorflow", "custom"}
         Framework with which the model was built.
     num_outputs : int
         Number of output columns on the right-hand side of the CSV.
@@ -210,10 +217,10 @@ def generate_model_api(data, serialization_method, model_type, num_outputs=1):
         Model API JSON.
 
     """
-    if serialization_method not in {"joblib", "cloudpickle", "pickle", None}:
-        raise ValueError("`serialization_method` must be one of {'joblib', 'cloudpickle', 'pickle', None}")
-    if model_type not in {"scikit", "xgboost", "tensorflow", "unknown"}:
-        raise ValueError("`model_type` must be one of {'scikit', 'xgboost', 'tensorflow', 'unknown'}")
+    if serialization_method not in {"joblib", "cloudpickle", "pickle", "keras"}:
+        raise ValueError("`serialization_method` must be one of {'joblib', 'cloudpickle', 'pickle', 'keras'}")
+    if model_type not in {"scikit", "xgboost", "tensorflow", "custom"}:
+        raise ValueError("`model_type` must be one of {'scikit', 'xgboost', 'tensorflow', 'custom'}")
     if num_outputs < 1:
         raise ValueError("`num_outputs` must be 1 or greater")
 
@@ -221,10 +228,7 @@ def generate_model_api(data, serialization_method, model_type, num_outputs=1):
     if isinstance(data, six.string_types):  # if `data` is a filepath
         data = open(data, 'r')
     if hasattr(data, 'read'):  # if `data` is file-like
-        try:  # reset cursor to beginning in case user forgot
-            data.seek(0)
-        except AttributeError:
-            pass
+        reset_stream(data)  # reset cursor to beginning in case user forgot
 
         # read header and first data row
         reader = csv.reader(data)
@@ -232,10 +236,7 @@ def generate_model_api(data, serialization_method, model_type, num_outputs=1):
         row = next(reader)
 
         del reader
-        try:  # reset cursor to beginning as a courtesy
-            data.seek(0)
-        except AttributeError:
-            pass
+        reset_stream(data)  # reset cursor to beginning as a courtesy
     elif hasattr(data, 'iloc'):  # if `data` is a DataFrame
         header = data.columns
         row = data.iloc[0]
@@ -265,8 +266,6 @@ def generate_model_api(data, serialization_method, model_type, num_outputs=1):
         'input': input_fields[0] if len(input_fields) == 1 else {'type': "list", 'fields': input_fields},
         'output': output_fields[0] if len(output_fields) == 1 else {'type': "list", 'fields': output_fields},
     }
-    if serialization_method is None:
-        del model_api['deserialization']
     stringstream = six.StringIO()
     json.dump(model_api, stringstream)
     stringstream.seek(0)

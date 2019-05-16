@@ -1606,6 +1606,8 @@ class ExperimentRun:
 
         # prehandle model
         model, method, model_type = _artifact_utils.serialize_model(model)
+        if method is None:
+            raise ValueError("will not be able to deploy model due to unknown serialization method")
 
         # prehandle dataset_csv
         if hasattr(dataset_csv, 'to_csv'):  # if `dataset_csv` is a DataFrame
