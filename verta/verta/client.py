@@ -1563,9 +1563,7 @@ class ExperimentRun:
 
     def log_model_for_deployment(self, model, dataset_csv, requirements, model_api=None):
         """
-        Logs a model artifact, a requirements file, and a dataset CSV to deploy on Verta.
-
-        `requirements` is a pip requirements file specifying packages necessary to run `model`.
+        Logs a model artifact, a dataset CSV, requirements, and a model API to deploy on Verta.
 
         Parameters
         ----------
@@ -1583,12 +1581,13 @@ class ExperimentRun:
             - If a pandas DataFrame, then it will be converted into a CSV and uploaded as an artifact.
             - Otherwise, the object will be serialized and uploaded as an artifact.
         requirements : str or file-like
-            pip requirements file to deploy the model.
+            pip requirements file specifying packages necessary to deploy the model.
             - If str, then it will be interpreted as a filepath, its contents read as bytes, and
             uploaded as an artifact.
             - If file-like, then the contents will be read as bytes and uploaded as an artifact.
         model_api : str or file-like, optional
-            Model API, specifying model deployment and predictions.
+            Model API, specifying model deployment and predictions. If one is not provided, the client
+            will try its best to generate one based on `dataset_csv`.
             - If str, then it will be interpreted as a filepath, its contents read as bytes, and
             uploaded as an artifact.
             - If file-like, then the contents will be read as bytes and uploaded as an artifact.
