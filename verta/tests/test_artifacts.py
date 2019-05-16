@@ -172,7 +172,7 @@ class TestImages:
         img = PIL.Image.new('RGB', (64, 64), 'white')
         PIL.ImageDraw.Draw(img).arc(np.r_[np.random.randint(32, size=(2)),
                                           np.random.randint(32, 64, size=(2))].tolist(),
-                                    *np.random.randint(360, size=2),
+                                    np.random.randint(360), np.random.randint(360),
                                     'black')
 
         experiment_run.log_image(key, img)

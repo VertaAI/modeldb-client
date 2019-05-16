@@ -255,7 +255,27 @@ def generate_default_name():
         String generated from the current process ID and Unix timestamp.
 
     """
-    return "{}{}".format(os.getpid(), str(datetime.now().timestamp()).replace('.', ''))
+    return "{}{}".format(os.getpid(), str(to_timestamp(datetime.now())).replace('.', ''))
+
+
+def to_timestamp(dt):
+    """
+    Converts a datetime instance into a Unix timestamp.
+
+    Equivalent to Python 3's ``dt.timestamp()`` on a naive datetime instance.
+
+    Parameters
+    ----------
+    dt : datetime.datetime
+        datetime instance.
+
+    Returns
+    -------
+    float
+        Unix timestamp.
+
+    """
+    return (dt - datetime.fromtimestamp(0)).total_seconds()
 
 
 def timestamp_to_ms(timestamp):
@@ -302,7 +322,7 @@ def ensure_timestamp(timestamp):
             return timestamp_to_ms(pd.Timestamp(timestamp).timestamp())
         except NameError:  # pandas not installed
             try:  # fall back on std lib, and parse as ISO 8601
-                timestamp_to_ms(datetime.fromisoformat(timestamp).timestamp())
+                timestamp_to_ms(to_timestamp(datetime.fromisoformat(timestamp)))
             except ValueError:
                 six.raise_from(ValueError("`timestamp` must be in ISO 8601 format,"
                                           " e.g. \"2017-10-30T00:44:16+00:00\""),
@@ -345,7 +365,7 @@ def now():
         Current Unix timestamp in milliseconds.
 
     """
-    return timestamp_to_ms(datetime.now().timestamp())
+    return timestamp_to_ms(to_timestamp(datetime.now()))
 
 
 def get_env_dependencies():
