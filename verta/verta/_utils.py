@@ -60,7 +60,9 @@ def json_to_proto(response_json, response_cls):
         `protobuf` `Message` object represented by `response_json`.
 
     """
-    return json_format.Parse(json.dumps(response_json), response_cls())
+    return json_format.Parse(json.dumps(response_json),
+                             response_cls(),
+                             ignore_unknown_fields=True)
 
 
 def python_to_val_proto(val):
