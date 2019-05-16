@@ -11,9 +11,9 @@ Come see [our user guide and documentation](https://verta.readthedocs.io/en/docs
     1. `git submodule init`
     1. `git submodule update`
     1. `cd verta/`
-    1. `pip3 install -e .`
-        1. this means you don't have to rerun `pip3 install` whenever you make changes
-    1. (optional) `pip3 install -r requirements.txt`
+    1. `pip install -e .`
+        1. this means you don't have to rerun `pip install` whenever you make changes
+    1. (optional) `pip install -r requirements.txt`
         1. this installs packages for PyPI publication, unit testing, and documentation
 1. use Client
 1. tackle issues

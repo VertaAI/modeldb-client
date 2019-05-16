@@ -12,7 +12,7 @@ Guides
 
     # set hyperparameters
     hyperparams = {'C': 1e-3, 'solver': "lbfgs"}
-    run.log_hyperparameters(**hyperparams)
+    run.log_hyperparameters(hyperparams)
 
     # train model
     model = sklearn.linear_model.LogisticRegression(**hyperparams)

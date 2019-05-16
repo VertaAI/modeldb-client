@@ -1222,19 +1222,14 @@ class ExperimentRun:
             else:
                 response.raise_for_status()
 
-    def log_attributes(self, **attributes):
+    def log_attributes(self, attributes):
         """
-        Logs potentially multiple attributes to this Experiment Run using keyword arguments.
+        Logs potentially multiple attributes to this Experiment Run.
 
         Parameters
         ----------
-        **attributes : {None, bool, float, int, str}
+        attributes : dict of str to {None, bool, float, int, str}
             Attributes.
-
-        Examples
-        --------
-        >>> run.log_attributes(team="sales")
-        >>> run.log_attributes(**{"training_time_hours": 48})
 
         """
         # validate all keys first
@@ -1337,19 +1332,14 @@ class ExperimentRun:
             else:
                 response.raise_for_status()
 
-    def log_metrics(self, **metrics):
+    def log_metrics(self, metrics):
         """
-        Logs potentially multiple metrics to this Experiment Run using keyword arguments.
+        Logs potentially multiple metrics to this Experiment Run.
 
         Parameters
         ----------
-        **metrics : {None, bool, float, int, str}
+        metrics : dict of str to {None, bool, float, int, str}
             Metrics.
-
-        Examples
-        --------
-        >>> run.log_metrics(accuracy=0.87)
-        >>> run.log_metrics(**{"loss": 1.56})
 
         """
         # validate all keys first
@@ -1451,19 +1441,14 @@ class ExperimentRun:
             else:
                 response.raise_for_status()
 
-    def log_hyperparameters(self, **hyperparams):
+    def log_hyperparameters(self, hyperparams):
         """
-        Logs potentially multiple hyperparameters to this Experiment Run using keyword arguments.
+        Logs potentially multiple hyperparameters to this Experiment Run.
 
         Parameters
         ----------
-        **hyperparameters : {None, bool, float, int, str}
+        hyperparameters : dict of str to {None, bool, float, int, str}
             Hyperparameters.
-
-        Examples
-        --------
-        >>> run.log_hyperparameters(loss_fn="binary_cross_entropy")
-        >>> run.log_hyperparameters(**{"penalty": "l2"})
 
         """
         # validate all keys first

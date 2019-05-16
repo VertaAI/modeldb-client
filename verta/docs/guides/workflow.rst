@@ -32,7 +32,7 @@ We begin with the :py:mod:`~verta.client.Client`:
 
 ``host`` points the client to the Verta back end, ``email`` is the address you have associated
 with your GitHub account, and ``dev_key`` is your developer key which you can obtain though the Verta
-Web App. 
+Web App.
 
 Your email and developer key can also be set using the environment variables ``$VERTA_EMAIL`` and
 ``$VERTA_DEV_KEY``, so you don't have to explicitly type them into your workflow.
@@ -116,7 +116,7 @@ That's not much better than purely guessing! So how do we keep a more permanent 
 .. code-block:: python
 
     >>> run.log_dataset("train_data", digits)
-    >>> run.log_hyperparameters(**hyperparams)
+    >>> run.log_hyperparameters(hyperparams)
     >>> run.log_model("model", model)
     >>> run.log_metric("train_acc", train_acc)
 
@@ -131,7 +131,7 @@ linear kernel—this time interweaving the logging statements with our training 
     >>> run = client.set_experiment_run("Linear Kernel")
     >>> run.log_dataset("train_data", digits)
     >>> hyperparams['kernel'] = 'linear'
-    >>> run.log_hyperparameters(**hyperparams)
+    >>> run.log_hyperparameters(hyperparams)
     >>> clf = SVC(**hyperparams).fit(X, y)
     >>> run.log_model("model", model)
     >>> train_acc = clf.score(X, y)
