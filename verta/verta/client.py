@@ -1661,6 +1661,27 @@ class ExperimentRun:
             stringstream.seek(0)
             dataset_csv = stringstream
 
+        # prehandle requirements
+        if method == "cloudpickle":  # if cloudpickle used, add to requirements
+            # remove cloudpickle from requirements if present
+            req_deps = six.ensure_str(requirements.read()).splitlines()
+            _artifact_utils.reset_stream(requirements)  # reset cursor to beginning as a courtesy
+            for i, req_dep in enumerate(req_deps):
+                if req_dep.startswith("cloudpickle"):
+                    del req_deps[i]
+                    break
+
+            # grab cloudpickle version from environment
+            for env_dep in _utils.get_env_dependencies():
+                if env_dep.startswith("cloudpickle"):
+                    cloudpickle_dep = env_dep
+
+            # add cloudpickle to requirements
+            req_deps.append(cloudpickle_dep)
+
+            # recreate stream
+            requirements = six.BytesIO(six.ensure_binary('\n'.join(req_deps)))
+
         # prehandle model_api
         if model_api is None:
             model_api = _artifact_utils.generate_model_api(dataset_csv, method, model_type)
