@@ -73,7 +73,12 @@ class DeployedModel:
         response.raise_for_status()
         model_api = json.loads(response.content)
 
-        self._input_headers = [field['name'] for field in model_api['input']['fields']]
+        model_api_input = model_api['input']
+
+        if 'fields' not in model_api_input:
+            self._input_headers = model_api_input['name']
+        else:
+            self._input_headers = [field['name'] for field in model_api_input['fields']]
 
     def _predict(self, x, return_input_body=False):
         """This is like ``DeployedModel.predict()``, but returns the raw ``Response`` for debugging."""
@@ -82,7 +87,10 @@ class DeployedModel:
         if self._input_headers is None:
             self._set_input_headers()
 
-        input_data = dict(zip(self._input_headers, x))
+        if isinstance(self._input_headers, str):
+            input_data = {self._input_headers: x}
+        else:
+            input_data = dict(zip(self._input_headers, x))
         input_body = {'token': self._prediction_token,
                       'data': json.dumps(input_data)}
         result = requests.post(self._prediction_url, data=input_body)
