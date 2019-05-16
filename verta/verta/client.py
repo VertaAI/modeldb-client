@@ -1104,6 +1104,8 @@ class ExperimentRun:
         -------
         str or bytes
             Filesystem path or bytes representing the artifact.
+        bool
+            True if the artifact was only logged as its filesystem path.
 
         """
         # get key-path from ModelDB
@@ -1119,14 +1121,14 @@ class ExperimentRun:
         if artifact is None:
             raise KeyError("no artifact found with key {}".format(key))
         if artifact.path_only:
-            return artifact.path
+            return artifact.path, artifact.path_only
         else:
             # download artifact from artifact store
             url = self._get_url_for_artifact(key, "GET")
             response = requests.get(url)
             response.raise_for_status()
 
-            return response.content
+            return response.content, artifact.path_only
 
     def log_tag(self, tag):
         """
@@ -1582,8 +1584,8 @@ class ExperimentRun:
         """
         _utils.validate_flat_key(key)
 
-        dataset = self._get_artifact(key)
-        if isinstance(dataset, six.string_types):
+        dataset, path_only = self._get_artifact(key)
+        if path_only:
             return dataset
         else:
             try:
@@ -1739,8 +1741,8 @@ class ExperimentRun:
         """
         _utils.validate_flat_key(key)
 
-        model = self._get_artifact(key)
-        if isinstance(model, six.string_types):
+        model, path_only = self._get_artifact(key)
+        if path_only:
             return model
         else:
             return _artifact_utils.deserialize_model(model)
@@ -1827,8 +1829,8 @@ class ExperimentRun:
         """
         _utils.validate_flat_key(key)
 
-        image = self._get_artifact(key)
-        if isinstance(image, six.string_types):
+        image, path_only = self._get_artifact(key)
+        if path_only:
             return image
         else:
             try:
@@ -1897,8 +1899,8 @@ class ExperimentRun:
         """
         _utils.validate_flat_key(key)
 
-        artifact = self._get_artifact(key)
-        if isinstance(artifact, six.string_types):
+        artifact, path_only = self._get_artifact(key)
+        if path_only:
             return artifact
         else:
             try:
