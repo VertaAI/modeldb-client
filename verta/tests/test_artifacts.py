@@ -15,7 +15,7 @@ class TestArtifacts:
         key = utils.gen_str()
         path = utils.gen_str()
 
-        experiment_run.log_artifact(key, path)
+        experiment_run.log_artifact_path(key, path)
         assert experiment_run.get_artifact(key) == path
 
     def test_store(self, experiment_run):
@@ -27,7 +27,6 @@ class TestArtifacts:
 
     def test_empty(self, experiment_run):
         artifacts = {
-            utils.gen_str(): "",
             utils.gen_str(): six.BytesIO(),
         }
 
@@ -71,7 +70,7 @@ class TestDatasets:
         key = utils.gen_str()
         path = utils.gen_str()
 
-        experiment_run.log_dataset(key, path)
+        experiment_run.log_dataset_path(key, path)
         assert experiment_run.get_dataset(key) == path
 
     def test_store(self, experiment_run):
@@ -103,7 +102,7 @@ class TestModels:
         key = utils.gen_str()
         path = utils.gen_str()
 
-        experiment_run.log_model(key, path)
+        experiment_run.log_model_path(key, path)
         assert experiment_run.get_model(key) == path
 
     def test_store(self, experiment_run):
@@ -141,7 +140,7 @@ class TestImages:
         key = utils.gen_str()
         path = utils.gen_str()
 
-        experiment_run.log_image(key, path)
+        experiment_run.log_image_path(key, path)
         assert experiment_run.get_image(key) == path
 
     def test_store_blank_warning(self, experiment_run):
