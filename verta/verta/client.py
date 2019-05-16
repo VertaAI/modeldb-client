@@ -1780,7 +1780,8 @@ class ExperimentRun:
                     warnings.warn("the image being logged is blank")
                 image.save(bytestream, 'png')
 
-        if bytestream.getbuffer().nbytes:
+        bytestream.seek(0)
+        if bytestream.read(1):
             bytestream.seek(0)
             image = bytestream
 
