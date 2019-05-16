@@ -75,7 +75,7 @@ class DeployedModel:
 
         self._input_headers = [field['name'] for field in model_api['input']['fields']]
 
-    def _predict(self, x):
+    def _predict(self, x, return_input_body=False):
         """This is like ``DeployedModel.predict()``, but returns the raw ``Response`` for debugging."""
         if self._prediction_token is None:
             self._set_prediction_token()
@@ -83,9 +83,13 @@ class DeployedModel:
             self._set_input_headers()
 
         input_data = dict(zip(self._input_headers, x))
-        input_request = {'token': self._prediction_token,
-                         'data': json.dumps(input_data)}
-        return requests.post(self._prediction_url, data=input_request)
+        input_body = {'token': self._prediction_token,
+                      'data': json.dumps(input_data)}
+        result = requests.post(self._prediction_url, data=input_body)
+        if return_input_body:
+            return result, input_body
+        else:
+            return result
 
     @property
     def is_deployed(self):
