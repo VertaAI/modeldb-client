@@ -193,6 +193,30 @@ def deserialize_model(bytestring):
     return bytestream
 
 
+def validate_requirements_txt(requirements):
+    """
+    Checks that all dependencies listed in `requirements` have an exact version pin.
+
+    Parameters
+    ----------
+    requirements : file-like
+        pip requirements file.
+
+    Raises
+    ------
+    ValueError
+        If a listed dependency does not have an exact version pin.
+
+    """
+    reset_stream(requirements)  # reset cursor to beginning in case user forgot
+    contents = requirements.read()
+    reset_stream(requirements)  # reset cursor to beginning as a courtesy
+
+    for dependency in six.ensure_str(contents).split("\n"):
+        if '==' not in dependency:
+            raise ValueError("dependency '{}' must have an exact version pin".format(dependency))
+
+
 def generate_model_api(data, serialization_method, model_type, num_outputs=1):
     """
     Generates the model API JSON from a model and data.
