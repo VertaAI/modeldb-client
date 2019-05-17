@@ -1593,7 +1593,7 @@ class ExperimentRun:
             except pickle.UnpicklingError:
                 return six.BytesIO(dataset)
 
-    def log_model_for_deployment(self, model, model_api, requirements, dataset_df):
+    def log_model_for_deployment(self, model, model_api, requirements, dataset_df=None):
         """
         Logs a model artifact, a dataset CSV, requirements, and a model API to deploy on Verta.
 
@@ -1615,7 +1615,7 @@ class ExperimentRun:
             - If str, then it will be interpreted as a filesystem path, its contents read as bytes,
             and uploaded as an artifact.
             - If file-like, then the contents will be read as bytes and uploaded as an artifact.
-        dataset_df : pd.DataFrame or str or file-like
+        dataset_df : pd.DataFrame or str or file-like, optional
             Dataset DataFrame or CSV file.
             - If a pandas DataFrame, then it will be converted into a CSV and uploaded as an artifact.
             - If str, then it will be interpreted as a filesystem path, its contents interpreted
@@ -1674,7 +1674,8 @@ class ExperimentRun:
         self._log_artifact("model.pkl", model, _CommonService.ArtifactTypeEnum.MODEL)
         self._log_artifact("model_api.json", model_api, _CommonService.ArtifactTypeEnum.BLOB)
         self._log_artifact("requirements.txt", requirements, _CommonService.ArtifactTypeEnum.BLOB)
-        self._log_artifact("train_data", dataset_df, _CommonService.ArtifactTypeEnum.DATA)
+        if dataset_df is not None:
+            self._log_artifact("train_data", dataset_df, _CommonService.ArtifactTypeEnum.DATA)
 
 
     def log_model(self, key, model):
