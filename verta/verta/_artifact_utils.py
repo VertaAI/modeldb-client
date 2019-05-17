@@ -3,7 +3,6 @@ import six.moves.cPickle as pickle
 
 import csv
 import json
-import sys
 
 import cloudpickle
 
@@ -261,7 +260,7 @@ def generate_model_api(data, serialization_method, model_type, num_outputs=1):
 
     model_api = {
         'model_type': model_type,
-        'python_version': sys.version_info[0],
+        'python_version': _utils.get_python_version(),
         'deserialization': serialization_method,
         'input': input_fields[0] if len(input_fields) == 1 else {'type': "list", 'fields': input_fields},
         'output': output_fields[0] if len(output_fields) == 1 else {'type': "list", 'fields': output_fields},
