@@ -1593,7 +1593,7 @@ class ExperimentRun:
             except pickle.UnpicklingError:
                 return six.BytesIO(dataset)
 
-    def log_model_for_deployment(self, model, dataset_csv, requirements, model_api=None):
+    def log_model_for_deployment(self, model, dataset_csv, requirements, model_api):
         """
         Logs a model artifact, a dataset CSV, requirements, and a model API to deploy on Verta.
 
@@ -1617,13 +1617,11 @@ class ExperimentRun:
             - If str, then it will be interpreted as a filesystem path, its contents read as bytes,
             and uploaded as an artifact.
             - If file-like, then the contents will be read as bytes and uploaded as an artifact.
-        model_api : str or file-like, optional
-            Model API, specifying model deployment and predictions. If one is not provided, the client
-            will try its best to generate one based on `dataset_csv`.
+        model_api : str or file-like
+            Model API, specifying model deployment and predictions.
             - If str, then it will be interpreted as a filesystem path, its contents read as bytes,
             and uploaded as an artifact.
             - If file-like, then the contents will be read as bytes and uploaded as an artifact.
-            - If not provided, then one will be generated based on `dataset_csv`.
 
         """
         # open files
@@ -1671,8 +1669,7 @@ class ExperimentRun:
             requirements = six.BytesIO(six.ensure_binary('\n'.join(req_deps)))
 
         # prehandle model_api
-        if model_api is None:
-            model_api = _artifact_utils.generate_model_api(dataset_csv, method, model_type)
+        # TODO: add model serialization info to model_api
 
         self._log_artifact("model.pkl", model, _CommonService.ArtifactTypeEnum.MODEL)
         self._log_artifact("train_data", dataset_csv, _CommonService.ArtifactTypeEnum.DATA)
