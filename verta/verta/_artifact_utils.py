@@ -122,7 +122,7 @@ def serialize_model(model):
         Buffered bytestream of the serialized model.
     method : {"joblib", "cloudpickle", "pickle", "keras", None}
         Serialization method used to produce the bytestream.
-    model_type : {"scikit", "xgboost", "tensorflow", "custom"}
+    model_type : {"sklearn", "xgboost", "tensorflow", "custom"}
         Framework with which the model was built.
 
     """
@@ -138,13 +138,11 @@ def serialize_model(model):
             reset_stream(model)  # reset cursor to beginning as a courtesy
 
     module_name = model.__class__.__module__ or "custom"
-    package_name = module_name.split('.')[0]
+    model_type = module_name.split('.')[0]
 
-    if package_name == 'sklearn':
-        model_type = "scikit"
+    if model_type == 'sklearn':
         bytestream, method = ensure_bytestream(model)
-    elif package_name == 'tensorflow':
-        model_type = "tensorflow"
+    elif model_type == 'tensorflow':
         if "keras" in module_name.split('.'):  # Keras provides a model.save() method
             bytestream = six.BytesIO()
             model.save(bytestream)
@@ -152,8 +150,7 @@ def serialize_model(model):
             method = "keras"
         else:
             bytestream, method = ensure_bytestream(model)
-    elif package_name == 'xgboost':
-        model_type = "xgboost"
+    elif model_type == 'xgboost':
         bytestream, method = ensure_bytestream(model)
     else:
         model_type = "custom"
