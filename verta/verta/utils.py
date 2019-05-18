@@ -144,6 +144,7 @@ class ModelAPI:
         """
         return json.loads(self.__str__())
 
+# TODO: this is temporary, may change/be removed
 class DeploymentSpec():
     def __init__(self, model_api):
         self._raw_api = json.loads(model_api)
