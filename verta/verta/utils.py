@@ -80,7 +80,7 @@ class ModelAPI:
             return {'type': "VertaBool",
                     'name': "some_boolean_value" if name is None else name}
         elif isinstance(data, numbers.Integral):
-            return {'type': "VertaInt",
+            return {'type': "VertaFloat", # float to be safe; the input might have been a one-off int
                     'name': "some_integer_value" if name is None else name}
         elif isinstance(data, numbers.Real):
             return {'type': "VertaFloat",
