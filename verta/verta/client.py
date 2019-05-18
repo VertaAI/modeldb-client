@@ -1640,7 +1640,14 @@ class ExperimentRun:
             raise ValueError("will not be able to deploy model due to unknown serialization method")
 
         # prehandle model_api
-        # TODO: add model serialization info to model_api
+        model_api = utils.ModelAPI.from_file(model_api)
+        if 'model_packaging' not in model_api:
+            # add model serialization info to model_api
+            model_api['model_packaging'] = {
+                'python_version': _utils.get_python_version(),
+                'type': model_type,
+                'deserialization': method,
+            }
 
         # prehandle requirements
         _artifact_utils.validate_requirements_txt(requirements)
