@@ -1,9 +1,14 @@
-## Data
-The `data/` subdirectory is about 33M in size. I decided to push the data files directly to git for the time being. If the subdirectory grows in size down the line, consider the following utilities for tracking large files in git:
+## Examples
+The `examples/` subdirectory contains simple and complete example notebooks that anyone could run.
+Toy datasets are downloaded through Python data science frameworks to demonstrate basic Verta
+functionality.
 
-- [`git-lfs`](https://git-lfs.github.com/) is developed by GitHub and seems relatively painfree.
-  - files show up on GitHub.com as usual
-  - locally, large files are represented by pointer files
-  - files are stored on a separate server managed by GitHub
-- [`git-annex`](https://git-annex.branchable.com/) is too complex for our usecase.
-  - seems to be geared more towards file management than project management
+## Demos
+The `demos/` subdirectory contains more complex and specific example notebooks to demonstrate
+particular capabilities of the end-to-env Verta platform. These usually load datasets from disk,
+but it is **very important** to not track these data files with git and therefore they must be
+managed locally.
+
+## Data
+The `data/` subdirectory is about 33M in size. I decided to push these data files directly to git early
+on in the development process for convenience, and now they are grandfathered into our commit history.
