@@ -209,5 +209,5 @@ def validate_requirements_txt(requirements):
     reset_stream(requirements)  # reset cursor to beginning as a courtesy
 
     for dependency in six.ensure_str(contents).split("\n"):
-        if '==' not in dependency:
+        if dependency and '==' not in dependency:
             raise ValueError("dependency '{}' must have an exact version pin".format(dependency))
