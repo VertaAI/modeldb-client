@@ -144,6 +144,32 @@ class ModelAPI:
         """
         return json.loads(self.__str__())
 
+class DeploymentSpec():
+    def __init__(self, model_api):
+        self._raw_api = json.loads(model_api)
+        self.model_api_version = self._raw_api["version"]
+
+        model_packaging = self._raw_api["model_packaging"]
+        self.python_version = model_packaging["python_version"]
+        self.model_type = model_packaging["type"]
+        self.deserialization = model_packaging["deserialization"]
+
+        self.input = self._raw_api["input"]
+        self.output = self._raw_api["output"]
+
+    def _validate_io(self, data):
+        expected_input_api = ModelAPI._data_to_api(data)
+        return self._diff(self.input, expected_input_api)
+
+    def _diff(self, input, target):
+        if input['type'] == "VertaList":
+            input_list = input['value']
+            target_list = target['value']
+            for x in range(len(input_list)):
+                if not self._diff(input_list[x], target_list[x]):
+                    return False
+
+        return input['type'] == target['type']
 
 def dump(obj, filename):
     """
