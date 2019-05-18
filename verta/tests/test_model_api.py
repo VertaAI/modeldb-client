@@ -41,7 +41,7 @@ class TestModelAPI:
         }
         
         output_type = {
-            "name" : "i_dont_care_about_this_1",
+            "name" : "random_name1",
             "type" : "VertaList",
             "value" : [
                 {
@@ -53,11 +53,11 @@ class TestModelAPI:
         }
         
         input_type = {
-            "name" : "i_dont_care_about_this_2",
+            "name" : "random_name1",
             "type" : "VertaList",
             "value" : [
                 {
-                    "name" : "mv_list_value",
+                    "name" : "random_name2",
                     "type" : "VertaList",
                     "value" : [
                         {
@@ -124,7 +124,7 @@ class TestModelAPI:
         }
         
         output_type = {
-            "name" : "some_list_value",
+            "name" : "random_name1",
             "type" : "VertaList",
             "value" : [
                 {
@@ -136,11 +136,11 @@ class TestModelAPI:
         }
         
         input_type = {
-            "name" : "some_list_value",
+            "name" : "random_name2",
             "type" : "VertaList",
             "value" : [
                 {
-                    "name" : "a",
+                    "name" : "input",
                     "type" : "VertaString",
                     # "value" : "mary had a little lamb",
                 },
