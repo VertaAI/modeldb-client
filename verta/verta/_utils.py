@@ -6,6 +6,7 @@ import numbers
 import os
 import string
 import subprocess
+import sys
 
 from google.protobuf import json_format
 from google.protobuf.struct_pb2 import Value, NULL_VALUE
@@ -366,6 +367,19 @@ def now():
 
     """
     return timestamp_to_ms(to_timestamp(datetime.now()))
+
+
+def get_python_version():
+    """
+    Returns the version number of the locally-installed Python interpreter.
+
+    Returns
+    -------
+    str
+        Python version number in the form "{major}.{minor}.{patch}".
+
+    """
+    return '.'.join(map(str, sys.version_info[:3]))
 
 
 def get_env_dependencies():
