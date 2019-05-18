@@ -1649,6 +1649,7 @@ class ExperimentRun:
             dataset_csv = stringstream
 
         # prehandle requirements
+        _artifact_utils.validate_requirements_txt(requirements)
         if method == "cloudpickle":  # if cloudpickle used, add to requirements
             # remove cloudpickle from requirements if present
             req_deps = six.ensure_str(requirements.read()).splitlines()
