@@ -60,6 +60,13 @@ class ModelAPI:
 
         If the Python value is list-like or dict-like, its items will also be recursively translated.
 
+        Parameters
+        ----------
+        data : {None, bool, int, float, str, dict, list}
+            Python value.
+        name : str, optional
+            Name of the model API value node.
+
         Returns
         -------
         dict
@@ -111,7 +118,7 @@ class ModelAPI:
 
         """
         if isinstance(f, six.string_types):
-            f = open(f, 'rb')
+            f = open(f, 'r')
 
         model_api = ModelAPI(None, None)  # create a dummy instance
         model_api._buffer = six.StringIO(six.ensure_str(f.read()))
@@ -120,8 +127,8 @@ class ModelAPI:
     def read(self, size=None):
         return self._buffer.read(size)
 
-    def seek(self, offset):
-        self._buffer.seek(offset)
+    def seek(self, offset, whence=0):
+        self._buffer.seek(offset, whence)
 
     def tell(self):
         return self._buffer.tell()
@@ -135,7 +142,7 @@ class ModelAPI:
         dict
 
         """
-        return json.loads(self.__str__)
+        return json.loads(self.__str__())
 
 
 def dump(obj, filename):
