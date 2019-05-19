@@ -7,10 +7,13 @@ from deepdiff import DeepDiff
 class TestModelAPI:
     class ModelAPITestCase:
         def __init__(self, model, sample_input, sample_output, 
-                    sample_rest_call, true_model_api):
+                    sample_rest_call, true_model_api, incorrect_inputs,
+                    incorrect_outputs):
             self.model = model
             self.sample_input = sample_input
             self.sample_output = sample_output
+            self.incorrect_inputs = incorrect_inputs
+            self.incorrect_outputs = incorrect_outputs
             self.sample_rest_call = sample_rest_call
             self.true_model_api = true_model_api
             
@@ -19,6 +22,8 @@ class TestModelAPI:
             self.sample_input.__str__() + "\n" +  \
             self.sample_output.__str__() + "\n" +   \
             self.sample_rest_call.__str__() + "\n" + \
+            self.incorrect_inputs.__str__() + "\n" + \
+            self.incorrect_outputs.__str__() + "\n" + \
             self.true_model_api.__str__()
 
     def generate_log_reg_test_case(self):
@@ -34,6 +39,10 @@ class TestModelAPI:
         
         sample_input = [[1, 2, 3]]
         sample_output = [0]
+
+        # TODO: batch
+        incorrect_inputs = [[1, 2, 3], 1, [[1, 2]], [[[1, 2, 3]]]]
+        incorrect_outputs = [0, [[0]]]
         
         rest_call = {
             'token' : 'some-token',
@@ -88,7 +97,9 @@ class TestModelAPI:
             sample_input=sample_input,
             sample_output=sample_output,
             sample_rest_call=rest_call,
-            true_model_api=spec
+            true_model_api=spec,
+            incorrect_inputs=incorrect_inputs,
+            incorrect_outputs=incorrect_outputs
         )
 
     def generate_text_pipeline_1_test_case(self):
@@ -117,6 +128,10 @@ class TestModelAPI:
 
         sample_input = ["mary had a little lamb"]
         sample_output = [1]
+
+        # TODO: batch
+        incorrect_inputs = ["mary had a little lamb", [["jimmy had a little lamb"]], ["jimmy", "mary"]]
+        incorrect_outputs = [0, [[0]]]
         
         rest_call = {
             'token' : 'some-token',
@@ -154,7 +169,9 @@ class TestModelAPI:
             sample_input=sample_input,
             sample_output=sample_output,
             sample_rest_call=rest_call,
-            true_model_api=spec
+            true_model_api=spec,
+            incorrect_inputs=incorrect_inputs,
+            incorrect_outputs=incorrect_outputs
         )
 
     def helper(self, test_case):
@@ -171,11 +188,22 @@ class TestModelAPI:
         # TODO: assert that true_model_api is valid (not implemented in ModelAPI yet)
         
         # generate the model_api
-        generated_api = verta_utils.ModelAPI(test_case.sample_input, test_case.sample_output).to_dict()
+        generated_api = verta_utils.ModelAPI(test_case.sample_input, test_case.sample_output)
+        generated_api_as_dict = generated_api.to_dict()
         pprint(test_case.true_model_api)
-        
+
+        # validate inputs and outputs: maybe this does not belong there
+        deployment_spec = verta_utils.DeploymentSpec(json.dumps(generated_api_as_dict))
+        assert deployment_spec._validate_input(test_case.sample_input)
+        assert deployment_spec._validate_output(test_case.sample_output)
+        for incorrect_input in test_case.incorrect_inputs:
+            assert not deployment_spec._validate_input(incorrect_input)
+
+        for incorrect_output in test_case.incorrect_outputs:
+            assert not deployment_spec._validate_output(incorrect_output)
+
         # compare generated and true model api
-        pprint(DeepDiff(generated_api, test_case.true_model_api))
+        pprint(DeepDiff(generated_api_as_dict, test_case.true_model_api))
         
         # process REST call
         rest_generated_input = json.loads(test_case.sample_rest_call['data'])
