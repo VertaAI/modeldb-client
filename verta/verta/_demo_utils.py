@@ -87,13 +87,12 @@ class DeployedModel:
         if self._input_headers is None:
             self._set_input_headers()
 
-        if isinstance(self._input_headers, str):
-            input_data = {self._input_headers: x}
-        else:
-            input_data = dict(zip(self._input_headers, x))
-        input_body = {'token': self._prediction_token,
-                      'data': json.dumps(input_data)}
+        input_body = {
+            'token': self._prediction_token,
+            'data': json.dumps(x)
+        }
         result = requests.post(self._prediction_url, data=input_body)
+
         if return_input_body:
             return result, input_body
         else:
@@ -113,8 +112,8 @@ class DeployedModel:
 
         Parameters
         ----------
-        x : list-like
-            Sequence of feature values representing a single data point.
+        x : list
+            List of Sequence of feature values representing a single data point.
 
         Returns
         -------

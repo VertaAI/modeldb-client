@@ -11,12 +11,13 @@ import pathlib2
 class ModelAPI:
     """
     A file-like and partially dict-like object representing a Verta model API.
+    Init requires a list of potential x and y input
 
     Parameters
     ----------
-    x : {None, bool, int, float, str, dict, list}
+    x : [{None, bool, int, float, str, dict, list}]
         An archetypal input for the model this API describes.
-    y : {None, bool, int, float, str, dict, list}
+    y : [{None, bool, int, float, str, dict, list}]
         An archetypal output for the model this API describes.
 
     Attributes
@@ -28,8 +29,8 @@ class ModelAPI:
     def __init__(self, x, y):
         self._buffer = six.StringIO(json.dumps({
             'version': "v1",
-            'input': ModelAPI._data_to_api(x),
-            'output': ModelAPI._data_to_api(y),
+            'input': ModelAPI._data_to_api(x[0]),
+            'output': ModelAPI._data_to_api(y[0]),
         }))
 
     def __str__(self):
@@ -120,7 +121,7 @@ class ModelAPI:
         if isinstance(f, six.string_types):
             f = open(f, 'r')
 
-        model_api = ModelAPI(None, None)  # create a dummy instance
+        model_api = ModelAPI([None], [None])  # create a dummy instance
         model_api._buffer = six.StringIO(six.ensure_str(f.read()))
         return model_api
 
@@ -162,20 +163,35 @@ class DeploymentSpec():
         expected_api = ModelAPI._data_to_api(data)
         return self._diff(data_spec, expected_api)
 
+    def _validate_str_input(self, data_str):
+        #TODO: this logic will have to change once blobs
+        # are enabled to decide whether or not to load str
+        data = json.loads(data_str)
+        return self._validate_data(data, self.input)
+
     def _validate_input(self, data):
+        print("DEBUG: --> Validate Input, data is: " + str(data))
+        print("DEBUG: --> Validate Input, input spec is : " + str(self.input))
         return self._validate_data(data, self.input)
 
     def _validate_output(self, data):
         return self._validate_data(data, self.output)
 
+    def _validate_str_output(self, data_str):
+        data = json.loads(data_str)
+        return self._validate_data(data, self.output)
+
     def _diff(self, input, target):
+        if input['type'] != target['type']:
+            return False
+
         if input['type'] == "VertaList":
             if 'value' not in input:
                 raise KeyError('VertaList must have a value')
-            
+
             if 'value' not in target:
                 return False
-            
+
             input_list = input['value']
             target_list = target['value']
             if len(input_list) != len(target_list):
@@ -183,9 +199,8 @@ class DeploymentSpec():
             for x in range(len(input_list)):
                 if not self._diff(input_list[x], target_list[x]):
                     return False
-        
-        # TODO: move this check before the recursion
-        return input['type'] == target['type']
+    
+        return True
 
 def dump(obj, filename):
     """

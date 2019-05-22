@@ -392,4 +392,4 @@ def get_env_dependencies():
         Names of packages and their pinned version numbers in the current Python environment.
 
     """
-    return subprocess.check_output(["pip", "freeze"], universal_newlines=True).splitlines()
+    return subprocess.check_output(["pip", "freeze"], text=True).splitlines()
