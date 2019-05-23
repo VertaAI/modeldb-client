@@ -6,6 +6,7 @@ import json
 import numbers
 import os
 import pathlib2
+import pandas
 
 
 class ModelAPI:
@@ -29,8 +30,8 @@ class ModelAPI:
     def __init__(self, x, y):
         self._buffer = six.StringIO(json.dumps({
             'version': "v1",
-            'input': ModelAPI._data_to_api(x[0]),
-            'output': ModelAPI._data_to_api(y[0]),
+            'input': ModelAPI._data_to_api(x),
+            'output': ModelAPI._data_to_api(y),
         }))
 
     def __str__(self):
@@ -55,7 +56,7 @@ class ModelAPI:
         raise NotImplementedError
 
     @staticmethod
-    def _data_to_api(data, name=None):
+    def _data_to_api(data, name=""):
         """
         Translates a Python value into an appropriate node for the model API.
 
@@ -76,23 +77,29 @@ class ModelAPI:
         """
         if data is None:
             return {'type': "VertaNull",
-                    'name': "some_null_value" if name is None else name}
+                    'name': name}
         elif isinstance(data, bool):  # did you know that `bool` is a subclass of `int`?
             return {'type': "VertaBool",
-                    'name': "some_boolean_value" if name is None else name}
+                    'name': name}
         elif isinstance(data, numbers.Integral):
             return {'type': "VertaFloat", # float to be safe; the input might have been a one-off int
-                    'name': "some_integer_value" if name is None else name}
+                    'name': name}
         elif isinstance(data, numbers.Real):
             return {'type': "VertaFloat",
-                    'name': "some_float_value" if name is None else name}
+                    'name': name}
         elif isinstance(data, six.string_types):
             return {'type': "VertaString",
-                    'name': "some_string_value" if name is None else name}
+                    'name': name}
         elif isinstance(data, collections.Mapping):
             return {'type': "VertaJson",
-                    'name': "some_json_value",
+                    'name': name,
                     'value': [ModelAPI._data_to_api(value, str(name)) for name, value in six.iteritems(data)]}
+        elif isinstance(data, pandas.DataFrame):
+            return {'type': "VertaList",
+                    'name': name,
+                    'value': [ModelAPI._data_to_api(data[name], str(name)) for name in data.columns]}
+        elif isinstance(data, pandas.Series):
+            return ModelAPI._data_to_api(data[0], data.name)
         else:
             try:
                 iter(data)
@@ -100,7 +107,7 @@ class ModelAPI:
                 six.raise_from(TypeError("uninterpretable type {}".format(type(data))), None)
             else:
                 return {'type': "VertaList",
-                        'name': "some_list_value",
+                        'name': name,
                         'value': [ModelAPI._data_to_api(value, str(i)) for i, value in enumerate(data)]}
 
     @staticmethod
