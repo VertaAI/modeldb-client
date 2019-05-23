@@ -1,22 +1,18 @@
-from setuptools import setup
-
+from setuptools import setup, find_packages
 
 with open("README.md", 'r') as f:
     long_description = f.read()
 
 setup(
     name="verta",
-    version="0.10.0",
+    version="0.10.1",
     maintainer="Michael Liu",
     maintainer_email="miliu@verta.ai",
     description="Python client for interfacing with ModelDB and the Verta platform",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://www.verta.ai/",
-    packages=[
-        "verta",
-        "verta._protos.public.modeldb",
-    ],
+    packages=find_packages(),
     python_requires=">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*",
     install_requires=[
         "cloudpickle",
