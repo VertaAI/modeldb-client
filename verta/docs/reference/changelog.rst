@@ -1,6 +1,14 @@
 Release Notes
 =============
 
+v0.10.2 (2019-05-22)
+--------------------
+
+Bug Fixes
+^^^^^^^^^
+
+- Fix wheel to include protobuf folders.
+
 v0.10.1 (2019-05-22)
 --------------------
 

@@ -1,12 +1,11 @@
 from setuptools import setup, find_packages
 
-
 with open("README.md", 'r') as f:
     long_description = f.read()
 
 setup(
     name="verta",
-    version="0.10.1",
+    version="0.10.2",
     maintainer="Michael Liu",
     maintainer_email="miliu@verta.ai",
     description="Python client for interfacing with ModelDB and the Verta platform",
