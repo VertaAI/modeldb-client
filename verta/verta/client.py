@@ -1635,14 +1635,24 @@ class ExperimentRun:
             dataset_df = open(dataset_df, 'rb')
 
         # prehandle model
+        _artifact_utils.reset_stream(model_api)  # reset cursor to beginning in case user forgot
         model, method, model_type = _artifact_utils.serialize_model(model)
         if method is None:
             raise ValueError("will not be able to deploy model due to unknown serialization method")
 
         # prehandle model_api
-        # TODO: add model serialization info to model_api
+        _artifact_utils.reset_stream(model_api)  # reset cursor to beginning in case user forgot
+        model_api = utils.ModelAPI.from_file(model_api)
+        if 'model_packaging' not in model_api:
+            # add model serialization info to model_api
+            model_api['model_packaging'] = {
+                'python_version': _utils.get_python_version(),
+                'type': model_type,
+                'deserialization': method,
+            }
 
         # prehandle requirements
+        _artifact_utils.reset_stream(model_api)  # reset cursor to beginning in case user forgot
         _artifact_utils.validate_requirements_txt(requirements)
         if method == "cloudpickle":  # if cloudpickle used, add to requirements
             # remove cloudpickle from requirements if present
@@ -1665,6 +1675,7 @@ class ExperimentRun:
             requirements = six.BytesIO(six.ensure_binary('\n'.join(req_deps)))
 
         # prehandle dataset_df
+        _artifact_utils.reset_stream(model_api)  # reset cursor to beginning in case user forgot
         if hasattr(dataset_df, 'to_csv'):  # if `dataset_df` is a DataFrame
             stringstream = six.StringIO()
             dataset_df.to_csv(stringstream, index=False)  # write as CSV

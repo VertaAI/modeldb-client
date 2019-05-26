@@ -122,7 +122,7 @@ def serialize_model(model):
         Buffered bytestream of the serialized model.
     method : {"joblib", "cloudpickle", "pickle", "keras", None}
         Serialization method used to produce the bytestream.
-    model_type : {"scikit", "xgboost", "tensorflow", "custom"}
+    model_type : {"sklearn", "xgboost", "tensorflow", "custom"}
         Framework with which the model was built.
 
     """
@@ -138,13 +138,11 @@ def serialize_model(model):
             reset_stream(model)  # reset cursor to beginning as a courtesy
 
     module_name = model.__class__.__module__ or "custom"
-    package_name = module_name.split('.')[0]
+    model_type = module_name.split('.')[0]
 
-    if package_name == 'sklearn':
-        model_type = "scikit"
+    if model_type == 'sklearn':
         bytestream, method = ensure_bytestream(model)
-    elif package_name == 'tensorflow':
-        model_type = "tensorflow"
+    elif model_type == 'tensorflow':
         if "keras" in module_name.split('.'):  # Keras provides a model.save() method
             bytestream = six.BytesIO()
             model.save(bytestream)
@@ -152,8 +150,7 @@ def serialize_model(model):
             method = "keras"
         else:
             bytestream, method = ensure_bytestream(model)
-    elif package_name == 'xgboost':
-        model_type = "xgboost"
+    elif model_type == 'xgboost':
         bytestream, method = ensure_bytestream(model)
     else:
         model_type = "custom"
@@ -212,84 +209,5 @@ def validate_requirements_txt(requirements):
     reset_stream(requirements)  # reset cursor to beginning as a courtesy
 
     for dependency in six.ensure_str(contents).split("\n"):
-        if '==' not in dependency:
+        if dependency and '==' not in dependency:
             raise ValueError("dependency '{}' must have an exact version pin".format(dependency))
-
-
-def generate_model_api(data, serialization_method, model_type, num_outputs=1):
-    """
-    Generates the model API JSON from a model and data.
-
-    `data` must begin with a header row, which is used to determine the API's field names. The first
-    data row is then used to determine the API's field types.
-
-    Parameters
-    ----------
-    data : str or file-like or pd.DataFrame
-        Filepath to data CSV, CSV file handle, or DataFrame.
-    serialization_method : {"joblib", "cloudpickle", "pickle", "keras"}
-        Serialization method used to produce the model bytestream.
-    model_type : {"scikit", "xgboost", "tensorflow", "custom"}
-        Framework with which the model was built.
-    num_outputs : int
-        Number of output columns on the right-hand side of the CSV.
-
-    Returns
-    -------
-    stringstream : file-like
-        Model API JSON.
-
-    """
-    if serialization_method not in {"joblib", "cloudpickle", "pickle", "keras"}:
-        raise ValueError("`serialization_method` must be one of {'joblib', 'cloudpickle', 'pickle', 'keras'}")
-    if model_type not in {"scikit", "xgboost", "tensorflow", "custom"}:
-        raise ValueError("`model_type` must be one of {'scikit', 'xgboost', 'tensorflow', 'custom'}")
-    if num_outputs < 1:
-        raise ValueError("`num_outputs` must be 1 or greater")
-
-    # get first two rows from data
-    if isinstance(data, six.string_types):  # if `data` is a filepath
-        data = open(data, 'r')
-    if hasattr(data, 'read'):  # if `data` is file-like
-        reset_stream(data)  # reset cursor to beginning in case user forgot
-
-        # read header and first data row
-        reader = csv.reader(data)
-        header = next(reader)
-        row = next(reader)
-
-        del reader
-        reset_stream(data)  # reset cursor to beginning as a courtesy
-    elif hasattr(data, 'iloc'):  # if `data` is a DataFrame
-        header = data.columns
-        row = data.iloc[0]
-    else:
-        raise ValueError("`data` must be a filepath, a file object, or a DataFrame")
-
-    # parse data
-    fields = []
-    for col_name, val in zip(header, row):
-        try:
-            float(val)
-        except ValueError:
-            val_type = "str"
-        else:
-            val_type = "float"
-
-        fields.append({'name': col_name, 'type': val_type})
-
-    input_fields, output_fields = fields[:-num_outputs], fields[-num_outputs:]
-    if not len(input_fields):
-        raise ValueError("`num_outputs` must be less than the total number of columns")
-
-    model_api = {
-        'model_type': model_type,
-        'python_version': _utils.get_python_version(),
-        'deserialization': serialization_method,
-        'input': input_fields[0] if len(input_fields) == 1 else {'type': "list", 'fields': input_fields},
-        'output': output_fields[0] if len(output_fields) == 1 else {'type': "list", 'fields': output_fields},
-    }
-    stringstream = six.StringIO()
-    json.dump(model_api, stringstream)
-    stringstream.seek(0)
-    return stringstream

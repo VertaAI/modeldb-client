@@ -1,9 +1,213 @@
 import six
 import six.moves.cPickle as pickle
 
+import collections
+import json
+import numbers
 import os
 import pathlib2
+import pandas
 
+
+class ModelAPI:
+    """
+    A file-like and partially dict-like object representing a Verta model API.
+    Init requires a list of potential x and y input
+
+    Parameters
+    ----------
+    x : [{None, bool, int, float, str, dict, list}]
+        An archetypal input for the model this API describes.
+    y : [{None, bool, int, float, str, dict, list}]
+        An archetypal output for the model this API describes.
+
+    Attributes
+    ----------
+    is_valid : bool
+        Whether or not this Model API adheres to Verta's complete specification.
+
+    """
+    def __init__(self, x, y):
+        self._buffer = six.StringIO(json.dumps({
+            'version': "v1",
+            'input': ModelAPI._data_to_api(x),
+            'output': ModelAPI._data_to_api(y),
+        }))
+
+    def __str__(self):
+        ptr_pos = self.tell()  # save current pointer position
+        self.seek(0)
+        contents = self.read()
+        self.seek(ptr_pos)  # restore pointer position
+        return contents
+
+    def __setitem__(self, key, value):
+        if self.tell():
+            raise ValueError("pointer must be reset before setting an item; please use seek(0)")
+        api_dict = json.loads(self.read())
+        api_dict[key] = value
+        self._buffer = six.StringIO(json.dumps(api_dict))
+
+    def __contains__(self, key):
+        return key in self.to_dict()
+
+    @property
+    def is_valid(self):
+        raise NotImplementedError
+
+    @staticmethod
+    def _data_to_api(data, name=""):
+        """
+        Translates a Python value into an appropriate node for the model API.
+
+        If the Python value is list-like or dict-like, its items will also be recursively translated.
+
+        Parameters
+        ----------
+        data : {None, bool, int, float, str, dict, list}
+            Python value.
+        name : str, optional
+            Name of the model API value node.
+
+        Returns
+        -------
+        dict
+            A model API value node.
+
+        """
+        if data is None:
+            return {'type': "VertaNull",
+                    'name': name}
+        elif isinstance(data, bool):  # did you know that `bool` is a subclass of `int`?
+            return {'type': "VertaBool",
+                    'name': name}
+        elif isinstance(data, numbers.Integral):
+            return {'type': "VertaFloat", # float to be safe; the input might have been a one-off int
+                    'name': name}
+        elif isinstance(data, numbers.Real):
+            return {'type': "VertaFloat",
+                    'name': name}
+        elif isinstance(data, six.string_types):
+            return {'type': "VertaString",
+                    'name': name}
+        elif isinstance(data, collections.Mapping):
+            return {'type': "VertaJson",
+                    'name': name,
+                    'value': [ModelAPI._data_to_api(value, str(name)) for name, value in six.iteritems(data)]}
+        elif isinstance(data, pandas.DataFrame):
+            return {'type': "VertaList",
+                    'name': name,
+                    'value': [ModelAPI._data_to_api(data[name], str(name)) for name in data.columns]}
+        elif isinstance(data, pandas.Series):
+            return ModelAPI._data_to_api(data.iloc[0], data.name)
+        else:
+            try:
+                iter(data)
+            except TypeError:
+                six.raise_from(TypeError("uninterpretable type {}".format(type(data))), None)
+            else:
+                return {'type': "VertaList",
+                        'name': name,
+                        'value': [ModelAPI._data_to_api(value, str(i)) for i, value in enumerate(data)]}
+
+    @staticmethod
+    def from_file(f):
+        """
+        Reads and returns a ``ModelAPI`` from a file.
+
+        Parameters
+        ----------
+        f : str or file-like
+            Model API JSON filesystem path or file.
+
+        Returns
+        -------
+        :class:`ModelAPI`
+
+        """
+        if isinstance(f, six.string_types):
+            f = open(f, 'r')
+
+        model_api = ModelAPI([None], [None])  # create a dummy instance
+        model_api._buffer = six.StringIO(six.ensure_str(f.read()))
+        return model_api
+
+    def read(self, size=None):
+        return self._buffer.read(size)
+
+    def seek(self, offset, whence=0):
+        self._buffer.seek(offset, whence)
+
+    def tell(self):
+        return self._buffer.tell()
+
+    def to_dict(self):
+        """
+        Returns a copy of this model API as a dictionary.
+
+        Returns
+        -------
+        dict
+
+        """
+        return json.loads(self.__str__())
+
+# TODO: this is temporary, may change/be removed
+class DeploymentSpec():
+    def __init__(self, model_api):
+        self._raw_api = json.loads(model_api)
+        self.model_api_version = self._raw_api["version"] if "version" in self._raw_api else "unknown"
+
+        model_packaging = self._raw_api["model_packaging"] if "model_packaging" in self._raw_api else {}
+        self.python_version = model_packaging["python_version"] if "python_version" in model_packaging else "unknown"
+        self.model_type = model_packaging["type"] if "type" in model_packaging else "unknown"
+        self.deserialization = model_packaging["deserialization"] if "deserialization" in model_packaging else "unknown"
+
+        self.input = self._raw_api["input"]
+        self.output = self._raw_api["output"]
+
+    def _validate_data(self, data, data_spec):
+        expected_api = ModelAPI._data_to_api(data)
+        return self._diff(data_spec, expected_api)
+
+    def _validate_str_input(self, data_str):
+        #TODO: this logic will have to change once blobs
+        # are enabled to decide whether or not to load str
+        data = json.loads(data_str)
+        return self._validate_data(data, self.input)
+
+    def _validate_input(self, data):
+        print("DEBUG: --> Validate Input, data is: " + str(data))
+        print("DEBUG: --> Validate Input, input spec is : " + str(self.input))
+        return self._validate_data(data, self.input)
+
+    def _validate_output(self, data):
+        return self._validate_data(data, self.output)
+
+    def _validate_str_output(self, data_str):
+        data = json.loads(data_str)
+        return self._validate_data(data, self.output)
+
+    def _diff(self, input, target):
+        if input['type'] != target['type']:
+            return False
+
+        if input['type'] == "VertaList":
+            if 'value' not in input:
+                raise KeyError('VertaList must have a value')
+
+            if 'value' not in target:
+                return False
+
+            input_list = input['value']
+            target_list = target['value']
+            if len(input_list) != len(target_list):
+                return False
+            for x in range(len(input_list)):
+                if not self._diff(input_list[x], target_list[x]):
+                    return False
+
+        return True
 
 def dump(obj, filename):
     """
