@@ -99,7 +99,7 @@ class ModelAPI:
                     'name': name,
                     'value': [ModelAPI._data_to_api(data[name], str(name)) for name in data.columns]}
         elif isinstance(data, pandas.Series):
-            return ModelAPI._data_to_api(data[0], data.name)
+            return ModelAPI._data_to_api(data.iloc[0], data.name)
         else:
             try:
                 iter(data)
@@ -206,7 +206,7 @@ class DeploymentSpec():
             for x in range(len(input_list)):
                 if not self._diff(input_list[x], target_list[x]):
                     return False
-    
+
         return True
 
 def dump(obj, filename):
