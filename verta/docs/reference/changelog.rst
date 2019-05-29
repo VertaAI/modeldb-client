@@ -2,6 +2,15 @@ Release Notes
 =============
 
 
+v0.11.1 (2019-05-29)
+--------------------
+
+Bug Fixes
+^^^^^^^^^
+- `fix internal utility get_env_dependencies() for compatibility with Python 3.6 and earlier
+  <https://github.com/VertaAI/modeldb-client/commit/03b4005e44bddedf857dc59e7583eb57b8c529a5>`_
+
+
 v0.11.0 (2019-05-29)
 --------------------
 
@@ -20,7 +29,8 @@ Internal Changes
   <https://github.com/VertaAI/modeldb-client/blob/b998b6be7209f217436b630ebd44eb74df4e37a7/workflows/examples-without-verta/notebooks/sklearn-census.ipynb>`_
 - `rename the "scikit" model type to "sklearn" <https://github.com/VertaAI/modeldb-client/pull/102>`_
 - `delete old internal model API generation utility <https://github.com/VertaAI/modeldb-client/pull/102>`_
-- `update demo utility predict function to simply dump the JSON input into the request body <https://github.com/VertaAI/modeldb-client/commit/094494da3c89ae16064849e1af670020cebec4f8#diff-5ecfc26883949a5768007510d498b950>`_
+- `update demo utility predict function to simply dump the JSON input into the request body
+  <https://github.com/VertaAI/modeldb-client/commit/094494da3c89ae16064849e1af670020cebec4f8#diff-5ecfc26883949a5768007510d498b950>`_
 - `implement internal utility to check for exact version pins in a requirements.txt <https://github.com/VertaAI/modeldb-client/pull/100>`_
 - `implement internal utility to obtain the local environment's Python version number <https://github.com/VertaAI/modeldb-client/pull/98>`_
 - `update READMEs <https://github.com/VertaAI/modeldb-client/commit/f0579f2cbdee69f411b2481ae249b87b35d07383>`_
