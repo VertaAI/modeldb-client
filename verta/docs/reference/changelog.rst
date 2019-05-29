@@ -1,11 +1,35 @@
 Release Notes
 =============
 
+
 v0.11.0 (2019-05-29)
 --------------------
 
 Backwards Incompatibilities
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+- `log_model_for_deployment() now no longer requires a dataset argument, but requires a model API argument. The order
+  of parameters has changed, and dataset_csv has been renamed to dataset_df. <https://github.com/VertaAI/modeldb-client/pull/99>`_
+
+New Features
+^^^^^^^^^^^^
+- `implement ModelAPI utility class for generating model APIs <https://github.com/VertaAI/modeldb-client/pull/102>`_
+
+Internal Changes
+^^^^^^^^^^^^^^^^
+- `create an example notebook that downloads our beloved Census data with wget
+  <https://github.com/VertaAI/modeldb-client/blob/b998b6be7209f217436b630ebd44eb74df4e37a7/workflows/examples-without-verta/notebooks/sklearn-census.ipynb>`_
+- `rename the "scikit" model type to "sklearn" <https://github.com/VertaAI/modeldb-client/pull/102>`_
+- `delete old internal model API generation utility <https://github.com/VertaAI/modeldb-client/pull/102>`_
+- `update demo utility predict function to simply dump the JSON input into the request body <https://github.com/VertaAI/modeldb-client/commit/094494da3c89ae16064849e1af670020cebec4f8#diff-5ecfc26883949a5768007510d498b950>`_
+- `implement internal utility to check for exact version pins in a requirements.txt <https://github.com/VertaAI/modeldb-client/pull/100>`_
+- `implement internal utility to obtain the local environment's Python version number <https://github.com/VertaAI/modeldb-client/pull/98>`_
+- `update READMEs <https://github.com/VertaAI/modeldb-client/commit/f0579f2cbdee69f411b2481ae249b87b35d07383>`_
+- `add utils module to API reference <https://github.com/VertaAI/modeldb-client/commit/f83a20396ee2a215d6a7419b5fe96ea158d91655>`_
+- `implement tests for model API generation <https://github.com/VertaAI/modeldb-client/commit/5982221b8d88ee40b400813955d123321519f1ff>`_
+- `implement property-based tests for model API generation <https://github.com/VertaAI/modeldb-client/commit/d3e2a588cc95c9fe91382dbc7fa34052e6f707d7>`_
+- `add deepdiff to testing requirements <https://github.com/VertaAI/modeldb-client/commit/4edf10b41050d77ccc044068184889579a1c4c57>`_
+- `add hypothesis to testing requirements <https://github.com/VertaAI/modeldb-client/commit/8044b6ac525e831bdff58fe21b1bdb261e920796>`_
+
 
 v0.10.2 (2019-05-22)
 --------------------
@@ -17,7 +41,8 @@ v0.10.1 (2019-05-22)
 
 Bug Fixes
 ^^^^^^^^^
-- `properly expose intermediate subpackages for compatibility with Python 3.2 and earlier <https://github.com/VertaAI/modeldb-client/commit/d3037ac5670c022c2f2aa4b1f50b49e9c19646b0>`_
+- `properly expose intermediate subpackages for compatibility with Python 3.2 and earlier
+  <https://github.com/VertaAI/modeldb-client/commit/d3037ac5670c022c2f2aa4b1f50b49e9c19646b0>`_
 
 
 v0.10.0 (2019-05-16)
@@ -40,8 +65,6 @@ Backwards Incompatibilities
 - `The internal logic for getting an ExperimentRun by name has changed, and may be incompatible with old versions of the
   Verta Back End. <https://github.com/VertaAI/modeldb-client/pull/89>`_
 
-
-
 New Features
 ^^^^^^^^^^^^
 - `associate user-specified or automatically-generated timestamps with observations <https://github.com/VertaAI/modeldb-client/pull/83>`_
@@ -51,11 +74,9 @@ New Features
 - `enable uploading custom model APIs for deployment <https://github.com/VertaAI/modeldb-client/pull/91>`_
 - `create functions specifically for logging artifact paths without attempting uploads <https://github.com/VertaAI/modeldb-client/pull/94>`_
 
-
 Bug Fixes
 ^^^^^^^^^
 - `reset stream pointer on failed deserialization attempts <https://github.com/VertaAI/modeldb-client/pull/86>`_
-
 
 Internal Changes
 ^^^^^^^^^^^^^^^^
