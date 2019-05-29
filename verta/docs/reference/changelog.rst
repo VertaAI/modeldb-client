@@ -4,10 +4,8 @@ Release Notes
 v0.10.2 (2019-05-22)
 --------------------
 
-Bug Fixes
-^^^^^^^^^
+no functional changes
 
-- Fix wheel to include protobuf folders.
 
 v0.10.1 (2019-05-22)
 --------------------
@@ -15,7 +13,8 @@ v0.10.1 (2019-05-22)
 Bug Fixes
 ^^^^^^^^^
 
-- Fix wheel to include protobuf init folders.
+- `properly expose intermediate subpackages for compatibility with Python 3.2 and earlier <https://github.com/VertaAI/modeldb-client/commit/d3037ac5670c022c2f2aa4b1f50b49e9c19646b0>`_
+
 
 v0.10.0 (2019-05-16)
 --------------------
