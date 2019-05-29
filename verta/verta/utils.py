@@ -7,6 +7,7 @@ import numbers
 import os
 import pathlib2
 import pandas
+import numpy as np
 
 
 class ModelAPI:
@@ -28,6 +29,25 @@ class ModelAPI:
 
     """
     def __init__(self, x, y):
+        # handle `x`
+        try:
+            x = x.values.tolist()  # convert DataFrame into 2-D list
+        except AttributeError:
+            try:
+                x = x.tolist()  # convert Series and ndarray into 1-D list
+            except AttributeError:
+                pass
+        # handle `y`
+        try:
+            y = y.values.tolist()  # convert DataFrame into 2-D list
+        except AttributeError:
+            try:
+                y = y.tolist()  # convert Series and ndarray into 1-D list
+            except AttributeError:
+                pass
+        # unwrap first layer of list
+        x, y = x[0], y[0]
+
         self._buffer = six.StringIO(json.dumps({
             'version': "v1",
             'input': ModelAPI._data_to_api(x),
@@ -57,6 +77,21 @@ class ModelAPI:
 
     @staticmethod
     def _data_to_api(data, name=""):
+        # TODO: probably should use dtype instead of inferring the type?
+        if isinstance(data, pandas.Series):
+            name = data.name
+            data = data.iloc[0]
+            if hasattr(data, 'item'):
+                data = data.item()
+            return ModelAPI._single_data_to_api(data, name)
+        if isinstance(data, pandas.DataFrame):
+            return {'type': "VertaJson",
+                    'name': name,
+                    'value': [ModelAPI._data_to_api(data[name], str(name)) for name in data.columns]}
+        return ModelAPI._single_data_to_api(data[0], name)
+
+    @staticmethod
+    def _single_data_to_api(data, name=""):
         """
         Translates a Python value into an appropriate node for the model API.
 
@@ -93,13 +128,7 @@ class ModelAPI:
         elif isinstance(data, collections.Mapping):
             return {'type': "VertaJson",
                     'name': name,
-                    'value': [ModelAPI._data_to_api(value, str(name)) for name, value in six.iteritems(data)]}
-        elif isinstance(data, pandas.DataFrame):
-            return {'type': "VertaList",
-                    'name': name,
-                    'value': [ModelAPI._data_to_api(data[name], str(name)) for name in data.columns]}
-        elif isinstance(data, pandas.Series):
-            return ModelAPI._data_to_api(data.iloc[0], data.name)
+                    'value': [ModelAPI._single_data_to_api(value, str(name)) for name, value in six.iteritems(data)]}
         else:
             try:
                 iter(data)
@@ -108,7 +137,7 @@ class ModelAPI:
             else:
                 return {'type': "VertaList",
                         'name': name,
-                        'value': [ModelAPI._data_to_api(value, str(i)) for i, value in enumerate(data)]}
+                        'value': [ModelAPI._single_data_to_api(value, str(i)) for i, value in enumerate(data)]}
 
     @staticmethod
     def from_file(f):
