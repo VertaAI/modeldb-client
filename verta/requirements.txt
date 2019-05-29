@@ -4,6 +4,7 @@ twine>=1.13
 wheel>=0.32
 
 # unit testing
+hypothesis
 six>=1.11
 pytest>=4.3
 matplotlib<3.0
