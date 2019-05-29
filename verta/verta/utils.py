@@ -29,25 +29,6 @@ class ModelAPI:
 
     """
     def __init__(self, x, y):
-        # handle `x`
-        try:
-            x = x.values.tolist()  # convert DataFrame into 2-D list
-        except AttributeError:
-            try:
-                x = x.tolist()  # convert Series and ndarray into 1-D list
-            except AttributeError:
-                pass
-        # handle `y`
-        try:
-            y = y.values.tolist()  # convert DataFrame into 2-D list
-        except AttributeError:
-            try:
-                y = y.tolist()  # convert Series and ndarray into 1-D list
-            except AttributeError:
-                pass
-        # unwrap first layer of list
-        x, y = x[0], y[0]
-
         self._buffer = six.StringIO(json.dumps({
             'version': "v1",
             'input': ModelAPI._data_to_api(x),
