@@ -152,62 +152,6 @@ class ModelAPI:
         """
         return json.loads(self.__str__())
 
-# TODO: this is temporary, may change/be removed
-class DeploymentSpec():
-    def __init__(self, model_api):
-        self._raw_api = json.loads(model_api)
-        self.model_api_version = self._raw_api["version"] if "version" in self._raw_api else "unknown"
-
-        model_packaging = self._raw_api["model_packaging"] if "model_packaging" in self._raw_api else {}
-        self.python_version = model_packaging["python_version"] if "python_version" in model_packaging else "unknown"
-        self.model_type = model_packaging["type"] if "type" in model_packaging else "unknown"
-        self.deserialization = model_packaging["deserialization"] if "deserialization" in model_packaging else "unknown"
-
-        self.input = self._raw_api["input"]
-        self.output = self._raw_api["output"]
-
-    def _validate_data(self, data, data_spec):
-        expected_api = ModelAPI._data_to_api(data)
-        return self._diff(data_spec, expected_api)
-
-    def _validate_str_input(self, data_str):
-        #TODO: this logic will have to change once blobs
-        # are enabled to decide whether or not to load str
-        data = json.loads(data_str)
-        return self._validate_data(data, self.input)
-
-    def _validate_input(self, data):
-        print("DEBUG: --> Validate Input, data is: " + str(data))
-        print("DEBUG: --> Validate Input, input spec is : " + str(self.input))
-        return self._validate_data(data, self.input)
-
-    def _validate_output(self, data):
-        return self._validate_data(data, self.output)
-
-    def _validate_str_output(self, data_str):
-        data = json.loads(data_str)
-        return self._validate_data(data, self.output)
-
-    def _diff(self, input, target):
-        if input['type'] != target['type']:
-            return False
-
-        if input['type'] == "VertaList":
-            if 'value' not in input:
-                raise KeyError('VertaList must have a value')
-
-            if 'value' not in target:
-                return False
-
-            input_list = input['value']
-            target_list = target['value']
-            if len(input_list) != len(target_list):
-                return False
-            for x in range(len(input_list)):
-                if not self._diff(input_list[x], target_list[x]):
-                    return False
-
-        return True
 
 def dump(obj, filename):
     """
