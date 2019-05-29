@@ -22,7 +22,7 @@ This requirements file lists packages for developing the Verta package.
 ### `verta/setup.py`
 This script contains metadata for building and distributing the Verta package.
 
-### `verta/upload.sh
+### `verta/upload.sh`
 This shell script builds and uploads the Verta package to PyPI.
 
 ## `workflows/`
