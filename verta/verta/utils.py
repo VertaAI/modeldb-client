@@ -66,7 +66,7 @@ class ModelAPI:
                 data = data.item()
             return ModelAPI._single_data_to_api(data, name)
         if isinstance(data, pandas.DataFrame):
-            return {'type': "VertaJson",
+            return {'type': "VertaList",
                     'name': name,
                     'value': [ModelAPI._data_to_api(data[name], str(name)) for name in data.columns]}
         return ModelAPI._single_data_to_api(data[0], name)
