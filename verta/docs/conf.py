@@ -50,6 +50,7 @@ autodoc_mock_imports = [
     'google',
     'joblib',
     'pathlib2',
+    'pandas',
     'verta._protos',
 ]
 
