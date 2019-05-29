@@ -3,5 +3,8 @@ build/
 dist/
 verta.egg-info/
 
+# unit testing
+.hypothesis
+
 # documentation
 docs/_build/
