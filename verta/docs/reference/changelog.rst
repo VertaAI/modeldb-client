@@ -1,9 +1,14 @@
 Release Notes
 =============
 
-v0.10.2 (2019-05-22)
+v0.11.0 (2019-05-29)
 --------------------
 
+Backwards Incompatibilities
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+v0.10.2 (2019-05-22)
+--------------------
 no functional changes
 
 
@@ -12,15 +17,14 @@ v0.10.1 (2019-05-22)
 
 Bug Fixes
 ^^^^^^^^^
-
 - `properly expose intermediate subpackages for compatibility with Python 3.2 and earlier <https://github.com/VertaAI/modeldb-client/commit/d3037ac5670c022c2f2aa4b1f50b49e9c19646b0>`_
 
 
 v0.10.0 (2019-05-16)
 --------------------
 
-Backwards Incompabilities
-^^^^^^^^^^^^^^^^^^^^^^^^^
+Backwards Incompatibilities
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 - `log_hyperparameters() now must take a single, whole dictionary as an argument and no longer accepts dictionary
   unpacking. <https://github.com/VertaAI/modeldb-client/pull/96>`_
 - `Getting observations from an ExperimentRun now returns tuples pairing observations with their timestamps.
