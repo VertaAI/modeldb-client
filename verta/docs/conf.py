@@ -49,9 +49,7 @@ autodoc_mock_imports = [
     'cloudpickle',
     'google',
     'joblib',
-    'numpy',
     'pathlib2',
-    'pandas',
     'verta._protos',
 ]
 

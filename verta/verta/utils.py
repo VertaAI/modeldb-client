@@ -6,8 +6,6 @@ import json
 import numbers
 import os
 import pathlib2
-import pandas
-import numpy as np
 
 
 class ModelAPI:
@@ -58,17 +56,18 @@ class ModelAPI:
 
     @staticmethod
     def _data_to_api(data, name=""):
-        # TODO: probably should use dtype instead of inferring the type?
-        if isinstance(data, pandas.Series):
-            name = data.name
-            data = data.iloc[0]
-            if hasattr(data, 'item'):
-                data = data.item()
-            return ModelAPI._single_data_to_api(data, name)
-        if isinstance(data, pandas.DataFrame):
-            return {'type': "VertaList",
-                    'name': name,
-                    'value': [ModelAPI._data_to_api(data[name], str(name)) for name in data.columns]}
+        if hasattr(data, 'iloc'):  # if pandas
+            if hasattr(data, 'columns'):  # if DataFrame
+                return {'type': "VertaList",
+                        'name': name,
+                        'value': [ModelAPI._data_to_api(data[name], str(name)) for name in data.columns]}
+            elif hasattr(data, 'from_array'):  # if Series
+                name = data.name
+                data = data.iloc[0]
+                if hasattr(data, 'item'):
+                    data = data.item()
+                # TODO: probably should use dtype instead of inferring the type?
+                return ModelAPI._single_data_to_api(data, name)
         return ModelAPI._single_data_to_api(data[0], name)
 
     @staticmethod
