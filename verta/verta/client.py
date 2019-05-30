@@ -113,19 +113,19 @@ class Client:
                             if expt_run.experiment_id == self.expt._id]
             return ExperimentRuns(self._auth, self._socket, expt_run_ids)
 
-    def set_project(self, proj_name=None, desc=None, tags=None, attrs=None, _proj_id=None):
+    def set_project(self, name=None, desc=None, tags=None, attrs=None, id=None):
         """
         Attaches a Project to this Client.
 
-        If an accessible Project with name `proj_name` does not already exist, it will be created
-        and initialized with specified metadata parameters. If such a Project does  already exist,
+        If an accessible Project with name `name` does not already exist, it will be created
+        and initialized with specified metadata parameters. If such a Project does already exist,
         it will be retrieved; specifying metadata parameters in this case will raise an exception.
 
         If an Experiment is already attached to this Client, it will be detached.
 
         Parameters
         ----------
-        proj_name : str, optional
+        name : str, optional
             Name of the Project. If no name is provided, one will be generated.
         desc : str, optional
             Description of the Project.
@@ -133,8 +133,8 @@ class Client:
             Tags of the Project.
         attrs : dict of str to {None, bool, float, int, str}, optional
             Attributes of the Project.
-        _proj_id : str
-            ID of the project. This parameter cannot be provided alongside `proj_name`, and other
+        id : str
+            ID of the project. This parameter cannot be provided alongside `name`, and other
             parameters will be ignored.
 
         Returns
@@ -144,7 +144,7 @@ class Client:
         Raises
         ------
         ValueError
-            If a Project with `proj_name` already exists, but metadata parameters are passed in.
+            If a Project with `name` already exists, but metadata parameters are passed in.
 
         """
         # if proj already in progress, reset expt
@@ -152,25 +152,25 @@ class Client:
             self.expt = None
 
         proj = Project(self._auth, self._socket,
-                       proj_name,
+                       name,
                        desc, tags, attrs,
-                       _proj_id)
+                       id)
 
         self.proj = proj
         return proj
 
-    def set_experiment(self, expt_name=None, desc=None, tags=None, attrs=None):
+    def set_experiment(self, name=None, desc=None, tags=None, attrs=None):
         """
         Attaches an Experiment under the currently active Project to this Client.
 
-        If an accessible Experiment with name `expt_name` does not already exist under the currently
+        If an accessible Experiment with name `name` does not already exist under the currently
         active Project, it will be created and initialized with specified metadata parameters. If
         such an Experiment does already exist, it will be retrieved; specifying metadata parameters
         in this case will raise an exception.
 
         Parameters
         ----------
-        expt_name : str, optional
+        name : str, optional
             Name of the Experiment. If no name is provided, one will be generated.
         desc : str, optional
             Description of the Experiment.
@@ -186,7 +186,7 @@ class Client:
         Raises
         ------
         ValueError
-            If an Experiment with `expt_name` already exists, but metadata parameters are passed in.
+            If an Experiment with `name` already exists, but metadata parameters are passed in.
         AttributeError
             If a Project is not yet in progress.
 
@@ -195,24 +195,24 @@ class Client:
             raise AttributeError("a project must first be in progress")
 
         expt = Experiment(self._auth, self._socket,
-                          self.proj._id, expt_name,
+                          self.proj._id, name,
                           desc, tags, attrs)
 
         self.expt = expt
         return expt
 
-    def set_experiment_run(self, expt_run_name=None, desc=None, tags=None, attrs=None):
+    def set_experiment_run(self, name=None, desc=None, tags=None, attrs=None):
         """
         Attaches an Experiment Run under the currently active Experiment to this Client.
 
-        If an accessible Experiment Run with name `expt_run_name` does not already exist under the
+        If an accessible Experiment Run with name `name` does not already exist under the
         currently active Experiment, it will be created and initialized with specified metadata
         parameters. If such a Experiment Run does already exist, it will be retrieved; specifying
         metadata parameters in this case will raise an exception.
 
         Parameters
         ----------
-        expt_run_name : str, optional
+        name : str, optional
             Name of the Experiment Run. If no name is provided, one will be generated.
         desc : str, optional
             Description of the Experiment Run.
@@ -228,7 +228,7 @@ class Client:
         Raises
         ------
         ValueError
-            If an Experiment Run with `expt_run_name` already exists, but metadata parameters are passed in.
+            If an Experiment Run with `name` already exists, but metadata parameters are passed in.
         AttributeError
             If an Experiment is not yet in progress.
 
@@ -237,7 +237,7 @@ class Client:
             raise AttributeError("an experiment must first be in progress")
 
         return ExperimentRun(self._auth, self._socket,
-                             self.proj._id, self.expt._id, expt_run_name,
+                             self.proj._id, self.expt._id, name,
                              desc, tags, attrs)
 
 
