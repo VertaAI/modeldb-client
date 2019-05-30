@@ -192,7 +192,7 @@ class Client:
 
         """
         if self.proj is None:
-            raise AttributeError("a project must first in progress")
+            raise AttributeError("a project must first be in progress")
 
         expt = Experiment(self._auth, self._socket,
                           self.proj._id, expt_name,
@@ -234,7 +234,7 @@ class Client:
 
         """
         if self.expt is None:
-            raise AttributeError("an experiment must first in progress")
+            raise AttributeError("an experiment must first be in progress")
 
         return ExperimentRun(self._auth, self._socket,
                              self.proj._id, self.expt._id, expt_run_name,
