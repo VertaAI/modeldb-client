@@ -2,6 +2,23 @@ Release Notes
 =============
 
 
+v0.11.2 (2019-05-30)
+--------------------
+
+Backwards Incompatibilities
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+- `The first and last arguments to Client.set_* functions have all been renamed to name and id, respectively.
+  <https://github.com/VertaAI/modeldb-client/commit/889130d6ccf224b6de085a6a473993c5d9a16765>`_
+- `The _id attribute of Project, Experiment, and ExperimentRun have been renamed to id.
+  <https://github.com/VertaAI/modeldb-client/commit/eb832fbf86e1c403a1683b8e02fb8b6a47c06d82>`_
+- `The default generated names for Project, Experiment, and ExperimentRun have been shortened.
+  <https://github.com/VertaAI/modeldb-client/commit/3e515abf4bc4b68560479039ce95550ea451e3e7>`_
+
+Bug Fixes
+^^^^^^^^^
+- `fix typos in Client.set_* error messages <https://github.com/VertaAI/modeldb-client/commit/0b8e4f99d1dbe26718a5d151f53fbfba93b19d38>`_
+
+
 v0.11.1 (2019-05-29)
 --------------------
 
