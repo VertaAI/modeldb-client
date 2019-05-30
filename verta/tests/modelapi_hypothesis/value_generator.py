@@ -1,7 +1,7 @@
 from string import printable
 
 import numpy as np
-import pandas
+import pandas as pd
 
 import hypothesis.strategies as st
 from api_generator import model_api, model_api_series, model_api_dataframe
@@ -48,7 +48,7 @@ def verta_type_to_dtype(name):
 
 def _sized_series_from_api(api, size):
     values = st.lists(value_from_api(api), size, size)
-    return values.map(lambda vals: pandas.Series(data=vals, name=api['name'], dtype=verta_type_to_dtype(api['type'])))
+    return values.map(lambda vals: pd.Series(data=vals, name=api['name'], dtype=verta_type_to_dtype(api['type'])))
 
 def series_from_api(api):
     size = st.integers(1, 100)
@@ -57,7 +57,7 @@ def series_from_api(api):
 def dataframe_from_api(api):
     size = st.integers(1, 100)
     multi_series = size.flatmap(lambda size: st.tuples(*[_sized_series_from_api(subapi, size) for subapi in api['value']]))
-    dataframe = multi_series.map(lambda s: pandas.concat(s, axis=1, keys=[v.name for v in s]))
+    dataframe = multi_series.map(lambda s: pd.concat(s, axis=1, keys=[v.name for v in s]))
     return dataframe
 
 # Converts a generator to a model api to a generator of (model api, list of samples)
