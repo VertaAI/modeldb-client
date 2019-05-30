@@ -9,10 +9,10 @@ class TestGetChildren:
 
         proj = client.set_project()
         for _ in range(3):
-            expt_ids.append(client.set_experiment()._id)
+            expt_ids.append(client.set_experiment().id)
 
         response = requests.get("http://{}/v1/experiment/getExperimentsInProject".format(client._socket),
-                                params={'project_id': proj._id}, headers=client._auth)
+                                params={'project_id': proj.id}, headers=client._auth)
         response.raise_for_status()
         assert set(expt_ids) == set(experiment['id'] for experiment in response.json()['experiments'])
 
@@ -22,13 +22,13 @@ class TestGetChildren:
         proj = client.set_project()
         expt = client.set_experiment()
         for _ in range(3):
-            run_ids.append(client.set_experiment_run()._id)
+            run_ids.append(client.set_experiment_run().id)
         expt = client.set_experiment()
         for _ in range(3):
-            run_ids.append(client.set_experiment_run()._id)
+            run_ids.append(client.set_experiment_run().id)
 
         response = requests.get("http://{}/v1/experiment-run/getExperimentRunsInProject".format(client._socket),
-                                params={'project_id': proj._id}, headers=client._auth)
+                                params={'project_id': proj.id}, headers=client._auth)
         response.raise_for_status()
         assert set(run_ids) == set(experiment_run['id'] for experiment_run in response.json()['experiment_runs'])
 
@@ -38,9 +38,9 @@ class TestGetChildren:
         proj = client.set_project()
         expt = client.set_experiment()
         for _ in range(3):
-            run_ids.append(client.set_experiment_run()._id)
+            run_ids.append(client.set_experiment_run().id)
 
         response = requests.get("http://{}/v1/experiment-run/getExperimentRunsInExperiment".format(client._socket),
-                                params={'experiment_id': expt._id}, headers=client._auth)
+                                params={'experiment_id': expt.id}, headers=client._auth)
         response.raise_for_status()
         assert set(run_ids) == set(experiment_run['id'] for experiment_run in response.json()['experiment_runs'])

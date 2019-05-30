@@ -101,7 +101,7 @@ class Client:
             return None
         else:
             Message = _ExperimentRunService.GetExperimentRunsInProject
-            msg = Message(project_id=self.proj._id)
+            msg = Message(project_id=self.proj.id)
             data = _utils.proto_to_json(msg)
             response = requests.get("{}://{}/v1/experiment-run/getExperimentRunsInProject".format(self._scheme, self._socket),
                                     params=data, headers=self._auth)
@@ -110,7 +110,7 @@ class Client:
             response_msg = _utils.json_to_proto(response.json(), Message.Response)
             expt_run_ids = [expt_run.id
                             for expt_run in response_msg.experiment_runs
-                            if expt_run.experiment_id == self.expt._id]
+                            if expt_run.experiment_id == self.expt.id]
             return ExperimentRuns(self._auth, self._socket, expt_run_ids)
 
     def set_project(self, name=None, desc=None, tags=None, attrs=None, id=None):
@@ -195,7 +195,7 @@ class Client:
             raise AttributeError("a project must first be in progress")
 
         expt = Experiment(self._auth, self._socket,
-                          self.proj._id, name,
+                          self.proj.id, name,
                           desc, tags, attrs)
 
         self.expt = expt
@@ -237,7 +237,7 @@ class Client:
             raise AttributeError("an experiment must first be in progress")
 
         return ExperimentRun(self._auth, self._socket,
-                             self.proj._id, self.expt._id, name,
+                             self.proj.id, self.expt.id, name,
                              desc, tags, attrs)
 
 
@@ -253,6 +253,8 @@ class Project:
 
     Attributes
     ----------
+    id : str
+        ID of this Project.
     name : str
         Name of this Project.
     expt_runs : :class:`ExperimentRuns`
@@ -292,7 +294,7 @@ class Project:
         self._auth = auth
         self._scheme = "http" if auth is None else "https"
         self._socket = socket
-        self._id = proj.id
+        self.id = proj.id
 
     def __repr__(self):
         return "<Project \"{}\">".format(self.name)
@@ -300,7 +302,7 @@ class Project:
     @property
     def name(self):
         Message = _ProjectService.GetProjectById
-        msg = Message(id=self._id)
+        msg = Message(id=self.id)
         data = _utils.proto_to_json(msg)
         response = requests.get("{}://{}/v1/project/getProjectById".format(self._scheme, self._socket),
                                 params=data, headers=self._auth)
@@ -313,7 +315,7 @@ class Project:
     def expt_runs(self):
         # get runs in this Project
         Message = _ExperimentRunService.GetExperimentRunsInProject
-        msg = Message(project_id=self._id)
+        msg = Message(project_id=self.id)
         data = _utils.proto_to_json(msg)
         response = requests.get("{}://{}/v1/experiment-run/getExperimentRunsInProject".format(self._scheme, self._socket),
                                 params=data, headers=self._auth)
@@ -398,6 +400,8 @@ class Experiment:
 
     Attributes
     ----------
+    id : str
+        ID of this Experiment.
     name : str
         Name of this Experiment.
     expt_runs : :class:`ExperimentRuns`
@@ -439,7 +443,7 @@ class Experiment:
         self._auth = auth
         self._scheme = "http" if auth is None else "https"
         self._socket = socket
-        self._id = expt.id
+        self.id = expt.id
 
     def __repr__(self):
         return "<Experiment \"{}\">".format(self.name)
@@ -447,7 +451,7 @@ class Experiment:
     @property
     def name(self):
         Message = _ExperimentService.GetExperimentById
-        msg = Message(id=self._id)
+        msg = Message(id=self.id)
         data = _utils.proto_to_json(msg)
         response = requests.get("{}://{}/v1/experiment/getExperimentById".format(self._scheme, self._socket),
                                 params=data, headers=self._auth)
@@ -460,7 +464,7 @@ class Experiment:
     def expt_runs(self):
         # get runs in this Experiment
         Message = _ExperimentRunService.GetExperimentRunsInExperiment
-        msg = Message(experiment_id=self._id)
+        msg = Message(experiment_id=self.id)
         data = _utils.proto_to_json(msg)
         response = requests.get("{}://{}/v1/experiment-run/getExperimentRunsInExperiment".format(self._scheme, self._socket),
                                 params=data, headers=self._auth)
@@ -853,6 +857,8 @@ class ExperimentRun:
 
     Attributes
     ----------
+    id : str
+        ID of this Experiment Run.
     name : str
         Name of this Experiment Run.
 
@@ -892,11 +898,11 @@ class ExperimentRun:
         self._auth = auth
         self._scheme = "http" if auth is None else "https"
         self._socket = socket
-        self._id = expt_run.id
+        self.id = expt_run.id
 
     def __repr__(self):
         Message = _ExperimentRunService.GetExperimentRunById
-        msg = Message(id=self._id)
+        msg = Message(id=self.id)
         data = _utils.proto_to_json(msg)
         response = requests.get("{}://{}/v1/experiment-run/getExperimentRunById".format(self._scheme, self._socket),
                                 params=data, headers=self._auth)
@@ -922,7 +928,7 @@ class ExperimentRun:
     @property
     def name(self):
         Message = _ExperimentRunService.GetExperimentRunById
-        msg = Message(id=self._id)
+        msg = Message(id=self.id)
         data = _utils.proto_to_json(msg)
         response = requests.get("{}://{}/v1/experiment-run/getExperimentRunById".format(self._scheme, self._socket),
                                 params=data, headers=self._auth)
@@ -1005,7 +1011,7 @@ class ExperimentRun:
             raise ValueError("`method` must be one of {'GET', 'PUT'}")
 
         Message = _ExperimentRunService.GetUrlForArtifact
-        msg = Message(id=self._id, key=key, method=method.upper())
+        msg = Message(id=self.id, key=key, method=method.upper())
         data = _utils.proto_to_json(msg)
         response = requests.post("{}://{}/v1/experiment-run/getUrlForArtifact".format(self._scheme, self._socket),
                                  json=data, headers=self._auth)
@@ -1040,7 +1046,7 @@ class ExperimentRun:
         artifact_msg = _CommonService.Artifact(key=key,
                                                path_only=False,
                                                artifact_type=artifact_type)
-        msg = Message(id=self._id, artifact=artifact_msg)
+        msg = Message(id=self.id, artifact=artifact_msg)
         data = _utils.proto_to_json(msg)
         response = requests.post("{}://{}/v1/experiment-run/logArtifact".format(self._scheme, self._socket),
                                  json=data, headers=self._auth)
@@ -1077,7 +1083,7 @@ class ExperimentRun:
                                                path=artifact_path,
                                                path_only=True,
                                                artifact_type=artifact_type)
-        msg = Message(id=self._id, artifact=artifact_msg)
+        msg = Message(id=self.id, artifact=artifact_msg)
         data = _utils.proto_to_json(msg)
         response = requests.post("{}://{}/v1/experiment-run/logArtifact".format(self._scheme, self._socket),
                                  json=data, headers=self._auth)
@@ -1110,7 +1116,7 @@ class ExperimentRun:
         """
         # get key-path from ModelDB
         Message = _ExperimentRunService.GetArtifacts
-        msg = Message(id=self._id, key=key)
+        msg = Message(id=self.id, key=key)
         data = _utils.proto_to_json(msg)
         response = requests.get("{}://{}/v1/experiment-run/getArtifacts".format(self._scheme, self._socket),
                                 params=data, headers=self._auth)
@@ -1146,7 +1152,7 @@ class ExperimentRun:
             raise TypeError("`tag` must be a string")
 
         Message = _ExperimentRunService.AddExperimentRunTags
-        msg = Message(id=self._id, tags=[tag])
+        msg = Message(id=self.id, tags=[tag])
         data = _utils.proto_to_json(msg)
         response = requests.post("{}://{}/v1/experiment-run/addExperimentRunTags".format(self._scheme, self._socket),
                                  json=data, headers=self._auth)
@@ -1169,7 +1175,7 @@ class ExperimentRun:
                 raise TypeError("`tags` must be an iterable of strings")
 
         Message = _ExperimentRunService.AddExperimentRunTags
-        msg = Message(id=self._id, tags=tags)
+        msg = Message(id=self.id, tags=tags)
         data = _utils.proto_to_json(msg)
         response = requests.post("{}://{}/v1/experiment-run/addExperimentRunTags".format(self._scheme, self._socket),
                                  json=data, headers=self._auth)
@@ -1186,7 +1192,7 @@ class ExperimentRun:
 
         """
         Message = _CommonService.GetTags
-        msg = Message(id=self._id)
+        msg = Message(id=self.id)
         data = _utils.proto_to_json(msg)
         response = requests.get("{}://{}/v1/experiment-run/getExperimentRunTags".format(self._scheme, self._socket),
                                 params=data, headers=self._auth)
@@ -1213,7 +1219,7 @@ class ExperimentRun:
         _utils.validate_flat_key(key)
 
         attribute = _CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value))
-        msg = _ExperimentRunService.LogAttribute(id=self._id, attribute=attribute)
+        msg = _ExperimentRunService.LogAttribute(id=self.id, attribute=attribute)
         data = _utils.proto_to_json(msg)
         response = requests.post("{}://{}/v1/experiment-run/logAttribute".format(self._scheme, self._socket),
                                  json=data, headers=self._auth)
@@ -1243,7 +1249,7 @@ class ExperimentRun:
         for key, value in six.viewitems(attributes):
             attribute_keyvals.append(_CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value)))
 
-        msg = _ExperimentRunService.LogAttributes(id=self._id, attributes=attribute_keyvals)
+        msg = _ExperimentRunService.LogAttributes(id=self.id, attributes=attribute_keyvals)
         data = _utils.proto_to_json(msg)
         response = requests.post("{}://{}/v1/experiment-run/logAttributes".format(self._scheme, self._socket),
                                     json=data, headers=self._auth)
@@ -1272,7 +1278,7 @@ class ExperimentRun:
         _utils.validate_flat_key(key)
 
         Message = _CommonService.GetAttributes
-        msg = Message(id=self._id, attribute_keys=[key])
+        msg = Message(id=self.id, attribute_keys=[key])
         data = _utils.proto_to_json(msg)
         response = requests.get("{}://{}/v1/experiment-run/getAttributes".format(self._scheme, self._socket),
                                 params=data, headers=self._auth)
@@ -1295,7 +1301,7 @@ class ExperimentRun:
 
         """
         Message = _CommonService.GetAttributes
-        msg = Message(id=self._id, get_all=True)
+        msg = Message(id=self.id, get_all=True)
         data = _utils.proto_to_json(msg)
         response = requests.get("{}://{}/v1/experiment-run/getAttributes".format(self._scheme, self._socket),
                                 params=data, headers=self._auth)
@@ -1323,7 +1329,7 @@ class ExperimentRun:
         _utils.validate_flat_key(key)
 
         metric = _CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value))
-        msg = _ExperimentRunService.LogMetric(id=self._id, metric=metric)
+        msg = _ExperimentRunService.LogMetric(id=self.id, metric=metric)
         data = _utils.proto_to_json(msg)
         response = requests.post("{}://{}/v1/experiment-run/logMetric".format(self._scheme, self._socket),
                                  json=data, headers=self._auth)
@@ -1353,7 +1359,7 @@ class ExperimentRun:
         for key, value in six.viewitems(metrics):
             metric_keyvals.append(_CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value)))
 
-        msg = _ExperimentRunService.LogMetrics(id=self._id, metrics=metric_keyvals)
+        msg = _ExperimentRunService.LogMetrics(id=self.id, metrics=metric_keyvals)
         data = _utils.proto_to_json(msg)
         response = requests.post("{}://{}/v1/experiment-run/logMetrics".format(self._scheme, self._socket),
                                     json=data, headers=self._auth)
@@ -1382,7 +1388,7 @@ class ExperimentRun:
         _utils.validate_flat_key(key)
 
         Message = _ExperimentRunService.GetMetrics
-        msg = Message(id=self._id)
+        msg = Message(id=self.id)
         data = _utils.proto_to_json(msg)
         response = requests.get("{}://{}/v1/experiment-run/getMetrics".format(self._scheme, self._socket),
                                 params=data, headers=self._auth)
@@ -1405,7 +1411,7 @@ class ExperimentRun:
 
         """
         Message = _ExperimentRunService.GetMetrics
-        msg = Message(id=self._id)
+        msg = Message(id=self.id)
         data = _utils.proto_to_json(msg)
         response = requests.get("{}://{}/v1/experiment-run/getMetrics".format(self._scheme, self._socket),
                                 params=data, headers=self._auth)
@@ -1432,7 +1438,7 @@ class ExperimentRun:
         _utils.validate_flat_key(key)
 
         hyperparameter = _CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value))
-        msg = _ExperimentRunService.LogHyperparameter(id=self._id, hyperparameter=hyperparameter)
+        msg = _ExperimentRunService.LogHyperparameter(id=self.id, hyperparameter=hyperparameter)
         data = _utils.proto_to_json(msg)
         response = requests.post("{}://{}/v1/experiment-run/logHyperparameter".format(self._scheme, self._socket),
                                  json=data, headers=self._auth)
@@ -1462,7 +1468,7 @@ class ExperimentRun:
         for key, value in six.viewitems(hyperparams):
             hyperparameter_keyvals.append(_CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value)))
 
-        msg = _ExperimentRunService.LogHyperparameters(id=self._id, hyperparameters=hyperparameter_keyvals)
+        msg = _ExperimentRunService.LogHyperparameters(id=self.id, hyperparameters=hyperparameter_keyvals)
         data = _utils.proto_to_json(msg)
         response = requests.post("{}://{}/v1/experiment-run/logHyperparameters".format(self._scheme, self._socket),
                                     json=data, headers=self._auth)
@@ -1491,7 +1497,7 @@ class ExperimentRun:
         _utils.validate_flat_key(key)
 
         Message = _ExperimentRunService.GetHyperparameters
-        msg = Message(id=self._id)
+        msg = Message(id=self.id)
         data = _utils.proto_to_json(msg)
         response = requests.get("{}://{}/v1/experiment-run/getHyperparameters".format(self._scheme, self._socket),
                                 params=data, headers=self._auth)
@@ -1514,7 +1520,7 @@ class ExperimentRun:
 
         """
         Message = _ExperimentRunService.GetHyperparameters
-        msg = Message(id=self._id)
+        msg = Message(id=self.id)
         data = _utils.proto_to_json(msg)
         response = requests.get("{}://{}/v1/experiment-run/getHyperparameters".format(self._scheme, self._socket),
                                 params=data, headers=self._auth)
@@ -1950,7 +1956,7 @@ class ExperimentRun:
 
         attribute = _CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value))
         observation = _ExperimentRunService.Observation(attribute=attribute, timestamp=timestamp)  # TODO: support Artifacts
-        msg = _ExperimentRunService.LogObservation(id=self._id, observation=observation)
+        msg = _ExperimentRunService.LogObservation(id=self.id, observation=observation)
         data = _utils.proto_to_json(msg)
         response = requests.post("{}://{}/v1/experiment-run/logObservation".format(self._scheme, self._socket),
                                  json=data, headers=self._auth)
@@ -1974,7 +1980,7 @@ class ExperimentRun:
         _utils.validate_flat_key(key)
 
         Message = _ExperimentRunService.GetObservations
-        msg = Message(id=self._id, observation_key=key)
+        msg = Message(id=self.id, observation_key=key)
         data = _utils.proto_to_json(msg)
         response = requests.get("{}://{}/v1/experiment-run/getObservations".format(self._scheme, self._socket),
                                 params=data, headers=self._auth)
@@ -1998,7 +2004,7 @@ class ExperimentRun:
 
         """
         Message = _ExperimentRunService.GetExperimentRunById
-        msg = Message(id=self._id)
+        msg = Message(id=self.id)
         data = _utils.proto_to_json(msg)
         response = requests.get("{}://{}/v1/experiment-run/getExperimentRunById".format(self._scheme, self._socket),
                                 params=data, headers=self._auth)
