@@ -326,7 +326,7 @@ class Project:
 
     @staticmethod
     def _generate_default_name():
-        return "Project {}".format(_utils.generate_default_name())
+        return "Proj {}".format(_utils.generate_default_name())
 
     @staticmethod
     def _get(auth, socket, proj_name=None, _proj_id=None):
@@ -473,7 +473,7 @@ class Experiment:
 
     @staticmethod
     def _generate_default_name():
-        return "Experiment {}".format(_utils.generate_default_name())
+        return "Expt {}".format(_utils.generate_default_name())
 
     @staticmethod
     def _get(auth, socket, proj_id=None, expt_name=None, _expt_id=None):
@@ -933,7 +933,7 @@ class ExperimentRun:
 
     @staticmethod
     def _generate_default_name():
-        return "ExperimentRun {}".format(_utils.generate_default_name())
+        return "Run {}".format(_utils.generate_default_name())
 
     @staticmethod
     def _get(auth, socket, expt_id=None, expt_run_name=None, _expt_run_id=None):
