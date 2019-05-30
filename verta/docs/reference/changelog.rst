@@ -7,7 +7,7 @@ v0.11.2 (2019-05-30)
 
 Backwards Incompatibilities
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- `The first and last arguments to Client.set_* functions have all been renamed to name and id, respectively.
+- `Arguments to Client.set_* functions have been renamed to name and id, from e.g. proj_name and _proj_id.
   <https://github.com/VertaAI/modeldb-client/commit/889130d6ccf224b6de085a6a473993c5d9a16765>`_
 - `The _id attribute of Project, Experiment, and ExperimentRun have been renamed to id.
   <https://github.com/VertaAI/modeldb-client/commit/eb832fbf86e1c403a1683b8e02fb8b6a47c06d82>`_
