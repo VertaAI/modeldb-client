@@ -2,6 +2,29 @@ Release Notes
 =============
 
 
+v0.11.3 (2019-05-31)
+--------------------
+
+New Features
+^^^^^^^^^^^^
+- `implement __version__ attribute on package
+  <https://github.com/VertaAI/modeldb-client/commit/31aee4b53aeb6652831e560b9f475fb09d7cc8b4>`_
+
+Bug Fixes
+^^^^^^^^^
+- `remove unsupported dependency on pandas and NumPy in utils module
+  <https://github.com/VertaAI/modeldb-client/commit/659ceca31cb54ca461780d7f2109df8045b3442e>`_
+
+Internal Changes
+^^^^^^^^^^^^^^^^
+- `move package version string from verta/setup.py to verta/verta/__about__.py
+  <https://github.com/VertaAI/modeldb-client/commit/31aee4b53aeb6652831e560b9f475fb09d7cc8b4>`_
+- `remove old model API tests that have been superseded by property-based tests
+  <https://github.com/VertaAI/modeldb-client/commit/4a0c7995cb7df67060daa7162146b4eaffe28137>`_
+- `add pandas as a testing dependency
+  <https://github.com/VertaAI/modeldb-client/commit/cc47d851a1eecf9277939cda2bbd12e3834b3ec3>`_
+
+
 v0.11.2 (2019-05-30)
 --------------------
 
