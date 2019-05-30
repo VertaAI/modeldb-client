@@ -16,7 +16,8 @@ Backwards Incompatibilities
 
 Bug Fixes
 ^^^^^^^^^
-- `fix typos in Client.set_* error messages <https://github.com/VertaAI/modeldb-client/commit/0b8e4f99d1dbe26718a5d151f53fbfba93b19d38>`_
+- `fix typos in Client.set_* error messages
+  <https://github.com/VertaAI/modeldb-client/commit/0b8e4f99d1dbe26718a5d151f53fbfba93b19d38>`_
 
 
 v0.11.1 (2019-05-29)
@@ -34,28 +35,40 @@ v0.11.0 (2019-05-29)
 Backwards Incompatibilities
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 - `log_model_for_deployment() now no longer requires a dataset argument, but requires a model API argument. The order
-  of parameters has changed, and dataset_csv has been renamed to dataset_df. <https://github.com/VertaAI/modeldb-client/pull/99>`_
+  of parameters has changed, and dataset_csv has been renamed to dataset_df.
+  <https://github.com/VertaAI/modeldb-client/pull/99>`_
 
 New Features
 ^^^^^^^^^^^^
-- `implement ModelAPI utility class for generating model APIs <https://github.com/VertaAI/modeldb-client/pull/102>`_
+- `implement ModelAPI utility class for generating model APIs
+  <https://github.com/VertaAI/modeldb-client/pull/102>`_
 
 Internal Changes
 ^^^^^^^^^^^^^^^^
 - `create an example notebook that downloads our beloved Census data with wget
   <https://github.com/VertaAI/modeldb-client/blob/b998b6be7209f217436b630ebd44eb74df4e37a7/workflows/examples-without-verta/notebooks/sklearn-census.ipynb>`_
-- `rename the "scikit" model type to "sklearn" <https://github.com/VertaAI/modeldb-client/pull/102>`_
-- `delete old internal model API generation utility <https://github.com/VertaAI/modeldb-client/pull/102>`_
+- `rename the "scikit" model type to "sklearn"
+  <https://github.com/VertaAI/modeldb-client/pull/102>`_
+- `delete old internal model API generation utility
+  <https://github.com/VertaAI/modeldb-client/pull/102>`_
 - `update demo utility predict function to simply dump the JSON input into the request body
   <https://github.com/VertaAI/modeldb-client/commit/094494da3c89ae16064849e1af670020cebec4f8#diff-5ecfc26883949a5768007510d498b950>`_
-- `implement internal utility to check for exact version pins in a requirements.txt <https://github.com/VertaAI/modeldb-client/pull/100>`_
-- `implement internal utility to obtain the local environment's Python version number <https://github.com/VertaAI/modeldb-client/pull/98>`_
-- `update READMEs <https://github.com/VertaAI/modeldb-client/commit/f0579f2cbdee69f411b2481ae249b87b35d07383>`_
-- `add utils module to API reference <https://github.com/VertaAI/modeldb-client/commit/f83a20396ee2a215d6a7419b5fe96ea158d91655>`_
-- `implement tests for model API generation <https://github.com/VertaAI/modeldb-client/commit/5982221b8d88ee40b400813955d123321519f1ff>`_
-- `implement property-based tests for model API generation <https://github.com/VertaAI/modeldb-client/commit/d3e2a588cc95c9fe91382dbc7fa34052e6f707d7>`_
-- `add deepdiff to testing requirements <https://github.com/VertaAI/modeldb-client/commit/4edf10b41050d77ccc044068184889579a1c4c57>`_
-- `add hypothesis to testing requirements <https://github.com/VertaAI/modeldb-client/commit/8044b6ac525e831bdff58fe21b1bdb261e920796>`_
+- `implement internal utility to check for exact version pins in a requirements.txt
+  <https://github.com/VertaAI/modeldb-client/pull/100>`_
+- `implement internal utility to obtain the local environment's Python version number
+  <https://github.com/VertaAI/modeldb-client/pull/98>`_
+- `update READMEs
+  <https://github.com/VertaAI/modeldb-client/commit/f0579f2cbdee69f411b2481ae249b87b35d07383>`_
+- `add utils module to API reference
+  <https://github.com/VertaAI/modeldb-client/commit/f83a20396ee2a215d6a7419b5fe96ea158d91655>`_
+- `implement tests for model API generation
+  <https://github.com/VertaAI/modeldb-client/commit/5982221b8d88ee40b400813955d123321519f1ff>`_
+- `implement property-based tests for model API generation
+  <https://github.com/VertaAI/modeldb-client/commit/d3e2a588cc95c9fe91382dbc7fa34052e6f707d7>`_
+- `add deepdiff to testing requirements
+  <https://github.com/VertaAI/modeldb-client/commit/4edf10b41050d77ccc044068184889579a1c4c57>`_
+- `add hypothesis to testing requirements
+  <https://github.com/VertaAI/modeldb-client/commit/8044b6ac525e831bdff58fe21b1bdb261e920796>`_
 
 
 v0.10.2 (2019-05-22)
@@ -78,40 +91,59 @@ v0.10.0 (2019-05-16)
 Backwards Incompatibilities
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 - `log_hyperparameters() now must take a single, whole dictionary as an argument and no longer accepts dictionary
-  unpacking. <https://github.com/VertaAI/modeldb-client/pull/96>`_
+  unpacking.
+  <https://github.com/VertaAI/modeldb-client/pull/96>`_
 - `Getting observations from an ExperimentRun now returns tuples pairing observations with their timestamps.
   <https://github.com/VertaAI/modeldb-client/pull/83>`_
 - `Passing a string into artifact logging functions now attempts to open a file located at the path represented by that
-  string, rather than simply logging the string itself. <https://github.com/VertaAI/modeldb-client/pull/94>`_
-- `Attempting to log an unsupported datatype now throws a TypeError instead of a ValueError. <https://github.com/VertaAI/modeldb-client/pull/90/files>`_
-- `Logging artifacts now uses cloudpickle by default, instead of pickle. <https://github.com/VertaAI/modeldb-client/pull/90/files>`_
+  string, rather than simply logging the string itself.
+  <https://github.com/VertaAI/modeldb-client/pull/94>`_
+- `Attempting to log an unsupported datatype now throws a TypeError instead of a ValueError.
+  <https://github.com/VertaAI/modeldb-client/pull/90/files>`_
+- `Logging artifacts now uses cloudpickle by default, instead of pickle.
+  <https://github.com/VertaAI/modeldb-client/pull/90/files>`_
 - `The internal logic for getting a Project by name has changed, and will be incompatible with old versions of the Verta
-  Back End. <https://github.com/VertaAI/modeldb-client/commit/595b70749b585f13a38afef6b91b4aeae633c5ae>`_
+  Back End.
+  <https://github.com/VertaAI/modeldb-client/commit/595b70749b585f13a38afef6b91b4aeae633c5ae>`_
 - `The internal logic for handling uploading custom models for deployment has changed, and will be incompatible with old
-  versions of the Verta Back End. <https://github.com/VertaAI/modeldb-client/pull/93>`_
+  versions of the Verta Back End.
+  <https://github.com/VertaAI/modeldb-client/pull/93>`_
 - `The internal logic for getting an ExperimentRun by name has changed, and may be incompatible with old versions of the
-  Verta Back End. <https://github.com/VertaAI/modeldb-client/pull/89>`_
+  Verta Back End.
+  <https://github.com/VertaAI/modeldb-client/pull/89>`_
 
 New Features
 ^^^^^^^^^^^^
-- `associate user-specified or automatically-generated timestamps with observations <https://github.com/VertaAI/modeldb-client/pull/83>`_
-- `implement methods on ExperimentRun for logging and getting tags <https://github.com/VertaAI/modeldb-client/pull/84/files>`_
+- `associate user-specified or automatically-generated timestamps with observations
+  <https://github.com/VertaAI/modeldb-client/pull/83>`_
+- `implement methods on ExperimentRun for logging and getting tags
+  <https://github.com/VertaAI/modeldb-client/pull/84/files>`_
 - `implement methods on ExperimentRun for logging multiple attributes, metrics, or hyperparameters in a single transaction
   <https://github.com/VertaAI/modeldb-client/pull/87>`_
-- `enable uploading custom model APIs for deployment <https://github.com/VertaAI/modeldb-client/pull/91>`_
-- `create functions specifically for logging artifact paths without attempting uploads <https://github.com/VertaAI/modeldb-client/pull/94>`_
+- `enable uploading custom model APIs for deployment
+  <https://github.com/VertaAI/modeldb-client/pull/91>`_
+- `create functions specifically for logging artifact paths without attempting uploads
+  <https://github.com/VertaAI/modeldb-client/pull/94>`_
 
 Bug Fixes
 ^^^^^^^^^
-- `reset stream pointer on failed deserialization attempts <https://github.com/VertaAI/modeldb-client/pull/86>`_
+- `reset stream pointer on failed deserialization attempts
+  <https://github.com/VertaAI/modeldb-client/pull/86>`_
 
 Internal Changes
 ^^^^^^^^^^^^^^^^
-- `convert pandas DataFrames into CSVs when logging for deployment for data monitoring <https://github.com/VertaAI/modeldb-client/pull/85>`_
-- `implement a secondary predict function in demo utilities that returns the raw HTML response instead of a formatted response
+- `convert pandas DataFrames into CSVs when logging for deployment for data monitoring
+  <https://github.com/VertaAI/modeldb-client/pull/85>`_
+- `implement a secondary predict function in demo utilities that returns the raw HTML response instead of a formatted
+  response
   <https://github.com/VertaAI/modeldb-client/pull/92>`_
-- `move our example notebooks from workflows/demos/ to workflows/examples/ <https://github.com/VertaAI/modeldb-client/commit/de197f6821ccbb904a4cd1e45b66b45e5c7f68a6>`_
-- `change "unknown" model type to "custom" in model API <https://github.com/VertaAI/modeldb-client/pull/93>`_
-- `add "keras" deserialization in model API <https://github.com/VertaAI/modeldb-client/pull/93>`_
-- `add cloudpickle to requirements with the locally pinned version if it was used when logging for deployment <https://github.com/VertaAI/modeldb-client/pull/95>`_
-- `implement handful of small fixes to maintain Python 2.7 compatibility <https://github.com/VertaAI/modeldb-client/pull/97>`_
+- `move our example notebooks from workflows/demos/ to workflows/examples/
+  <https://github.com/VertaAI/modeldb-client/commit/de197f6821ccbb904a4cd1e45b66b45e5c7f68a6>`_
+- `change "unknown" model type to "custom" in model API
+  <https://github.com/VertaAI/modeldb-client/pull/93>`_
+- `add "keras" deserialization in model API
+  <https://github.com/VertaAI/modeldb-client/pull/93>`_
+- `add cloudpickle to requirements with the locally pinned version if it was used when logging for deployment
+  <https://github.com/VertaAI/modeldb-client/pull/95>`_
+- `implement handful of small fixes to maintain Python 2.7 compatibility
+  <https://github.com/VertaAI/modeldb-client/pull/97>`_
