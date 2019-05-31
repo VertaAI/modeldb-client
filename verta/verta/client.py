@@ -1599,9 +1599,9 @@ class ExperimentRun:
             except pickle.UnpicklingError:
                 return six.BytesIO(dataset)
 
-    def log_model_for_deployment(self, model, model_api, requirements, dataset_df=None):
+    def log_model_for_deployment(self, model, model_api, requirements, dataset_csv=None):
         """
-        Logs a model artifact, a dataset CSV, requirements, and a model API to deploy on Verta.
+        Logs a model artifact, a model API, requirements, and a dataset CSV to deploy on Verta.
 
         Parameters
         ----------
@@ -1621,13 +1621,13 @@ class ExperimentRun:
             - If str, then it will be interpreted as a filesystem path, its contents read as bytes,
             and uploaded as an artifact.
             - If file-like, then the contents will be read as bytes and uploaded as an artifact.
-        dataset_df : pd.DataFrame or str or file-like, optional
-            Dataset DataFrame or CSV file.
-            - If a pandas DataFrame, then it will be converted into a CSV and uploaded as an artifact.
+        dataset_csv : str or file-like or pd.DataFrame, optional
+            Dataset CSV file or pandas DataFrame.
             - If str, then it will be interpreted as a filesystem path, its contents interpreted
             as a CSV, read as bytes, and uploaded as an artifact.
             - If file-like, then the contents will be interpreted as a CSV, read as bytes, and uploaded
             as an artifact.
+            - If DataFrame, then it will be converted into a CSV and uploaded as an artifact.
 
         """
         # open files
@@ -1637,8 +1637,8 @@ class ExperimentRun:
             model_api = open(model_api, 'rb')
         if isinstance(requirements, six.string_types):
             requirements = open(requirements, 'rb')
-        if isinstance(dataset_df, six.string_types):
-            dataset_df = open(dataset_df, 'rb')
+        if isinstance(dataset_csv, six.string_types):
+            dataset_csv = open(dataset_csv, 'rb')
 
         # prehandle model
         _artifact_utils.reset_stream(model)  # reset cursor to beginning in case user forgot
@@ -1680,19 +1680,19 @@ class ExperimentRun:
             # recreate stream
             requirements = six.BytesIO(six.ensure_binary('\n'.join(req_deps)))
 
-        # prehandle dataset_df
-        _artifact_utils.reset_stream(dataset_df)  # reset cursor to beginning in case user forgot
-        if hasattr(dataset_df, 'to_csv'):  # if `dataset_df` is a DataFrame
+        # prehandle dataset_csv
+        _artifact_utils.reset_stream(dataset_csv)  # reset cursor to beginning in case user forgot
+        if hasattr(dataset_csv, 'to_csv'):  # if `dataset_csv` is a DataFrame
             stringstream = six.StringIO()
-            dataset_df.to_csv(stringstream, index=False)  # write as CSV
+            dataset_csv.to_csv(stringstream, index=False)  # write as CSV
             stringstream.seek(0)
-            dataset_df = stringstream
+            dataset_csv = stringstream
 
         self._log_artifact("model.pkl", model, _CommonService.ArtifactTypeEnum.MODEL)
         self._log_artifact("model_api.json", model_api, _CommonService.ArtifactTypeEnum.BLOB)
         self._log_artifact("requirements.txt", requirements, _CommonService.ArtifactTypeEnum.BLOB)
-        if dataset_df is not None:
-            self._log_artifact("train_data", dataset_df, _CommonService.ArtifactTypeEnum.DATA)
+        if dataset_csv is not None:
+            self._log_artifact("train_data", dataset_csv, _CommonService.ArtifactTypeEnum.DATA)
 
 
     def log_model(self, key, model):
