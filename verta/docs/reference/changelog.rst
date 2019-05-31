@@ -2,6 +2,20 @@ Release Notes
 =============
 
 
+v0.11.4 (2019-05-31)
+--------------------
+
+Backwards Incompatibilities
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+- `The dataset_df parameter for log_model_for_deployment() has been renamed to dataset_csv.
+  <https://github.com/VertaAI/modeldb-client/commit/ea49d069d8825375f8988dfcebb882b7489ed1a8>`_
+
+Bug Fixes
+^^^^^^^^^
+- `reset the correct streams in log_model_for_deployment() instead of model_api over and over again
+  <https://github.com/VertaAI/modeldb-client/commit/d12fb6bbad058b1e9495af19bec1ecca86c777c4>`_
+
+
 v0.11.3 (2019-05-31)
 --------------------
 
