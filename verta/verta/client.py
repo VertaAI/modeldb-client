@@ -1030,10 +1030,10 @@ class ExperimentRun:
             Name of the artifact.
         artifact : str or file-like or object
             Artifact or some representation thereof.
-            - If str, then it will be interpreted as a filesystem path, its contents read as bytes,
-            and uploaded as an artifact.
-            - If file-like, then the contents will be read as bytes and uploaded as an artifact.
-            - Otherwise, the object will be serialized and uploaded as an artifact.
+                - If str, then it will be interpreted as a filesystem path, its contents read as bytes,
+                  and uploaded as an artifact.
+                - If file-like, then the contents will be read as bytes and uploaded as an artifact.
+                - Otherwise, the object will be serialized and uploaded as an artifact.
         artifact_type : int
             Variant of `_CommonService.ArtifactTypeEnum`.
 
@@ -1539,10 +1539,10 @@ class ExperimentRun:
             Name of the dataset.
         dataset : str or file-like or object
             Dataset or some representation thereof.
-            - If str, then it will be interpreted as a filesystem path, its contents read as bytes,
-            and uploaded as an artifact.
-            - If file-like, then the contents will be read as bytes and uploaded as an artifact.
-            - Otherwise, the object will be serialized and uploaded as an artifact.
+                - If str, then it will be interpreted as a filesystem path, its contents read as bytes,
+                  and uploaded as an artifact.
+                - If file-like, then the contents will be read as bytes and uploaded as an artifact.
+                - Otherwise, the object will be serialized and uploaded as an artifact.
 
         """
         _utils.validate_flat_key(key)
@@ -1607,20 +1607,20 @@ class ExperimentRun:
         ----------
         model : str or file-like or object
             Model or some representation thereof.
-            - If str, then it will be interpreted as a filesystem path, its contents read as bytes,
-            and uploaded as an artifact.
-            - If file-like, then the contents will be read as bytes and uploaded as an artifact.
-            - Otherwise, the object will be serialized and uploaded as an artifact.
+                - If str, then it will be interpreted as a filesystem path, its contents read as bytes,
+                  and uploaded as an artifact.
+                - If file-like, then the contents will be read as bytes and uploaded as an artifact.
+                - Otherwise, the object will be serialized and uploaded as an artifact.
         model_api : str or file-like
             Model API, specifying model deployment and predictions.
-            - If str, then it will be interpreted as a filesystem path, its contents read as bytes,
-            and uploaded as an artifact.
-            - If file-like, then the contents will be read as bytes and uploaded as an artifact.
+                - If str, then it will be interpreted as a filesystem path, its contents read as bytes,
+                  and uploaded as an artifact.
+                - If file-like, then the contents will be read as bytes and uploaded as an artifact.
         requirements : str or file-like
             pip requirements file specifying packages necessary to deploy the model.
-            - If str, then it will be interpreted as a filesystem path, its contents read as bytes,
-            and uploaded as an artifact.
-            - If file-like, then the contents will be read as bytes and uploaded as an artifact.
+                - If str, then it will be interpreted as a filesystem path, its contents read as bytes,
+                  and uploaded as an artifact.
+                - If file-like, then the contents will be read as bytes and uploaded as an artifact.
         train_features : pd.DataFrame, optional
             pandas DataFrame representing features of the training data. If provided, `train_targets`
             must also be provided.
@@ -1714,10 +1714,10 @@ class ExperimentRun:
             Name of the model.
         model : str or file-like or object
             Model or some representation thereof.
-            - If str, then it will be interpreted as a filesystem path, its contents read as bytes,
-            and uploaded as an artifact.
-            - If file-like, then the contents will be read as bytes and uploaded as an artifact.
-            - Otherwise, the object will be serialized and uploaded as an artifact.
+                - If str, then it will be interpreted as a filesystem path, its contents read as bytes,
+                  and uploaded as an artifact.
+                - If file-like, then the contents will be read as bytes and uploaded as an artifact.
+                - Otherwise, the object will be serialized and uploaded as an artifact.
 
         """
         _utils.validate_flat_key(key)
@@ -1782,13 +1782,13 @@ class ExperimentRun:
             Name of the image.
         image : one of {str, file-like, pyplot, matplotlib Figure, PIL Image, object}
             Image or some representation thereof.
-            - If str, then it will be interpreted as a filesystem path, its contents read as bytes,
-            and uploaded as an artifact.
-            - If file-like, then the contents will be read as bytes and uploaded as an artifact.
-            - If matplotlib pyplot, then the image will be serialized and uploaded as an artifact.
-            - If matplotlib Figure, then the image will be serialized and uploaded as an artifact.
-            - If PIL Image, then the image will be serialized and uploaded as an artifact.
-            - Otherwise, the object will be serialized and uploaded as an artifact.
+                - If str, then it will be interpreted as a filesystem path, its contents read as bytes,
+                  and uploaded as an artifact.
+                - If file-like, then the contents will be read as bytes and uploaded as an artifact.
+                - If matplotlib pyplot, then the image will be serialized and uploaded as an artifact.
+                - If matplotlib Figure, then the image will be serialized and uploaded as an artifact.
+                - If PIL Image, then the image will be serialized and uploaded as an artifact.
+                - Otherwise, the object will be serialized and uploaded as an artifact.
 
         """
         _utils.validate_flat_key(key)
@@ -1873,10 +1873,10 @@ class ExperimentRun:
             Name of the artifact.
         artifact : str or file-like or object
             Artifact or some representation thereof.
-            - If str, then it will be interpreted as a filesystem path, its contents read as bytes,
-            and uploaded as an artifact.
-            - If file-like, then the contents will be read as bytes and uploaded as an artifact.
-            - Otherwise, the object will be serialized and uploaded as an artifact.
+                - If str, then it will be interpreted as a filesystem path, its contents read as bytes,
+                  and uploaded as an artifact.
+                - If file-like, then the contents will be read as bytes and uploaded as an artifact.
+                - Otherwise, the object will be serialized and uploaded as an artifact.
 
         """
         _utils.validate_flat_key(key)
