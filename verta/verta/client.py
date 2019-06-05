@@ -1599,7 +1599,7 @@ class ExperimentRun:
             except pickle.UnpicklingError:
                 return six.BytesIO(dataset)
 
-    def log_model_for_deployment(self, model, model_api, requirements, dataset_csv=None):
+    def log_model_for_deployment(self, model, model_api, requirements, train_features=None, train_targets=None):
         """
         Logs a model artifact, a model API, requirements, and a dataset CSV to deploy on Verta.
 
@@ -1621,15 +1621,24 @@ class ExperimentRun:
             - If str, then it will be interpreted as a filesystem path, its contents read as bytes,
             and uploaded as an artifact.
             - If file-like, then the contents will be read as bytes and uploaded as an artifact.
-        dataset_csv : str or file-like or pd.DataFrame, optional
-            Dataset CSV file or pandas DataFrame.
-            - If str, then it will be interpreted as a filesystem path, its contents interpreted
-            as a CSV, read as bytes, and uploaded as an artifact.
-            - If file-like, then the contents will be interpreted as a CSV, read as bytes, and uploaded
-            as an artifact.
-            - If DataFrame, then it will be converted into a CSV and uploaded as an artifact.
+        train_features : pd.DataFrame, optional
+            pandas DataFrame representing features of the training data. If provided, `train_targets`
+            must also be provided.
+        train_targets : pd.DataFrame, optional
+            pandas DataFrame representing targets of the training data. If provided, `train_features`
+            must also be provided.
+
+        Warnings
+        --------
+        Due to the way deployment currently works, `train_features` and `train_targets` will be joined
+        together and then converted into a CSV. Retrieving the dataset through the Client will return
+        a file-like bytestream of this CSV that can be passed directly into `pd.read_csv()
+        <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html>`_.
 
         """
+        if sum(arg is None for arg in (train_features, train_targets)) == 1:
+            raise ValueError("`train_features` and `train_targets` must be provided together")
+
         # open files
         if isinstance(model, six.string_types):
             model = open(model, 'rb')
@@ -1637,8 +1646,6 @@ class ExperimentRun:
             model_api = open(model_api, 'rb')
         if isinstance(requirements, six.string_types):
             requirements = open(requirements, 'rb')
-        if isinstance(dataset_csv, six.string_types):
-            dataset_csv = open(dataset_csv, 'rb')
 
         # prehandle model
         _artifact_utils.reset_stream(model)  # reset cursor to beginning in case user forgot
@@ -1680,19 +1687,21 @@ class ExperimentRun:
             # recreate stream
             requirements = six.BytesIO(six.ensure_binary('\n'.join(req_deps)))
 
-        # prehandle dataset_csv
-        _artifact_utils.reset_stream(dataset_csv)  # reset cursor to beginning in case user forgot
-        if hasattr(dataset_csv, 'to_csv'):  # if `dataset_csv` is a DataFrame
+        # prehandle train_features and train_targets
+        if train_features is not None and train_targets is not None:
             stringstream = six.StringIO()
-            dataset_csv.to_csv(stringstream, index=False)  # write as CSV
+            train_df = train_features.join(train_targets)
+            train_df.to_csv(stringstream, index=False)  # write as CSV
             stringstream.seek(0)
-            dataset_csv = stringstream
+            train_data = stringstream
+        else:
+            train_data = None
 
         self._log_artifact("model.pkl", model, _CommonService.ArtifactTypeEnum.MODEL)
         self._log_artifact("model_api.json", model_api, _CommonService.ArtifactTypeEnum.BLOB)
         self._log_artifact("requirements.txt", requirements, _CommonService.ArtifactTypeEnum.BLOB)
-        if dataset_csv is not None:
-            self._log_artifact("train_data", dataset_csv, _CommonService.ArtifactTypeEnum.DATA)
+        if train_data is not None:
+            self._log_artifact("train_data", train_data, _CommonService.ArtifactTypeEnum.DATA)
 
 
     def log_model(self, key, model):
