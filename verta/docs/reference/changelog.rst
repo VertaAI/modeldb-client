@@ -2,6 +2,26 @@ Release Notes
 =============
 
 
+v0.11.5 (2019-06-04)
+--------------------
+
+Backwards Incompatibilities
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+- `The dataset_csv parameter for log_model_for_deployment() has been replaced with two parameters for feature and target
+  DataFrames.
+  <https://github.com/VertaAI/modeldb-client/commit/4d113552916d3999e220fd0e3964658487df6925>`_
+
+Bug Fixes
+^^^^^^^^^
+- `properly render lists in docstrings
+  <https://github.com/VertaAI/modeldb-client/commit/4f5c6c2b0fe7b58c1c8c039d589505a050ad09c2>`_
+
+Internal Changes
+^^^^^^^^^^^^^^^^
+- `have the upload script clean out build directories after uploading
+  <https://github.com/VertaAI/modeldb-client/commit/9d78662c53e6d0ad1e76ed2708e8ac0b8d0de2bc>`_
+
+
 v0.11.4 (2019-05-31)
 --------------------
 
