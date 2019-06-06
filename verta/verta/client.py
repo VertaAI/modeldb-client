@@ -912,6 +912,7 @@ class ExperimentRun:
         run_msg = response_msg.experiment_run
         return '\n'.join((
             "name: {}".format(run_msg.name),
+            "url: {}://{}/project/{}/exp-runs/{}".format(self._scheme, self._socket, run_msg.project_id, self.id),
             "description: {}".format(run_msg.description),
             "tags: {}".format(run_msg.tags),
             "attributes: {}".format(_utils.unravel_key_values(run_msg.attributes)),
