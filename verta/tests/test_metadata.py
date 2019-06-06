@@ -113,15 +113,15 @@ class TestAttributes:
 
         assert experiment_run.get_attributes() == self.attributes
 
-    # def test_conflict(self, experiment_run):
-    #     for key, val in six.viewitems(self.attributes):
-    #         experiment_run.log_attribute(key, val)
-    #         with pytest.raises(ValueError):
-    #             experiment_run.log_attribute(key, val)
+    def test_conflict(self, experiment_run):
+        for key, val in six.viewitems(self.attributes):
+            experiment_run.log_attribute(key, val)
+            with pytest.raises(ValueError):
+                experiment_run.log_attribute(key, val)
 
-    #     for key, val in reversed(list(six.viewitems(self.attributes))):
-    #         with pytest.raises(ValueError):
-    #             experiment_run.log_attribute(key, val)
+        for key, val in reversed(list(six.viewitems(self.attributes))):
+            with pytest.raises(ValueError):
+                experiment_run.log_attribute(key, val)
 
     def test_atomic(self, experiment_run):
         """Test if batch completely fails even if only a single key conflicts."""
