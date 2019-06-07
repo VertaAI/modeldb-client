@@ -1669,21 +1669,15 @@ class ExperimentRun:
         _artifact_utils.reset_stream(requirements)  # reset cursor to beginning in case user forgot
         _artifact_utils.validate_requirements_txt(requirements)
         if method == "cloudpickle":  # if cloudpickle used, add to requirements
-            # remove cloudpickle from requirements if present
+            cloudpickle_dep = "cloudpickle=={}".format(_artifact_utils.cloudpickle.__version__)
             req_deps = six.ensure_str(requirements.read()).splitlines()
             _artifact_utils.reset_stream(requirements)  # reset cursor to beginning as a courtesy
             for i, req_dep in enumerate(req_deps):
-                if req_dep.startswith("cloudpickle"):
-                    del req_deps[i]
+                if req_dep.startswith("cloudpickle"):  # if present, replace
+                    req_deps[i] = cloudpickle_dep
                     break
-
-            # grab cloudpickle version from environment
-            for env_dep in _utils.get_env_dependencies():
-                if env_dep.startswith("cloudpickle"):
-                    cloudpickle_dep = env_dep
-
-            # add cloudpickle to requirements
-            req_deps.append(cloudpickle_dep)
+            else:  # if not present, add
+                req_deps.append(cloudpickle_dep)
 
             # recreate stream
             requirements = six.BytesIO(six.ensure_binary('\n'.join(req_deps)))
