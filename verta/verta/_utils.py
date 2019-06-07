@@ -113,7 +113,8 @@ def python_to_val_proto(val, allow_collection=False):
     val : one of {None, bool, float, int, str, list, dict}
         Python variable.
     allow_collection : bool, default False
-        Whether to allow ``list``s and ``dict``s as `val`.
+        Whether to allow ``list``s and ``dict``s as `val`. This flag exists because some callers
+        ought to not support logging collections, so this function will perform the typecheck on `val`.
 
     Returns
     -------
