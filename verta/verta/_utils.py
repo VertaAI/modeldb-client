@@ -382,14 +382,15 @@ def get_python_version():
     return '.'.join(map(str, sys.version_info[:3]))
 
 
-def get_env_dependencies():
-    """
-    Returns a list of packages present in the current Python environment.
+# TODO: support pip3 and conda
+# def get_env_dependencies():
+#     """
+#     Returns a list of packages present in the current Python environment.
 
-    Returns
-    -------
-    dependencies : list of str
-        Names of packages and their pinned version numbers in the current Python environment.
+#     Returns
+#     -------
+#     dependencies : list of str
+#         Names of packages and their pinned version numbers in the current Python environment.
 
-    """
-    return six.ensure_str(subprocess.check_output(["pip", "freeze"])).splitlines()
+#     """
+#     return six.ensure_str(subprocess.check_output(["pip", "freeze"])).splitlines()
