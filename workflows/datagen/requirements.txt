@@ -1,7 +1,0 @@
-numpy
-protobuf
-sklearn
-requests
-tensorflow
-
-verta==0.8a3
