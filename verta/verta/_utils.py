@@ -12,7 +12,7 @@ import requests
 from requests.adapters import HTTPAdapter
 
 from google.protobuf import json_format
-from google.protobuf.struct_pb2 import Value, NULL_VALUE
+from google.protobuf.struct_pb2 import Value, ListValue, Struct, NULL_VALUE
 
 from ._protos.public.modeldb import CommonService_pb2 as _CommonService
 
@@ -104,14 +104,16 @@ def json_to_proto(response_json, response_cls):
                              ignore_unknown_fields=True)
 
 
-def python_to_val_proto(val):
+def python_to_val_proto(val, allow_collection=False):
     """
     Converts a Python variable into a `protobuf` `Value` `Message` object.
 
     Parameters
     ----------
-    val : one of {None, bool, float, int, str}
+    val : one of {None, bool, float, int, str, list, dict}
         Python variable.
+    allow_collection : bool, default False
+        Whether to allow ``list``s and ``dict``s as `val`.
 
     Returns
     -------
@@ -127,6 +129,18 @@ def python_to_val_proto(val):
         return Value(number_value=val)
     elif isinstance(val, six.string_types):
         return Value(string_value=val)
+    elif isinstance(val, (list, dict)):
+        if allow_collection:
+            if isinstance(val, list):
+                list_value = ListValue()
+                list_value.extend(val)
+                return Value(list_value=list_value)
+            else:  # isinstance(val, dict)
+                struct_value = Struct()
+                struct_value.update(val)
+                return Value(struct_value=struct_value)
+        else:
+            raise TypeError("unsupported type {}; consider using log_attribute() instead".format(type(val)))
     else:
         raise TypeError("unsupported type {}; consider using log_artifact() instead".format(type(val)))
 
@@ -146,20 +160,7 @@ def val_proto_to_python(msg):
         Python variable represented by `msg`.
 
     """
-    if msg.HasField("null_value"):
-        return None
-    if msg.HasField("bool_value"):
-        return msg.bool_value
-    if msg.HasField("number_value"):
-        number_value = msg.number_value
-        if number_value.is_integer():
-            return int(number_value)
-        else:
-            return number_value
-    if msg.HasField("string_value"):
-        return msg.string_value
-    else:
-        raise NotImplementedError("retrieved value type is not supported")
+    return proto_to_json(msg)
 
 
 def unravel_key_values(rpt_key_value_msg):

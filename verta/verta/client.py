@@ -1293,13 +1293,13 @@ class ExperimentRun:
         ----------
         key : str
             Name of the attribute.
-        value : one of {None, bool, float, int, str}
+        value : one of {None, bool, float, int, str, list, dict}
             Value of the attribute.
 
         """
         _utils.validate_flat_key(key)
 
-        attribute = _CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value))
+        attribute = _CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value, allow_collection=True))
         msg = _ExperimentRunService.LogAttribute(id=self.id, attribute=attribute)
         data = _utils.proto_to_json(msg)
         response = _utils.make_request("POST",
@@ -1319,7 +1319,7 @@ class ExperimentRun:
 
         Parameters
         ----------
-        attributes : dict of str to {None, bool, float, int, str}
+        attributes : dict of str to {None, bool, float, int, str, list, dict}
             Attributes.
 
         """
@@ -1330,7 +1330,7 @@ class ExperimentRun:
         # build KeyValues
         attribute_keyvals = []
         for key, value in six.viewitems(attributes):
-            attribute_keyvals.append(_CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value)))
+            attribute_keyvals.append(_CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value, allow_collection=True)))
 
         msg = _ExperimentRunService.LogAttributes(id=self.id, attributes=attribute_keyvals)
         data = _utils.proto_to_json(msg)
