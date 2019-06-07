@@ -8,14 +8,12 @@ import verta._utils
 from hypothesis import strategies as st
 
 
-def gen_str(length=8):
-    return ''.join([chr(random.randrange(97, 123))
-                    for _
-                    in range(length)])
+def gen_none():
+    return None
 
 
-def gen_int(start=10, stop=None):
-    return random.randrange(start, stop)
+def gen_bool():
+    return random.random() > .5
 
 
 def gen_float(start=1, stop=None):
@@ -23,6 +21,31 @@ def gen_float(start=1, stop=None):
         return random.random()*start
     else:
         return random.uniform(start, stop)
+
+
+def gen_int(start=10, stop=None):
+    return random.randrange(start, stop)
+
+
+def gen_str(length=8):
+    return ''.join([chr(random.randrange(97, 123))
+                    for _
+                    in range(length)])
+
+
+def gen_list(length=8):
+    """Generates a list with mixed-type elements."""
+    gen_el = lambda fns=(gen_none, gen_bool, gen_float, gen_int, gen_str): random.choice(fns)()
+    return [gen_el() for _ in range(length)]
+
+
+def gen_dict(length=8):
+    """Generates a single-level dict with string keys and mixed-type values."""
+    gen_val = lambda fns=(gen_none, gen_bool, gen_float, gen_int, gen_str): random.choice(fns)()
+    res = {}
+    while len(res) < length:
+        res[gen_str()] = gen_val()
+    return res
 
 
 @st.composite
