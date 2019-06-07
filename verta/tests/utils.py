@@ -1,6 +1,11 @@
 import random
+from string import printable
 
 import requests
+
+import verta._utils
+
+from hypothesis import strategies as st
 
 
 def gen_str(length=8):
@@ -18,6 +23,40 @@ def gen_float(start=1, stop=None):
         return random.random()*start
     else:
         return random.uniform(start, stop)
+
+
+@st.composite
+def st_scalars(draw):
+    return draw(st.none()
+              | st.booleans()
+              | st.integers()
+              | st.floats(allow_nan=False, allow_infinity=False)
+              | st.text(printable))
+
+
+@st.composite
+def st_json(draw, max_size=6):
+    return draw(st.recursive(st_scalars(),
+                             lambda children: st.lists(children,
+                                                       min_size=1,
+                                                       max_size=max_size)
+                                            | st.dictionaries(st.text(printable),
+                                                              children,
+                                                              min_size=1,
+                                                              max_size=max_size)))
+
+
+@st.composite
+def st_keys(draw):
+    return draw(st.text(sorted(verta._utils._VALID_FLAT_KEY_CHARS), min_size=1))
+
+
+@st.composite
+def st_key_values(draw, min_size=1, max_size=12, scalars_only=False):
+    return draw(st.dictionaries(st_keys(),
+                                st_scalars() if scalars_only else st_json(),
+                                min_size=min_size,
+                                max_size=max_size))
 
 
 def delete_project(id_, client):
