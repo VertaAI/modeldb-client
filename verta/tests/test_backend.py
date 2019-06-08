@@ -37,5 +37,5 @@ class TestLoad:
     def test_load(self, client):
         client.set_project()
         client.set_experiment()
-        with Pool(12) as pool:
-            pool.map(self.run_fake_experiment, [client]*72)
+        with Pool(36) as pool:
+            pool.map(self.run_fake_experiment, [client]*180)
