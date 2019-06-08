@@ -1669,21 +1669,20 @@ class ExperimentRun:
         _artifact_utils.reset_stream(requirements)  # reset cursor to beginning in case user forgot
         _artifact_utils.validate_requirements_txt(requirements)
         if method == "cloudpickle":  # if cloudpickle used, add to requirements
-            # remove cloudpickle from requirements if present
+            cloudpickle_dep = "cloudpickle=={}".format(_artifact_utils.cloudpickle.__version__)
             req_deps = six.ensure_str(requirements.read()).splitlines()
             _artifact_utils.reset_stream(requirements)  # reset cursor to beginning as a courtesy
-            for i, req_dep in enumerate(req_deps):
-                if req_dep.startswith("cloudpickle"):
-                    del req_deps[i]
-                    break
-
-            # grab cloudpickle version from environment
-            for env_dep in _utils.get_env_dependencies():
-                if env_dep.startswith("cloudpickle"):
-                    cloudpickle_dep = env_dep
-
-            # add cloudpickle to requirements
-            req_deps.append(cloudpickle_dep)
+            for req_dep in req_deps:
+                if req_dep.startswith("cloudpickle"):  # if present, check version
+                    our_ver = cloudpickle_dep.lstrip("cloudpickle==")
+                    their_ver = req_dep.lstrip("cloudpickle==")
+                    if our_ver != their_ver:  # versions conflict, so raise exception
+                        raise ValueError("Client is running with cloudpickle v{}, but the provided requirements specify v{}; "
+                                         "these must match".format(our_ver, their_ver))
+                    else:  # versions match, so proceed
+                        break
+            else:  # if not present, add
+                req_deps.append(cloudpickle_dep)
 
             # recreate stream
             requirements = six.BytesIO(six.ensure_binary('\n'.join(req_deps)))
