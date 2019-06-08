@@ -2,6 +2,33 @@ Release Notes
 =============
 
 
+v0.11.6 (2019-06-07)
+--------------------
+
+Backwards Incompatibilities
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+- `Providing a cloudpickle version in the requirements for deployment that doesn't match the version used by the Client
+  now raises an error instead of overwriting the line in the requirements.
+  <https://github.com/VertaAI/modeldb-client/commit/871bef8dc92a01e6516ee7d13b5b3035e9bbd5bc>`_
+
+New Features
+^^^^^^^^^^^^
+- `add ExperimentRun's Verta WebApp URL to its __repr__()
+  <https://github.com/VertaAI/modeldb-client/pull/108>`_
+
+Bug Fixes
+^^^^^^^^^
+- `use cloudpickle.__version__ instead of relying on pip
+  <https://github.com/VertaAI/modeldb-client/commit/82c0f8200a62caffcf825e4b399ccbce3bfdac2c>`_
+
+Internal Changes
+^^^^^^^^^^^^^^^^
+- `remove internal utility get_env_dependencies()
+  <https://github.com/VertaAI/modeldb-client/commit/ce333bc7b1cf2587e03e668987ca1066062b2cd5>`_
+- `update notebooks
+  <https://github.com/VertaAI/modeldb-client/commit/0003f31298910d301e586ddd77328263e9830580>`_
+
+
 v0.11.5 (2019-06-04)
 --------------------
 
