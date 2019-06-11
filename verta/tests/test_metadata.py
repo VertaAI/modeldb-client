@@ -82,6 +82,20 @@ class TestHyperparameters:
 
         assert experiment_run.get_hyperparameters() == self.hyperparameters
 
+    def test_log_collection(self, experiment_run):
+        with pytest.raises(TypeError):  # single fn, list
+            experiment_run.log_hyperparameter(utils.gen_str(), utils.gen_list())
+
+        with pytest.raises(TypeError):  # batch fn, list
+            experiment_run.log_hyperparameters({utils.gen_str(): utils.gen_list()})
+
+        with pytest.raises(TypeError):  # single fn, dict
+            experiment_run.log_hyperparameter(utils.gen_str(), utils.gen_dict())
+
+        with pytest.raises(TypeError):  # batch fn, dict
+            experiment_run.log_hyperparameters({utils.gen_str(): utils.gen_dict()})
+
+
 
 class TestAttributes:
     attributes = {
@@ -135,6 +149,27 @@ class TestAttributes:
                 })
 
         assert experiment_run.get_attributes() == self.attributes
+
+    def test_log_collection(self, experiment_run):
+        # single fn, list
+        key, value = utils.gen_str(), utils.gen_list()
+        experiment_run.log_attribute(key, value)
+        assert experiment_run.get_attribute(key) == value
+
+        # batch fn, list
+        key, value = utils.gen_str(), utils.gen_list()
+        experiment_run.log_attributes({key: value})
+        assert experiment_run.get_attribute(key) == value
+
+        # single fn, dict
+        key, value = utils.gen_str(), utils.gen_dict()
+        experiment_run.log_attribute(key, value)
+        assert experiment_run.get_attribute(key) == value
+
+        # batch fn, dict
+        key, value = utils.gen_str(), utils.gen_dict()
+        experiment_run.log_attributes({key: value})
+        assert experiment_run.get_attribute(key) == value
 
 
 class TestMetrics:
@@ -190,6 +225,19 @@ class TestMetrics:
 
         assert experiment_run.get_metrics() == self.metrics
 
+    def test_log_collection(self, experiment_run):
+        with pytest.raises(TypeError):  # single fn, list
+            experiment_run.log_metric(utils.gen_str(), utils.gen_list())
+
+        with pytest.raises(TypeError):  # batch fn, list
+            experiment_run.log_metrics({utils.gen_str(): utils.gen_list()})
+
+        with pytest.raises(TypeError):  # single fn, dict
+            experiment_run.log_metric(utils.gen_str(), utils.gen_dict())
+
+        with pytest.raises(TypeError):  # batch fn, dict
+            experiment_run.log_metrics({utils.gen_str(): utils.gen_dict()})
+
 
 class TestObservations:
     observations = {
@@ -211,3 +259,10 @@ class TestObservations:
 
         assert {key: [obs_val for obs_val, _ in obs_seq]
                 for key, obs_seq in experiment_run.get_observations().items()} == self.observations
+
+    def test_log_collection(self, experiment_run):
+        with pytest.raises(TypeError):  # single fn, list
+            experiment_run.log_observation(utils.gen_str(), utils.gen_list())
+
+        with pytest.raises(TypeError):  # single fn, dict
+            experiment_run.log_observation(utils.gen_str(), utils.gen_dict())
