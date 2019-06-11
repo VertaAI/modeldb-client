@@ -9,6 +9,7 @@ import warnings
 
 import PIL
 import requests
+from urllib3.util.retry import Retry
 
 from ._protos.public.modeldb import CommonService_pb2 as _CommonService
 from ._protos.public.modeldb import ProjectService_pb2 as _ProjectService
@@ -38,6 +39,9 @@ class Client:
     dev_key : str, optional
         Authentication credentials for managed service. If this does not sound familiar, then there
         is no need to set it.
+    max_retries : int, default 5
+        Maximum number of times to retry a request on a connection failure. This only attempts retries
+        on HTTP codes {403, 503, 504} which commonly occur during back end connection lapses.
 
     Attributes
     ----------
@@ -51,7 +55,7 @@ class Client:
     """
     _GRPC_PREFIX = "Grpc-Metadata-"
 
-    def __init__(self, host, port=None, email=None, dev_key=None):
+    def __init__(self, host, port=None, email=None, dev_key=None, max_retries=5):
         if email is None and 'VERTA_EMAIL' in os.environ:
             email = os.environ['VERTA_EMAIL']
             print("set email from environment")
@@ -79,6 +83,15 @@ class Client:
             # TODO(conrado): support subpaths? (e.g. example.com/backend)
             host = host.netloc
 
+        # define connection retry configuration
+        retry = Retry(total=max_retries,
+                      backoff_factor=1,  # each retry waits (2**retry_num) seconds
+                      method_whitelist=False,  # retry on all HTTP methods
+                      status_forcelist=(403, 503, 504),  # only retry on these status codes
+                      raise_on_redirect=False,  # return Response instead of raising after max retries
+                      raise_on_status=False)  # return Response instead of raising after max retries
+        # TODO: retry on 404s, but only if we're sure it's not legitimate e.g. from a GET
+
         # verify connection
         socket = host if port is None else "{}:{}".format(host, port)
         try:
@@ -91,9 +104,18 @@ class Client:
         self._auth = auth
         self._scheme = scheme
         self._socket = socket
+        self._retry = retry
 
         self.proj = None
         self.expt = None
+
+    @property
+    def max_retries(self):
+        return self._retry.total
+
+    @max_retries.setter
+    def max_retries(self, value):
+        self._retry.total = value
 
     @property
     def expt_runs(self):
@@ -103,15 +125,17 @@ class Client:
             Message = _ExperimentRunService.GetExperimentRunsInProject
             msg = Message(project_id=self.proj.id)
             data = _utils.proto_to_json(msg)
-            response = requests.get("{}://{}/v1/experiment-run/getExperimentRunsInProject".format(self._scheme, self._socket),
-                                    params=data, headers=self._auth)
+            response = _utils.make_request("GET",
+                                           "{}://{}/v1/experiment-run/getExperimentRunsInProject".format(self._scheme, self._socket),
+                                           self._auth, self._retry,
+                                           params=data)
             response.raise_for_status()
 
             response_msg = _utils.json_to_proto(response.json(), Message.Response)
             expt_run_ids = [expt_run.id
                             for expt_run in response_msg.experiment_runs
                             if expt_run.experiment_id == self.expt.id]
-            return ExperimentRuns(self._auth, self._socket, expt_run_ids)
+            return ExperimentRuns(self._auth, self._socket, self._retry, expt_run_ids)
 
     def set_project(self, name=None, desc=None, tags=None, attrs=None, id=None):
         """
@@ -151,7 +175,7 @@ class Client:
         if self.proj is not None:
             self.expt = None
 
-        proj = Project(self._auth, self._socket,
+        proj = Project(self._auth, self._socket, self._retry,
                        name,
                        desc, tags, attrs,
                        id)
@@ -194,7 +218,7 @@ class Client:
         if self.proj is None:
             raise AttributeError("a project must first be in progress")
 
-        expt = Experiment(self._auth, self._socket,
+        expt = Experiment(self._auth, self._socket, self._retry,
                           self.proj.id, name,
                           desc, tags, attrs)
 
@@ -236,7 +260,7 @@ class Client:
         if self.expt is None:
             raise AttributeError("an experiment must first be in progress")
 
-        return ExperimentRun(self._auth, self._socket,
+        return ExperimentRun(self._auth, self._socket, self._retry,
                              self.proj.id, self.expt.id, name,
                              desc, tags, attrs)
 
@@ -261,7 +285,7 @@ class Project:
         Experiment Runs under this Project.
 
     """
-    def __init__(self, auth, socket,
+    def __init__(self, auth, socket, retry,
                  proj_name=None,
                  desc=None, tags=None, attrs=None,
                  _proj_id=None):
@@ -269,7 +293,7 @@ class Project:
             raise ValueError("cannot specify both `proj_name` and `_proj_id`")
 
         if _proj_id is not None:
-            proj = Project._get(auth, socket, _proj_id=_proj_id)
+            proj = Project._get(auth, socket, retry, _proj_id=_proj_id)
             if proj is not None:
                 print("set existing Project: {}".format(proj.name))
             else:
@@ -278,13 +302,13 @@ class Project:
             if proj_name is None:
                 proj_name = Project._generate_default_name()
             try:
-                proj = Project._create(auth, socket, proj_name, desc, tags, attrs)
+                proj = Project._create(auth, socket, retry, proj_name, desc, tags, attrs)
             except requests.HTTPError as e:
                 if e.response.status_code == 409:  # already exists
                     if any(param is not None for param in (desc, tags, attrs)):
                         warnings.warn("Project with name {} already exists;"
                                       " cannot initialize `desc`, `tags`, or `attrs`".format(proj_name))
-                    proj = Project._get(auth, socket, proj_name)
+                    proj = Project._get(auth, socket, retry, proj_name)
                     print("set existing Project: {}".format(proj.name))
                 else:
                     raise e
@@ -294,6 +318,7 @@ class Project:
         self._auth = auth
         self._scheme = "http" if auth is None else "https"
         self._socket = socket
+        self._retry = retry
         self.id = proj.id
 
     def __repr__(self):
@@ -304,8 +329,10 @@ class Project:
         Message = _ProjectService.GetProjectById
         msg = Message(id=self.id)
         data = _utils.proto_to_json(msg)
-        response = requests.get("{}://{}/v1/project/getProjectById".format(self._scheme, self._socket),
-                                params=data, headers=self._auth)
+        response = _utils.make_request("GET",
+                                       "{}://{}/v1/project/getProjectById".format(self._scheme, self._socket),
+                                       self._auth, self._retry,
+                                       params=data)
         response.raise_for_status()
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
@@ -317,29 +344,33 @@ class Project:
         Message = _ExperimentRunService.GetExperimentRunsInProject
         msg = Message(project_id=self.id)
         data = _utils.proto_to_json(msg)
-        response = requests.get("{}://{}/v1/experiment-run/getExperimentRunsInProject".format(self._scheme, self._socket),
-                                params=data, headers=self._auth)
+        response = _utils.make_request("GET",
+                                       "{}://{}/v1/experiment-run/getExperimentRunsInProject".format(self._scheme, self._socket),
+                                       self._auth, self._retry,
+                                       params=data)
         response.raise_for_status()
 
         expt_run_ids = [expt_run.id
                         for expt_run
                         in _utils.json_to_proto(response.json(), Message.Response).experiment_runs]
-        return ExperimentRuns(self._auth, self._socket, expt_run_ids)
+        return ExperimentRuns(self._auth, self._socket, self._retry, expt_run_ids)
 
     @staticmethod
     def _generate_default_name():
         return "Proj {}".format(_utils.generate_default_name())
 
     @staticmethod
-    def _get(auth, socket, proj_name=None, _proj_id=None):
+    def _get(auth, socket, retry, proj_name=None, _proj_id=None):
         scheme = "http" if auth is None else "https"
 
         if _proj_id is not None:
             Message = _ProjectService.GetProjectById
             msg = Message(id=_proj_id)
             data = _utils.proto_to_json(msg)
-            response = requests.get("{}://{}/v1/project/getProjectById".format(scheme, socket),
-                                    params=data, headers=auth)
+            response = _utils.make_request("GET",
+                                           "{}://{}/v1/project/getProjectById".format(scheme, socket),
+                                           auth, retry,
+                                           params=data)
 
             if response.ok:
                 response_msg = _utils.json_to_proto(response.json(), Message.Response)
@@ -353,8 +384,10 @@ class Project:
             Message = _ProjectService.GetProjectByName
             msg = Message(name=proj_name)
             data = _utils.proto_to_json(msg)
-            response = requests.get("{}://{}/v1/project/getProjectByName".format(scheme, socket),
-                                    params=data, headers=auth)
+            response = _utils.make_request("GET",
+                                           "{}://{}/v1/project/getProjectByName".format(scheme, socket),
+                                           auth, retry,
+                                           params=data)
 
             if response.ok:
                 response_msg = _utils.json_to_proto(response.json(), Message.Response)
@@ -368,7 +401,7 @@ class Project:
             raise ValueError("insufficient arguments")
 
     @staticmethod
-    def _create(auth, socket, proj_name, desc=None, tags=None, attrs=None):
+    def _create(auth, socket, retry, proj_name, desc=None, tags=None, attrs=None):
         scheme = "http" if auth is None else "https"
 
         if attrs is not None:
@@ -378,8 +411,10 @@ class Project:
         Message = _ProjectService.CreateProject
         msg = Message(name=proj_name, description=desc, tags=tags, attributes=attrs)
         data = _utils.proto_to_json(msg)
-        response = requests.post("{}://{}/v1/project/createProject".format(scheme, socket),
-                                 json=data, headers=auth)
+        response = _utils.make_request("POST",
+                                       "{}://{}/v1/project/createProject".format(scheme, socket),
+                                       auth, retry,
+                                       json=data)
 
         if response.ok:
             response_msg = _utils.json_to_proto(response.json(), Message.Response)
@@ -408,7 +443,7 @@ class Experiment:
         Experiment Runs under this Experiment.
 
     """
-    def __init__(self, auth, socket,
+    def __init__(self, auth, socket, retry,
                  proj_id=None, expt_name=None,
                  desc=None, tags=None, attrs=None,
                  _expt_id=None):
@@ -416,7 +451,7 @@ class Experiment:
             raise ValueError("cannot specify both `expt_name` and `_expt_id`")
 
         if _expt_id is not None:
-            expt = Experiment._get(auth, socket, _expt_id=_expt_id)
+            expt = Experiment._get(auth, socket, retry, _expt_id=_expt_id)
             if expt is not None:
                 print("set existing Experiment: {}".format(expt.name))
             else:
@@ -425,13 +460,13 @@ class Experiment:
             if expt_name is None:
                 expt_name = Experiment._generate_default_name()
             try:
-                expt = Experiment._create(auth, socket, proj_id, expt_name, desc, tags, attrs)
+                expt = Experiment._create(auth, socket, retry, proj_id, expt_name, desc, tags, attrs)
             except requests.HTTPError as e:
                 if e.response.status_code == 409:  # already exists
                     if any(param is not None for param in (desc, tags, attrs)):
                         warnings.warn("Experiment with name {} already exists;"
                                       " cannot initialize `desc`, `tags`, or `attrs`".format(expt_name))
-                    expt = Experiment._get(auth, socket, proj_id, expt_name)
+                    expt = Experiment._get(auth, socket, retry, proj_id, expt_name)
                     print("set existing Experiment: {}".format(expt.name))
                 else:
                     raise e
@@ -443,6 +478,7 @@ class Experiment:
         self._auth = auth
         self._scheme = "http" if auth is None else "https"
         self._socket = socket
+        self._retry = retry
         self.id = expt.id
 
     def __repr__(self):
@@ -453,8 +489,10 @@ class Experiment:
         Message = _ExperimentService.GetExperimentById
         msg = Message(id=self.id)
         data = _utils.proto_to_json(msg)
-        response = requests.get("{}://{}/v1/experiment/getExperimentById".format(self._scheme, self._socket),
-                                params=data, headers=self._auth)
+        response = _utils.make_request("GET",
+                                       "{}://{}/v1/experiment/getExperimentById".format(self._scheme, self._socket),
+                                       self._auth, self._retry,
+                                       params=data)
         response.raise_for_status()
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
@@ -466,35 +504,41 @@ class Experiment:
         Message = _ExperimentRunService.GetExperimentRunsInExperiment
         msg = Message(experiment_id=self.id)
         data = _utils.proto_to_json(msg)
-        response = requests.get("{}://{}/v1/experiment-run/getExperimentRunsInExperiment".format(self._scheme, self._socket),
-                                params=data, headers=self._auth)
+        response = _utils.make_request("GET",
+                                       "{}://{}/v1/experiment-run/getExperimentRunsInExperiment".format(self._scheme, self._socket),
+                                       self._auth, self._retry,
+                                       params=data)
         response.raise_for_status()
 
         expt_run_ids = [expt_run.id
                         for expt_run
                         in _utils.json_to_proto(response.json(), Message.Response).experiment_runs]
-        return ExperimentRuns(self._auth, self._socket, expt_run_ids)
+        return ExperimentRuns(self._auth, self._socket, self._retry, expt_run_ids)
 
     @staticmethod
     def _generate_default_name():
         return "Expt {}".format(_utils.generate_default_name())
 
     @staticmethod
-    def _get(auth, socket, proj_id=None, expt_name=None, _expt_id=None):
+    def _get(auth, socket, retry, proj_id=None, expt_name=None, _expt_id=None):
         scheme = "http" if auth is None else "https"
 
         if _expt_id is not None:
             Message = _ExperimentService.GetExperimentById
             msg = Message(id=_expt_id)
             data = _utils.proto_to_json(msg)
-            response = requests.get("{}://{}/v1/experiment/getExperimentById".format(scheme, socket),
-                                    params=data, headers=auth)
+            response = _utils.make_request("GET",
+                                           "{}://{}/v1/experiment/getExperimentById".format(scheme, socket),
+                                           auth, retry,
+                                           params=data)
         elif None not in (proj_id, expt_name):
             Message = _ExperimentService.GetExperimentByName
             msg = Message(project_id=proj_id, name=expt_name)
             data = _utils.proto_to_json(msg)
-            response = requests.get("{}://{}/v1/experiment/getExperimentByName".format(scheme, socket),
-                                    params=data, headers=auth)
+            response = _utils.make_request("GET",
+                                           "{}://{}/v1/experiment/getExperimentByName".format(scheme, socket),
+                                           auth, retry,
+                                           params=data)
         else:
             raise ValueError("insufficient arguments")
 
@@ -508,7 +552,7 @@ class Experiment:
                 response.raise_for_status()
 
     @staticmethod
-    def _create(auth, socket, proj_id, expt_name, desc=None, tags=None, attrs=None):
+    def _create(auth, socket, retry, proj_id, expt_name, desc=None, tags=None, attrs=None):
         scheme = "http" if auth is None else "https"
 
         if attrs is not None:
@@ -519,8 +563,10 @@ class Experiment:
         msg = Message(project_id=proj_id, name=expt_name,
                       description=desc, tags=tags, attributes=attrs)
         data = _utils.proto_to_json(msg)
-        response = requests.post("{}://{}/v1/experiment/createExperiment".format(scheme, socket),
-                                 json=data, headers=auth)
+        response = _utils.make_request("POST",
+                                       "{}://{}/v1/experiment/createExperiment".format(scheme, socket),
+                                       auth, retry,
+                                       json=data)
 
         if response.ok:
             response_msg = _utils.json_to_proto(response.json(), Message.Response)
@@ -582,10 +628,11 @@ class ExperimentRuns:
                '<=': _ExperimentRunService.OperatorEnum.LTE}
     _OP_PATTERN = re.compile(r"({})".format('|'.join(sorted(six.viewkeys(_OP_MAP), key=lambda s: len(s), reverse=True))))
 
-    def __init__(self, auth, socket, expt_run_ids=None):
+    def __init__(self, auth, socket, retry, expt_run_ids=None):
         self._auth = auth
         self._scheme = "http" if auth is None else "https"
         self._socket = socket
+        self._retry = retry
         self._ids = expt_run_ids if expt_run_ids is not None else []
 
     def __repr__(self):
@@ -594,10 +641,10 @@ class ExperimentRuns:
     def __getitem__(self, key):
         if isinstance(key, int):
             expt_run_id = self._ids[key]
-            return ExperimentRun(self._auth, self._socket, _expt_run_id=expt_run_id)
+            return ExperimentRun(self._auth, self._socket, self._retry, _expt_run_id=expt_run_id)
         elif isinstance(key, slice):
             expt_run_ids = self._ids[key]
-            return self.__class__(self._auth, self._socket, expt_run_ids)
+            return self.__class__(self._auth, self._socket, self._retry, expt_run_ids)
         else:
             raise TypeError("index must be integer or slice, not {}".format(type(key)))
 
@@ -608,7 +655,7 @@ class ExperimentRuns:
         if isinstance(other, self.__class__):
             self_ids_set = set(self._ids)
             other_ids = [expt_run_id for expt_run_id in other._ids if expt_run_id not in self_ids_set]
-            return self.__class__(self._auth, self._socket, self._ids + other_ids)
+            return self.__class__(self._auth, self._socket, self._retry, self._ids + other_ids)
         else:
             return NotImplemented
 
@@ -646,7 +693,7 @@ class ExperimentRuns:
             raise ValueError("cannot specify both `_proj_id` and `_expt_id`")
         elif _proj_id is None and _expt_id is None:
             if self.__len__() == 0:
-                return self.__class__(self._auth, self._socket)
+                return self.__class__(self._auth, self._socket, self._retry)
             else:
                 expt_run_ids = self._ids
         else:
@@ -686,15 +733,17 @@ class ExperimentRuns:
         msg = Message(project_id=_proj_id, experiment_id=_expt_id, experiment_run_ids=expt_run_ids,
                       predicates=predicates, ids_only=not ret_all_info)
         data = _utils.proto_to_json(msg)
-        response = requests.post("{}://{}/v1/experiment-run/findExperimentRuns".format(self._scheme, self._socket),
-                                 json=data, headers=self._auth)
+        response = _utils.make_request("POST",
+                                       "{}://{}/v1/experiment-run/findExperimentRuns".format(self._scheme, self._socket),
+                                       self._auth, self._retry,
+                                       json=data)
         response.raise_for_status()
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
         if ret_all_info:
             return response_msg.experiment_runs
         else:
-            return self.__class__(self._auth, self._socket,
+            return self.__class__(self._auth, self._socket, self._retry,
                                   [expt_run.id for expt_run in response_msg.experiment_runs])
 
     def sort(self, key, descending=False, ret_all_info=False):
@@ -725,21 +774,23 @@ class ExperimentRuns:
 
         """
         if self.__len__() == 0:
-            return self.__class__(self._auth, self._socket)
+            return self.__class__(self._auth, self._socket, self._retry)
 
         Message = _ExperimentRunService.SortExperimentRuns
         msg = Message(experiment_run_ids=self._ids,
                       sort_key=key, ascending=not descending, ids_only=not ret_all_info)
         data = _utils.proto_to_json(msg)
-        response = requests.get("{}://{}/v1/experiment-run/sortExperimentRuns".format(self._scheme, self._socket),
-                                params=data, headers=self._auth)
+        response = _utils.make_request("GET",
+                                       "{}://{}/v1/experiment-run/sortExperimentRuns".format(self._scheme, self._socket),
+                                       self._auth, self._retry,
+                                       params=data)
         response.raise_for_status()
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
         if ret_all_info:
             return response_msg.experiment_runs
         else:
-            return self.__class__(self._auth, self._socket,
+            return self.__class__(self._auth, self._socket, self._retry,
                                   [expt_run.id for expt_run in response_msg.experiment_runs])
 
     def top_k(self, key, k, ret_all_info=False, _proj_id=None, _expt_id=None):
@@ -773,7 +824,7 @@ class ExperimentRuns:
             raise ValueError("cannot specify both `_proj_id` and `_expt_id`")
         elif _proj_id is None and _expt_id is None:
             if self.__len__() == 0:
-                return self.__class__(self._auth, self._socket)
+                return self.__class__(self._auth, self._socket, self._retry)
             else:
                 expt_run_ids = self._ids
         else:
@@ -783,15 +834,17 @@ class ExperimentRuns:
         msg = Message(project_id=_proj_id, experiment_id=_expt_id, experiment_run_ids=expt_run_ids,
                       sort_key=key, ascending=False, top_k=k, ids_only=not ret_all_info)
         data = _utils.proto_to_json(msg)
-        response = requests.get("{}://{}/v1/experiment-run/getTopExperimentRuns".format(self._scheme, self._socket),
-                                params=data, headers=self._auth)
+        response = _utils.make_request("GET",
+                                       "{}://{}/v1/experiment-run/getTopExperimentRuns".format(self._scheme, self._socket),
+                                       self._auth, self._retry,
+                                       params=data)
         response.raise_for_status()
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
         if ret_all_info:
             return response_msg.experiment_runs
         else:
-            return self.__class__(self._auth, self._socket,
+            return self.__class__(self._auth, self._socket, self._retry,
                                   [expt_run.id for expt_run in response_msg.experiment_runs])
 
     def bottom_k(self, key, k, ret_all_info=False, _proj_id=None, _expt_id=None):
@@ -824,7 +877,7 @@ class ExperimentRuns:
             raise ValueError("cannot specify both `_proj_id` and `_expt_id`")
         elif _proj_id is None and _expt_id is None:
             if self.__len__() == 0:
-                return self.__class__(self._auth, self._socket)
+                return self.__class__(self._auth, self._socket, self._retry)
             else:
                 expt_run_ids = self._ids
         else:
@@ -834,15 +887,17 @@ class ExperimentRuns:
         msg = Message(project_id=_proj_id, experiment_id=_expt_id, experiment_run_ids=expt_run_ids,
                       sort_key=key, ascending=True, top_k=k, ids_only=not ret_all_info)
         data = _utils.proto_to_json(msg)
-        response = requests.get("{}://{}/v1/experiment-run/getTopExperimentRuns".format(self._scheme, self._socket),
-                                params=data, headers=self._auth)
+        response = _utils.make_request("GET",
+                                       "{}://{}/v1/experiment-run/getTopExperimentRuns".format(self._scheme, self._socket),
+                                       self._auth, self._retry,
+                                       params=data)
         response.raise_for_status()
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
         if ret_all_info:
             return response_msg.experiment_runs
         else:
-            return self.__class__(self._auth, self._socket,
+            return self.__class__(self._auth, self._socket, self._retry,
                                   [expt_run.id for expt_run in response_msg.experiment_runs])
 
 
@@ -863,7 +918,7 @@ class ExperimentRun:
         Name of this Experiment Run.
 
     """
-    def __init__(self, auth, socket,
+    def __init__(self, auth, socket, retry,
                  proj_id=None, expt_id=None, expt_run_name=None,
                  desc=None, tags=None, attrs=None,
                  _expt_run_id=None):
@@ -871,7 +926,7 @@ class ExperimentRun:
             raise ValueError("cannot specify both `expt_run_name` and `_expt_run_id`")
 
         if _expt_run_id is not None:
-            expt_run = ExperimentRun._get(auth, socket, _expt_run_id=_expt_run_id)
+            expt_run = ExperimentRun._get(auth, socket, retry, _expt_run_id=_expt_run_id)
             if expt_run is not None:
                 pass
             else:
@@ -880,13 +935,13 @@ class ExperimentRun:
             if expt_run_name is None:
                 expt_run_name = ExperimentRun._generate_default_name()
             try:
-                expt_run = ExperimentRun._create(auth, socket, proj_id, expt_id, expt_run_name, desc, tags, attrs)
+                expt_run = ExperimentRun._create(auth, socket, retry, proj_id, expt_id, expt_run_name, desc, tags, attrs)
             except requests.HTTPError as e:
                 if e.response.status_code == 409:  # already exists
                     if any(param is not None for param in (desc, tags, attrs)):
                         warnings.warn("ExperimentRun with name {} already exists;"
                                       " cannot initialize `desc`, `tags`, or `attrs`".format(expt_run_name))
-                    expt_run = ExperimentRun._get(auth, socket, expt_id, expt_run_name)
+                    expt_run = ExperimentRun._get(auth, socket, retry, expt_id, expt_run_name)
                     print("set existing ExperimentRun: {}".format(expt_run.name))
                 else:
                     raise e
@@ -898,14 +953,17 @@ class ExperimentRun:
         self._auth = auth
         self._scheme = "http" if auth is None else "https"
         self._socket = socket
+        self._retry = retry
         self.id = expt_run.id
 
     def __repr__(self):
         Message = _ExperimentRunService.GetExperimentRunById
         msg = Message(id=self.id)
         data = _utils.proto_to_json(msg)
-        response = requests.get("{}://{}/v1/experiment-run/getExperimentRunById".format(self._scheme, self._socket),
-                                params=data, headers=self._auth)
+        response = _utils.make_request("GET",
+                                       "{}://{}/v1/experiment-run/getExperimentRunById".format(self._scheme, self._socket),
+                                       self._auth, self._retry,
+                                       params=data)
         response.raise_for_status()
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
@@ -931,8 +989,10 @@ class ExperimentRun:
         Message = _ExperimentRunService.GetExperimentRunById
         msg = Message(id=self.id)
         data = _utils.proto_to_json(msg)
-        response = requests.get("{}://{}/v1/experiment-run/getExperimentRunById".format(self._scheme, self._socket),
-                                params=data, headers=self._auth)
+        response = _utils.make_request("GET",
+                                       "{}://{}/v1/experiment-run/getExperimentRunById".format(self._scheme, self._socket),
+                                       self._auth, self._retry,
+                                       params=data)
         response.raise_for_status()
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
@@ -943,21 +1003,25 @@ class ExperimentRun:
         return "Run {}".format(_utils.generate_default_name())
 
     @staticmethod
-    def _get(auth, socket, expt_id=None, expt_run_name=None, _expt_run_id=None):
+    def _get(auth, socket, retry, expt_id=None, expt_run_name=None, _expt_run_id=None):
         scheme = "http" if auth is None else "https"
 
         if _expt_run_id is not None:
             Message = _ExperimentRunService.GetExperimentRunById
             msg = Message(id=_expt_run_id)
             data = _utils.proto_to_json(msg)
-            response = requests.get("{}://{}/v1/experiment-run/getExperimentRunById".format(scheme, socket),
-                                    params=data, headers=auth)
+            response = _utils.make_request("GET",
+                                           "{}://{}/v1/experiment-run/getExperimentRunById".format(scheme, socket),
+                                           auth, retry,
+                                           params=data)
         elif None not in (expt_id, expt_run_name):
             Message = _ExperimentRunService.GetExperimentRunByName
             msg = Message(experiment_id=expt_id, name=expt_run_name)
             data = _utils.proto_to_json(msg)
-            response = requests.get("{}://{}/v1/experiment-run/getExperimentRunByName".format(scheme, socket),
-                                    params=data, headers=auth)
+            response = _utils.make_request("GET",
+                                           "{}://{}/v1/experiment-run/getExperimentRunByName".format(scheme, socket),
+                                           auth, retry,
+                                           params=data)
         else:
             raise ValueError("insufficient arguments")
 
@@ -971,7 +1035,7 @@ class ExperimentRun:
                 response.raise_for_status()
 
     @staticmethod
-    def _create(auth, socket, proj_id, expt_id, expt_run_name, desc=None, tags=None, attrs=None):
+    def _create(auth, socket, retry, proj_id, expt_id, expt_run_name, desc=None, tags=None, attrs=None):
         scheme = "http" if auth is None else "https"
 
         if attrs is not None:
@@ -982,8 +1046,10 @@ class ExperimentRun:
         msg = Message(project_id=proj_id, experiment_id=expt_id, name=expt_run_name,
                       description=desc, tags=tags, attributes=attrs)
         data = _utils.proto_to_json(msg)
-        response = requests.post("{}://{}/v1/experiment-run/createExperimentRun".format(scheme, socket),
-                                 json=data, headers=auth)
+        response = _utils.make_request("POST",
+                                       "{}://{}/v1/experiment-run/createExperimentRun".format(scheme, socket),
+                                       auth, retry,
+                                       json=data)
 
         if response.ok:
             response_msg = _utils.json_to_proto(response.json(), Message.Response)
@@ -1000,7 +1066,7 @@ class ExperimentRun:
         key : str
             Name of the artifact.
         method : {'GET', 'PUT'}
-            REST method to request for the generated URL.
+            HTTP method to request for the generated URL.
 
         Returns
         -------
@@ -1014,8 +1080,10 @@ class ExperimentRun:
         Message = _ExperimentRunService.GetUrlForArtifact
         msg = Message(id=self.id, key=key, method=method.upper())
         data = _utils.proto_to_json(msg)
-        response = requests.post("{}://{}/v1/experiment-run/getUrlForArtifact".format(self._scheme, self._socket),
-                                 json=data, headers=self._auth)
+        response = _utils.make_request("POST",
+                                       "{}://{}/v1/experiment-run/getUrlForArtifact".format(self._scheme, self._socket),
+                                       self._auth, self._retry,
+                                       json=data)
         response.raise_for_status()
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
@@ -1049,8 +1117,10 @@ class ExperimentRun:
                                                artifact_type=artifact_type)
         msg = Message(id=self.id, artifact=artifact_msg)
         data = _utils.proto_to_json(msg)
-        response = requests.post("{}://{}/v1/experiment-run/logArtifact".format(self._scheme, self._socket),
-                                 json=data, headers=self._auth)
+        response = _utils.make_request("POST",
+                                       "{}://{}/v1/experiment-run/logArtifact".format(self._scheme, self._socket),
+                                       self._auth, self._retry,
+                                       json=data)
         if not response.ok:
             if response.status_code == 409:
                 raise ValueError("artifact with key {} already exists;"
@@ -1086,8 +1156,10 @@ class ExperimentRun:
                                                artifact_type=artifact_type)
         msg = Message(id=self.id, artifact=artifact_msg)
         data = _utils.proto_to_json(msg)
-        response = requests.post("{}://{}/v1/experiment-run/logArtifact".format(self._scheme, self._socket),
-                                 json=data, headers=self._auth)
+        response = _utils.make_request("POST",
+                                       "{}://{}/v1/experiment-run/logArtifact".format(self._scheme, self._socket),
+                                       self._auth, self._retry,
+                                       json=data)
         if not response.ok:
             if response.status_code == 409:
                 raise ValueError("artifact with key {} already exists;"
@@ -1119,8 +1191,10 @@ class ExperimentRun:
         Message = _ExperimentRunService.GetArtifacts
         msg = Message(id=self.id, key=key)
         data = _utils.proto_to_json(msg)
-        response = requests.get("{}://{}/v1/experiment-run/getArtifacts".format(self._scheme, self._socket),
-                                params=data, headers=self._auth)
+        response = _utils.make_request("GET",
+                                       "{}://{}/v1/experiment-run/getArtifacts".format(self._scheme, self._socket),
+                                       self._auth, self._retry,
+                                       params=data)
         response.raise_for_status()
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
@@ -1155,8 +1229,10 @@ class ExperimentRun:
         Message = _ExperimentRunService.AddExperimentRunTags
         msg = Message(id=self.id, tags=[tag])
         data = _utils.proto_to_json(msg)
-        response = requests.post("{}://{}/v1/experiment-run/addExperimentRunTags".format(self._scheme, self._socket),
-                                 json=data, headers=self._auth)
+        response = _utils.make_request("POST",
+                                       "{}://{}/v1/experiment-run/addExperimentRunTags".format(self._scheme, self._socket),
+                                       self._auth, self._retry,
+                                       json=data)
         response.raise_for_status()
 
     def log_tags(self, tags):
@@ -1178,8 +1254,10 @@ class ExperimentRun:
         Message = _ExperimentRunService.AddExperimentRunTags
         msg = Message(id=self.id, tags=tags)
         data = _utils.proto_to_json(msg)
-        response = requests.post("{}://{}/v1/experiment-run/addExperimentRunTags".format(self._scheme, self._socket),
-                                 json=data, headers=self._auth)
+        response = _utils.make_request("POST",
+                                       "{}://{}/v1/experiment-run/addExperimentRunTags".format(self._scheme, self._socket),
+                                       self._auth, self._retry,
+                                       json=data)
         response.raise_for_status()
 
     def get_tags(self):
@@ -1195,8 +1273,10 @@ class ExperimentRun:
         Message = _CommonService.GetTags
         msg = Message(id=self.id)
         data = _utils.proto_to_json(msg)
-        response = requests.get("{}://{}/v1/experiment-run/getExperimentRunTags".format(self._scheme, self._socket),
-                                params=data, headers=self._auth)
+        response = _utils.make_request("GET",
+                                       "{}://{}/v1/experiment-run/getExperimentRunTags".format(self._scheme, self._socket),
+                                       self._auth, self._retry,
+                                       params=data)
         response.raise_for_status()
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
@@ -1222,8 +1302,10 @@ class ExperimentRun:
         attribute = _CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value))
         msg = _ExperimentRunService.LogAttribute(id=self.id, attribute=attribute)
         data = _utils.proto_to_json(msg)
-        response = requests.post("{}://{}/v1/experiment-run/logAttribute".format(self._scheme, self._socket),
-                                 json=data, headers=self._auth)
+        response = _utils.make_request("POST",
+                                       "{}://{}/v1/experiment-run/logAttribute".format(self._scheme, self._socket),
+                                       self._auth, self._retry,
+                                       json=data)
         if not response.ok:
             if response.status_code == 409:
                 raise ValueError("attribute with key {} already exists;"
@@ -1252,8 +1334,10 @@ class ExperimentRun:
 
         msg = _ExperimentRunService.LogAttributes(id=self.id, attributes=attribute_keyvals)
         data = _utils.proto_to_json(msg)
-        response = requests.post("{}://{}/v1/experiment-run/logAttributes".format(self._scheme, self._socket),
-                                    json=data, headers=self._auth)
+        response = _utils.make_request("POST",
+                                       "{}://{}/v1/experiment-run/logAttributes".format(self._scheme, self._socket),
+                                       self._auth, self._retry,
+                                       json=data)
         if not response.ok:
             if response.status_code == 409:
                 raise ValueError("some attribute with some input key already exists;"
@@ -1281,8 +1365,10 @@ class ExperimentRun:
         Message = _CommonService.GetAttributes
         msg = Message(id=self.id, attribute_keys=[key])
         data = _utils.proto_to_json(msg)
-        response = requests.get("{}://{}/v1/experiment-run/getAttributes".format(self._scheme, self._socket),
-                                params=data, headers=self._auth)
+        response = _utils.make_request("GET",
+                                       "{}://{}/v1/experiment-run/getAttributes".format(self._scheme, self._socket),
+                                       self._auth, self._retry,
+                                       params=data)
         response.raise_for_status()
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
@@ -1304,8 +1390,10 @@ class ExperimentRun:
         Message = _CommonService.GetAttributes
         msg = Message(id=self.id, get_all=True)
         data = _utils.proto_to_json(msg)
-        response = requests.get("{}://{}/v1/experiment-run/getAttributes".format(self._scheme, self._socket),
-                                params=data, headers=self._auth)
+        response = _utils.make_request("GET",
+                                       "{}://{}/v1/experiment-run/getAttributes".format(self._scheme, self._socket),
+                                       self._auth, self._retry,
+                                       params=data)
         response.raise_for_status()
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
@@ -1332,8 +1420,10 @@ class ExperimentRun:
         metric = _CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value))
         msg = _ExperimentRunService.LogMetric(id=self.id, metric=metric)
         data = _utils.proto_to_json(msg)
-        response = requests.post("{}://{}/v1/experiment-run/logMetric".format(self._scheme, self._socket),
-                                 json=data, headers=self._auth)
+        response = _utils.make_request("POST",
+                                       "{}://{}/v1/experiment-run/logMetric".format(self._scheme, self._socket),
+                                       self._auth, self._retry,
+                                       json=data)
         if not response.ok:
             if response.status_code == 409:
                 raise ValueError("metric with key {} already exists;"
@@ -1362,8 +1452,10 @@ class ExperimentRun:
 
         msg = _ExperimentRunService.LogMetrics(id=self.id, metrics=metric_keyvals)
         data = _utils.proto_to_json(msg)
-        response = requests.post("{}://{}/v1/experiment-run/logMetrics".format(self._scheme, self._socket),
-                                    json=data, headers=self._auth)
+        response = _utils.make_request("POST",
+                                       "{}://{}/v1/experiment-run/logMetrics".format(self._scheme, self._socket),
+                                       self._auth, self._retry,
+                                       json=data)
         if not response.ok:
             if response.status_code == 409:
                 raise ValueError("some metric with some input key already exists;"
@@ -1391,8 +1483,10 @@ class ExperimentRun:
         Message = _ExperimentRunService.GetMetrics
         msg = Message(id=self.id)
         data = _utils.proto_to_json(msg)
-        response = requests.get("{}://{}/v1/experiment-run/getMetrics".format(self._scheme, self._socket),
-                                params=data, headers=self._auth)
+        response = _utils.make_request("GET",
+                                       "{}://{}/v1/experiment-run/getMetrics".format(self._scheme, self._socket),
+                                       self._auth, self._retry,
+                                       params=data)
         response.raise_for_status()
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
@@ -1414,8 +1508,10 @@ class ExperimentRun:
         Message = _ExperimentRunService.GetMetrics
         msg = Message(id=self.id)
         data = _utils.proto_to_json(msg)
-        response = requests.get("{}://{}/v1/experiment-run/getMetrics".format(self._scheme, self._socket),
-                                params=data, headers=self._auth)
+        response = _utils.make_request("GET",
+                                       "{}://{}/v1/experiment-run/getMetrics".format(self._scheme, self._socket),
+                                       self._auth, self._retry,
+                                       params=data)
         response.raise_for_status()
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
@@ -1441,8 +1537,10 @@ class ExperimentRun:
         hyperparameter = _CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value))
         msg = _ExperimentRunService.LogHyperparameter(id=self.id, hyperparameter=hyperparameter)
         data = _utils.proto_to_json(msg)
-        response = requests.post("{}://{}/v1/experiment-run/logHyperparameter".format(self._scheme, self._socket),
-                                 json=data, headers=self._auth)
+        response = _utils.make_request("POST",
+                                       "{}://{}/v1/experiment-run/logHyperparameter".format(self._scheme, self._socket),
+                                       self._auth, self._retry,
+                                       json=data)
         if not response.ok:
             if response.status_code == 409:
                 raise ValueError("hyperparameter with key {} already exists;"
@@ -1471,8 +1569,10 @@ class ExperimentRun:
 
         msg = _ExperimentRunService.LogHyperparameters(id=self.id, hyperparameters=hyperparameter_keyvals)
         data = _utils.proto_to_json(msg)
-        response = requests.post("{}://{}/v1/experiment-run/logHyperparameters".format(self._scheme, self._socket),
-                                    json=data, headers=self._auth)
+        response = _utils.make_request("POST",
+                                       "{}://{}/v1/experiment-run/logHyperparameters".format(self._scheme, self._socket),
+                                       self._auth, self._retry,
+                                       json=data)
         if not response.ok:
             if response.status_code == 409:
                 raise ValueError("some hyperparameter with some input key already exists;"
@@ -1500,8 +1600,10 @@ class ExperimentRun:
         Message = _ExperimentRunService.GetHyperparameters
         msg = Message(id=self.id)
         data = _utils.proto_to_json(msg)
-        response = requests.get("{}://{}/v1/experiment-run/getHyperparameters".format(self._scheme, self._socket),
-                                params=data, headers=self._auth)
+        response = _utils.make_request("GET",
+                                       "{}://{}/v1/experiment-run/getHyperparameters".format(self._scheme, self._socket),
+                                       self._auth, self._retry,
+                                       params=data)
         response.raise_for_status()
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
@@ -1523,8 +1625,10 @@ class ExperimentRun:
         Message = _ExperimentRunService.GetHyperparameters
         msg = Message(id=self.id)
         data = _utils.proto_to_json(msg)
-        response = requests.get("{}://{}/v1/experiment-run/getHyperparameters".format(self._scheme, self._socket),
-                                params=data, headers=self._auth)
+        response = _utils.make_request("GET",
+                                       "{}://{}/v1/experiment-run/getHyperparameters".format(self._scheme, self._socket),
+                                       self._auth, self._retry,
+                                       params=data)
         response.raise_for_status()
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
@@ -1967,8 +2071,10 @@ class ExperimentRun:
         observation = _ExperimentRunService.Observation(attribute=attribute, timestamp=timestamp)  # TODO: support Artifacts
         msg = _ExperimentRunService.LogObservation(id=self.id, observation=observation)
         data = _utils.proto_to_json(msg)
-        response = requests.post("{}://{}/v1/experiment-run/logObservation".format(self._scheme, self._socket),
-                                 json=data, headers=self._auth)
+        response = _utils.make_request("POST",
+                                       "{}://{}/v1/experiment-run/logObservation".format(self._scheme, self._socket),
+                                       self._auth, self._retry,
+                                       json=data)
         response.raise_for_status()
 
     def get_observation(self, key):
@@ -1991,8 +2097,10 @@ class ExperimentRun:
         Message = _ExperimentRunService.GetObservations
         msg = Message(id=self.id, observation_key=key)
         data = _utils.proto_to_json(msg)
-        response = requests.get("{}://{}/v1/experiment-run/getObservations".format(self._scheme, self._socket),
-                                params=data, headers=self._auth)
+        response = _utils.make_request("GET",
+                                       "{}://{}/v1/experiment-run/getObservations".format(self._scheme, self._socket),
+                                       self._auth, self._retry,
+                                       params=data)
         response.raise_for_status()
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
@@ -2015,8 +2123,10 @@ class ExperimentRun:
         Message = _ExperimentRunService.GetExperimentRunById
         msg = Message(id=self.id)
         data = _utils.proto_to_json(msg)
-        response = requests.get("{}://{}/v1/experiment-run/getExperimentRunById".format(self._scheme, self._socket),
-                                params=data, headers=self._auth)
+        response = _utils.make_request("GET",
+                                       "{}://{}/v1/experiment-run/getExperimentRunById".format(self._scheme, self._socket),
+                                       self._auth, self._retry,
+                                       params=data)
         response.raise_for_status()
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
