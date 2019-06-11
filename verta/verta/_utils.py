@@ -137,9 +137,12 @@ def python_to_val_proto(val, allow_collection=False):
                 list_value.extend(val)
                 return Value(list_value=list_value)
             else:  # isinstance(val, dict)
-                struct_value = Struct()
-                struct_value.update(val)
-                return Value(struct_value=struct_value)
+                if all([isinstance(key, six.string_types) for key in val.keys()]):
+                    struct_value = Struct()
+                    struct_value.update(val)
+                    return Value(struct_value=struct_value)
+                else:  # protobuf's fault
+                    raise TypeError("struct keys must be strings; consider using log_artifact() instead")
         else:
             raise TypeError("unsupported type {}; consider using log_attribute() instead".format(type(val)))
     else:
