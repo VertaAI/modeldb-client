@@ -1,5 +1,10 @@
 import six
 
+import sys
+
+if sys.platform == "darwin":  # https://stackoverflow.com/q/21784641
+    import matplotlib
+    matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
 import numpy as np
 import PIL
