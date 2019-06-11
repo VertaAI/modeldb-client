@@ -405,7 +405,7 @@ class Project:
         scheme = "http" if auth is None else "https"
 
         if attrs is not None:
-            attrs = [_CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value))
+            attrs = [_CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value, allow_collection=True))
                      for key, value in six.viewitems(attrs)]
 
         Message = _ProjectService.CreateProject
@@ -556,7 +556,7 @@ class Experiment:
         scheme = "http" if auth is None else "https"
 
         if attrs is not None:
-            attrs = [_CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value))
+            attrs = [_CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value, allow_collection=True))
                      for key, value in six.viewitems(attrs)]
 
         Message = _ExperimentService.CreateExperiment
@@ -1039,7 +1039,7 @@ class ExperimentRun:
         scheme = "http" if auth is None else "https"
 
         if attrs is not None:
-            attrs = [_CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value))
+            attrs = [_CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value, allow_collection=True))
                      for key, value in six.viewitems(attrs)]
 
         Message = _ExperimentRunService.CreateExperimentRun
