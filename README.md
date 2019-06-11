@@ -39,3 +39,7 @@ This subdirectory contains example and demo Jupyter notebooks
         1. this installs packages for PyPI publication, unit testing, and documentation
 1. use Client
 1. tackle issues
+### Troubleshooting
+1. If you receive an Environment Error (Errno: 13) with regard to permissions in Step 1.4 `pip install -e .`, consider these potential solutions:
+    1. Append `--user` to the command: `pip install -e . --user`
+    1. Use Python3 by using the command: `pip3 install -e .`
