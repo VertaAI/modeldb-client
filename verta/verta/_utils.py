@@ -8,6 +8,9 @@ import string
 import subprocess
 import sys
 
+import requests
+from requests.adapters import HTTPAdapter
+
 from google.protobuf import json_format
 from google.protobuf.struct_pb2 import Value, NULL_VALUE
 
@@ -19,7 +22,41 @@ except ImportError:  # pandas not installed
     pass
 
 
+_VALID_HTTP_METHODS = {'GET', 'POST', 'PUT', 'DELETE'}
 _VALID_FLAT_KEY_CHARS = set(string.ascii_letters + string.digits + '_-')
+
+
+def make_request(method, url, auth, retry, **kwargs):
+    """
+    Makes a REST request.
+
+    Parameters
+    ----------
+    method : {'GET', 'POST', 'PUT', 'DELETE'}
+        HTTP method.
+    url : str
+        URL.
+    auth : dict
+        Verta authentication headers.
+    retry : urllib3.util.retry.Retry
+        Connection retry configuration.
+    **kwargs
+        Parameters to requests.request().
+
+    Returns
+    -------
+    requests.Response
+
+    """
+    if method.upper() not in _VALID_HTTP_METHODS:
+        raise ValueError("`method` must be one of {}".format(_VALID_HTTP_METHODS))
+
+    # add `auth` to `kwargs['headers']`
+    kwargs.setdefault('headers', {}).update(auth)
+
+    with requests.Session() as s:
+        s.mount(url, HTTPAdapter(max_retries=retry))
+        return s.request(method, url, **kwargs)
 
 
 def proto_to_json(msg):
