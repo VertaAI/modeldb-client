@@ -2,6 +2,36 @@ Release Notes
 =============
 
 
+v0.11.7 (2019-06-10)
+--------------------
+
+Backwards Incompatibilities
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+- `The constructors for Project, Experiment, ExperimentRun, and ExperimentRuns—as well as with their _get() and _create()
+  functions—now take an additional retry parameter, though these functions are all not intended for public use to begin
+  with.
+  <https://github.com/VertaAI/modeldb-client/pull/112>`_
+
+New Features
+^^^^^^^^^^^^
+- `enable logging lists, and dictionaries with string keys, as attributes
+  <https://github.com/VertaAI/modeldb-client/pull/109>`_
+- `implement a max_retries parameter and attribute on Client to retry requests with exponential backoff on 403s, 503s,
+  and 504s
+  <https://github.com/VertaAI/modeldb-client/pull/112>`_
+
+Internal Changes
+^^^^^^^^^^^^^^^^
+- `delegate most REST calls to an internal utility function
+  <https://github.com/VertaAI/modeldb-client/pull/112>`_
+- `implement back end load test
+  <https://github.com/VertaAI/modeldb-client/pull/110>`_
+- `change Read the Docs sidebar from fixed to static
+  <https://github.com/VertaAI/modeldb-client/commit/5f75fe6a6a9bba3e4bb23101cd01ddef7110bacc>`_
+- `fix a bug that matplotlib has with macOS which was restricting testing
+  <https://github.com/VertaAI/modeldb-client/commit/ddea440d8943947d0eab3babf7317a1730e42b5e>`_
+
+
 v0.11.6 (2019-06-07)
 --------------------
 
