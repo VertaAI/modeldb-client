@@ -252,7 +252,25 @@ def val_proto_to_python(msg):
         Python variable represented by `msg`.
 
     """
-    return proto_to_json(msg)
+    value_kind = msg.WhichOneof("kind")
+    if value_kind == "null_value":
+        return None
+    elif value_kind == "bool_value":
+        return msg.bool_value
+    elif value_kind == "number_value":
+        return int(msg.number_value) if msg.number_value.is_integer() else msg.number_value
+    elif value_kind == "string_value":
+        return msg.string_value
+    elif value_kind == "list_value":
+        return [val_proto_to_python(val_msg)
+                for val_msg
+                in msg.list_value.values]
+    elif value_kind == "struct_value":
+        return {key: val_proto_to_python(val_msg)
+                for key, val_msg
+                in msg.struct_value.fields.items()}
+    else:
+        raise NotImplementedError("retrieved value type is not supported")
 
 
 def unravel_key_values(rpt_key_value_msg):
