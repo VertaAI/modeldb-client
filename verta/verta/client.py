@@ -2147,6 +2147,7 @@ class ExperimentRun:
         remote_utl : str, optional
 
         """
+        # prehandle file
         if isinstance(file, six.string_types):
             file = open(file, 'r')
         elif file is None:
@@ -2161,5 +2162,21 @@ class ExperimentRun:
                     print("reading code from {}".format(filename))
                     file = open(filename, 'r')
             else:
+                _utils.save_notebook()
                 print("reading code from {}".format(filename))
                 file = open(filename, 'r')
+
+        # prehandle git_sha
+        if git_sha is None:
+            pass  # TODO: find it
+
+        # prehandle remote_url
+        if remote_url is None:
+            pass  # TODO: find it
+
+        if file is not None:
+            self.log_artifact("code", file)
+        if git_sha is not None:
+            self.log_attribute("git_sha", git_sha)
+        if remote_url is not None:
+            self.log_attribute("remote_url", remote_url)
