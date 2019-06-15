@@ -2147,4 +2147,17 @@ class ExperimentRun:
         remote_utl : str, optional
 
         """
-        pass
+        if isinstance(file, six.string_types):
+            file = open(file, 'r')
+        if file is None:
+            try:
+                filename = _utils.get_notebook_filepath()
+            except OSError:  # notebook not found
+                try:
+                    filename = _utils.get_script_filepath()
+                except OSError:  # script not found
+                    pass  # TODO: raise?
+                else:
+                    file = open(file, 'r')
+            else:
+                file = open(file, 'r')
