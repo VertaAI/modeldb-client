@@ -10,7 +10,9 @@ import re
 import string
 import subprocess
 import sys
+import time
 
+from IPython.display import Javascript, display
 import requests
 from requests.adapters import HTTPAdapter
 
@@ -439,6 +441,26 @@ def get_python_version():
 
     """
     return '.'.join(map(str, sys.version_info[:3]))
+
+
+def save_notebook():
+    """
+    Saves the current notebook and returns after the file in disk has been updated.
+    """
+    notebook_name = get_notebook_filepath()
+    modtime = os.path.getmtime(notebook_name)
+
+    display(Javascript('''
+    require(["base/js/namespace"],function(Jupyter) {
+        Jupyter.notebook.save_checkpoint();
+    });
+    '''))
+
+    while True:
+        new_modtime = os.path.getmtime(notebook_name)
+        if new_modtime > modtime:
+            break
+        time.sleep(0.01)
 
 
 def get_notebook_filepath():
