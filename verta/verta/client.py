@@ -2131,3 +2131,20 @@ class ExperimentRun:
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
         return _utils.unravel_observations(response_msg.experiment_run.observations)
+
+    def log_code(self, file=None, git_sha=None, remote_url=None):
+        """
+        Logs a code version to this Experiment Run.
+
+        A code version consists of a group of artifacts and attributes that describe the state of code.
+
+        Parameters
+        ----------
+        file : str or file-like, optional
+            Python script or Jupyter notebook file. If no file is provided, the Client will make its
+            best effort to dynamically find the script/notebook file that is calling this function.
+        git_sha : str, optional
+        remote_utl : str, optional
+
+        """
+        pass
