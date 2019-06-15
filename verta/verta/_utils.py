@@ -1,9 +1,12 @@
 import six
+from six.moves.urllib.parse import urljoin
 
 from datetime import datetime
+import inspect
 import json
 import numbers
 import os
+import re
 import string
 import subprocess
 import sys
@@ -20,6 +23,20 @@ try:
     import pandas as pd
 except ImportError:  # pandas not installed
     pass
+
+try:
+    import ipykernel
+except ImportError:  # IPython not installed
+    pass
+else:
+    try:  # Python 3
+        from notebook.notebookapp import list_running_servers
+    except ImportError:  # Python 2
+        import warnings
+        from IPython.utils.shimmodule import ShimWarning
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=ShimWarning)
+            from IPython.html.notebookapp import list_running_servers
 
 
 _VALID_HTTP_METHODS = {'GET', 'POST', 'PUT', 'DELETE'}
@@ -423,6 +440,51 @@ def get_python_version():
     """
     return '.'.join(map(str, sys.version_info[:3]))
 
+
+def get_notebook_filepath():
+    """
+    Returns the filesystem path of the Jupyter notebook running the Client.
+
+    Returns
+    -------
+    str
+
+    """
+    try:
+        connection_file = ipykernel.connect.get_connection_file()
+    except (NameError,  # IPython not installed
+            RuntimeError):  # not in a Notebook
+        raise OSError("unable to find notebook file")
+    else:
+        kernel_id = re.search('kernel-(.*).json', connection_file).group(1)
+        servers = list_running_servers()
+        for ss in servers:
+            response = requests.get(urljoin(ss['url'], 'api/sessions'),
+                                    params={'token': ss.get('token', '')})
+            for nn in json.loads(response.text):
+                if nn['kernel']['id'] == kernel_id:
+                    relative_path = nn['notebook']['path']
+                    return os.path.join(ss['notebook_dir'], relative_path)
+
+
+def get_script_filepath():
+    """
+    Returns the filesystem path of the Python script running the Client.
+
+    This function iterates back through the call stack until it finds a non-Verta stack frame and
+    returns its file.
+
+    Returns
+    -------
+    str
+
+    """
+    for frame_info in inspect.stack():
+        module = inspect.getmodule(frame_info[0])
+        if module is None or module.__name__.split('.', 1)[0] != "verta":
+            return frame_info[1]
+    else:
+        raise OSError("unable to find script file")
 
 # TODO: support pip3 and conda
 # def get_env_dependencies():
