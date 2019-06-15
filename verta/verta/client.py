@@ -2149,15 +2149,17 @@ class ExperimentRun:
         """
         if isinstance(file, six.string_types):
             file = open(file, 'r')
-        if file is None:
+        elif file is None:
             try:
                 filename = _utils.get_notebook_filepath()
             except OSError:  # notebook not found
                 try:
                     filename = _utils.get_script_filepath()
                 except OSError:  # script not found
-                    pass  # TODO: raise?
+                    print("unable to find code file; skipping")
                 else:
-                    file = open(file, 'r')
+                    print("reading code from {}".format(filename))
+                    file = open(filename, 'r')
             else:
-                file = open(file, 'r')
+                print("reading code from {}".format(filename))
+                file = open(filename, 'r')
