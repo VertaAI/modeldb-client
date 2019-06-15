@@ -3,6 +3,7 @@ import six.moves.cPickle as pickle
 from six.moves.urllib.parse import urlparse
 
 import ast
+import hashlib
 import os
 import re
 import warnings
@@ -1107,12 +1108,19 @@ class ExperimentRun:
             Variant of `_CommonService.ArtifactTypeEnum`.
 
         """
+        basename = key
         if isinstance(artifact, six.string_types):
+            basename = os.path.basename(artifact)
             artifact = open(artifact, 'rb')
+
+        data_stream, _ = _artifact_utils.ensure_bytestream(artifact)
+        data_hash = hashlib.sha256(data_stream.read()).hexdigest()
+        artifact_path = os.path.join(data_hash, basename)
 
         # log key to ModelDB
         Message = _ExperimentRunService.LogArtifact
         artifact_msg = _CommonService.Artifact(key=key,
+                                               path=artifact_path,
                                                path_only=False,
                                                artifact_type=artifact_type)
         msg = Message(id=self.id, artifact=artifact_msg)
