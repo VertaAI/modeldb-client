@@ -444,9 +444,19 @@ def get_python_version():
     return '.'.join(map(str, sys.version_info[:3]))
 
 
-def save_notebook():
+def save_notebook(timeout=5):
     """
     Saves the current notebook and returns after the file in disk has been updated.
+
+    Parameters
+    ----------
+    timeout : float, default 5
+        Maximum number of seconds to wait for the notebook to save.
+
+    Raises
+    ------
+    OSError
+        If the notebook is not modified within `timeout` seconds.
 
     """
     notebook_name = get_notebook_filepath()
@@ -458,12 +468,14 @@ def save_notebook():
     });
     '''))
 
-    while True:
+    start_time = time.time()
+    while time.time() - start_time < timeout:
         new_modtime = os.path.getmtime(notebook_name)
         if new_modtime > modtime:
-            break
+            return
         time.sleep(0.01)
-
+    else:
+        raise OSError("unable to save notebook")
 
 def get_notebook_filepath():
     """
