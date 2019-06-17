@@ -12,7 +12,6 @@ import subprocess
 import sys
 import time
 
-from IPython.display import Javascript, display
 import requests
 from requests.adapters import HTTPAdapter
 
@@ -28,9 +27,10 @@ except ImportError:  # pandas not installed
 
 try:
     import ipykernel
-except ImportError:  # IPython not installed
+except ImportError:  # Jupyter not installed
     pass
 else:
+    from IPython.display import Javascript, display
     try:  # Python 3
         from notebook.notebookapp import list_running_servers
     except ImportError:  # Python 2
@@ -474,7 +474,7 @@ def get_notebook_filepath():
     """
     try:
         connection_file = ipykernel.connect.get_connection_file()
-    except (NameError,  # IPython not installed
+    except (NameError,  # Jupyter not installed
             RuntimeError):  # not in a Notebook
         raise OSError("unable to find notebook file")
     else:
