@@ -39,6 +39,7 @@ else:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=ShimWarning)
             from IPython.html.notebookapp import list_running_servers
+        del warnings, ShimWarning
 
 
 _VALID_HTTP_METHODS = {'GET', 'POST', 'PUT', 'DELETE'}
@@ -468,6 +469,8 @@ def get_notebook_filepath():
     """
     Returns the filesystem path of the Jupyter notebook running the Client.
 
+    This implementation is from https://github.com/jupyter/notebook/issues/1000#issuecomment-359875246.
+
     Returns
     -------
     str
@@ -488,14 +491,13 @@ def get_notebook_filepath():
         pass
     else:
         kernel_id = re.search('kernel-(.*).json', connection_file).group(1)
-        servers = list_running_servers()
-        for ss in servers:
-            response = requests.get(urljoin(ss['url'], 'api/sessions'),
-                                    params={'token': ss.get('token', '')})
-            for nn in json.loads(response.text):
-                if nn['kernel']['id'] == kernel_id:
-                    relative_path = nn['notebook']['path']
-                    return os.path.join(ss['notebook_dir'], relative_path)
+        for server in list_running_servers():
+            response = requests.get(urljoin(server['url'], 'api/sessions'),
+                                    params={'token': server.get('token', '')})
+            for session in response.json():
+                if session['kernel']['id'] == kernel_id:
+                    relative_path = session['notebook']['path']
+                    return os.path.join(server['notebook_dir'], relative_path)
     raise OSError("unable to find notebook file")
 
 
