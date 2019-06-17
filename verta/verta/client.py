@@ -2165,11 +2165,14 @@ class ExperimentRun:
             else:
                 _utils.save_notebook()
                 print("reading code from {}".format(filename))
-                file = open(filename, 'r')
-                while not len(file.read()):  # wait in case notebook is still saving
-                    _artifact_utils.reset_stream(file)
+                with open(filename, 'r') as f:
+                    contents = f.read()
+                while not contents:  # wait in case notebook is still saving
                     time.sleep(.01)
-                _artifact_utils.reset_stream(file)
+                    with open(filename, 'r') as f:
+                        contents = f.read()
+                else:
+                    file = six.StringIO(contents)
 
         # prehandle git_sha
         if git_sha is None:
