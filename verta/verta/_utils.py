@@ -506,10 +506,11 @@ def get_notebook_filepath():
         for server in list_running_servers():
             response = requests.get(urljoin(server['url'], 'api/sessions'),
                                     params={'token': server.get('token', '')})
-            for session in response.json():
-                if session['kernel']['id'] == kernel_id:
-                    relative_path = session['notebook']['path']
-                    return os.path.join(server['notebook_dir'], relative_path)
+            if response.ok:
+                for session in response.json():
+                    if session['kernel']['id'] == kernel_id:
+                        relative_path = session['notebook']['path']
+                        return os.path.join(server['notebook_dir'], relative_path)
     raise OSError("unable to find notebook file")
 
 
