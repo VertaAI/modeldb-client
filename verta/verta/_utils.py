@@ -446,6 +446,7 @@ def get_python_version():
 def save_notebook():
     """
     Saves the current notebook and returns after the file in disk has been updated.
+
     """
     notebook_name = get_notebook_filepath()
     modtime = os.path.getmtime(notebook_name)
@@ -471,12 +472,20 @@ def get_notebook_filepath():
     -------
     str
 
+    Raises
+    ------
+    OSError
+        If one of the following is true:
+            - Jupyter is not installed
+            - Client is not being called from a notebook
+            - the calling notebook cannot be identified
+
     """
     try:
         connection_file = ipykernel.connect.get_connection_file()
     except (NameError,  # Jupyter not installed
             RuntimeError):  # not in a Notebook
-        raise OSError("unable to find notebook file")
+        pass
     else:
         kernel_id = re.search('kernel-(.*).json', connection_file).group(1)
         servers = list_running_servers()
@@ -487,6 +496,7 @@ def get_notebook_filepath():
                 if nn['kernel']['id'] == kernel_id:
                     relative_path = nn['notebook']['path']
                     return os.path.join(ss['notebook_dir'], relative_path)
+    raise OSError("unable to find notebook file")
 
 
 def get_script_filepath():
@@ -494,19 +504,23 @@ def get_script_filepath():
     Returns the filesystem path of the Python script running the Client.
 
     This function iterates back through the call stack until it finds a non-Verta stack frame and
-    returns its file.
+    returns its filepath.
 
     Returns
     -------
     str
+
+    Raises
+    ------
+    OSError
+        If the calling script cannot be identified.
 
     """
     for frame_info in inspect.stack():
         module = inspect.getmodule(frame_info[0])
         if module is None or module.__name__.split('.', 1)[0] != "verta":
             return frame_info[1]
-    else:
-        raise OSError("unable to find script file")
+    raise OSError("unable to find script file")
 
 # TODO: support pip3 and conda
 # def get_env_dependencies():
