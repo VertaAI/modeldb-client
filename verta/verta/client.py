@@ -5,6 +5,7 @@ from six.moves.urllib.parse import urlparse
 import ast
 import os
 import re
+import time
 import warnings
 
 import PIL
@@ -2165,6 +2166,10 @@ class ExperimentRun:
                 _utils.save_notebook()
                 print("reading code from {}".format(filename))
                 file = open(filename, 'r')
+                while not len(file.read()):  # wait in case notebook is still saving
+                    _artifact_utils.reset_stream(file)
+                    time.sleep(.01)
+                _artifact_utils.reset_stream(file)
 
         # prehandle git_sha
         if git_sha is None:
