@@ -554,7 +554,11 @@ def get_script_filepath():
     for frame_info in inspect.stack():
         module = inspect.getmodule(frame_info[0])
         if module is None or module.__name__.split('.', 1)[0] != "verta":
-            return frame_info[1]
+            filepath = frame_info[1]
+            if os.path.exists(filepath):  # e.g. Jupyter fakes the filename for cells
+                return filepath
+            else:
+                break  # continuing might end up returning a built-in
     raise OSError("unable to find script file")
 
 # TODO: support pip3 and conda
