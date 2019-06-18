@@ -39,7 +39,7 @@ else:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=ShimWarning)
             from IPython.html.notebookapp import list_running_servers
-        del warnings, ShimWarning
+        del warnings, ShimWarning  # remove ad hoc imports from scope
 
 
 _VALID_HTTP_METHODS = {'GET', 'POST', 'PUT', 'DELETE'}
@@ -446,21 +446,28 @@ def get_python_version():
 
 def save_notebook(timeout=5):
     """
-    Saves the current notebook and returns after the file in disk has been updated.
+    Saves the current notebook on disk and returns its contents after the file has been rewritten.
 
     Parameters
     ----------
     timeout : float, default 5
         Maximum number of seconds to wait for the notebook to save.
 
+    Returns
+    -------
+    notebook_contents : file-like
+        An in-memory copy of the notebook's contents at the time this function returns. This can
+        be ignored, but is nonetheless available to minimize the risk of a race condition caused by
+        delaying the read until a later time.
+
     Raises
     ------
     OSError
-        If the notebook is not modified within `timeout` seconds.
+        If the notebook is not saved within `timeout` seconds.
 
     """
-    notebook_name = get_notebook_filepath()
-    modtime = os.path.getmtime(notebook_name)
+    notebook_path = get_notebook_filepath()
+    modtime = os.path.getmtime(notebook_path)
 
     display(Javascript('''
     require(["base/js/namespace"],function(Jupyter) {
@@ -468,14 +475,27 @@ def save_notebook(timeout=5):
     });
     '''))
 
+    # wait for file to be modified
     start_time = time.time()
     while time.time() - start_time < timeout:
-        new_modtime = os.path.getmtime(notebook_name)
+        new_modtime = os.path.getmtime(notebook_path)
         if new_modtime > modtime:
-            return
+            break
         time.sleep(0.01)
     else:
         raise OSError("unable to save notebook")
+
+    # wait for file to be rewritten
+    timeout -= (time.time() - start_time)  # remaining time
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        with open(notebook_path, 'r') as f:
+            contents = f.read()
+        if contents:
+            return six.StringIO(contents)
+        time.sleep(0.01)
+    else:
+        raise OSError("unable to read saved notebook")
 
 def get_notebook_filepath():
     """

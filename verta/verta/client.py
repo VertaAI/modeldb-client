@@ -2163,15 +2163,14 @@ class ExperimentRun:
                     print("reading code from {}".format(filename))
                     file = open(filename, 'r')
             else:
-                _utils.save_notebook()
                 print("reading code from {}".format(filename))
-                with open(filename, 'r') as f:
-                    contents = f.read()
-                while not contents:  # wait in case notebook is still saving
-                    time.sleep(.01)
+                try:
+                    file = _utils.save_notebook()
+                except OSError:  # unable to save
+                    # just read it now, I guess
+                    print("unable to save notebook; reading current state instead")
                     with open(filename, 'r') as f:
                         contents = f.read()
-                else:
                     file = six.StringIO(contents)
 
         # prehandle git_sha
