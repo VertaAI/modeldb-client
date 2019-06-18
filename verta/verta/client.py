@@ -2145,7 +2145,9 @@ class ExperimentRun:
             Python script or Jupyter notebook file. If no file is provided, the Client will make its
             best effort to dynamically find the script/notebook file that is calling this function.
         git_sha : str, optional
-        remote_utl : str, optional
+            Git commit hash associated with this code version.
+        remote_url : str, optional
+            URL for a remote Git repository containing `git_sha`.
 
         """
         # prehandle file
