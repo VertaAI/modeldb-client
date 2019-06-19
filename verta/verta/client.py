@@ -2133,7 +2133,7 @@ class ExperimentRun:
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
         return _utils.unravel_observations(response_msg.experiment_run.observations)
 
-    def log_code(self, file=None, git_sha=None, remote_url=None):
+    def log_code(self, filepath=None, git_sha=None, remote_url=None):
         """
         Logs a code version to this Experiment Run.
 
@@ -2141,39 +2141,45 @@ class ExperimentRun:
 
         Parameters
         ----------
-        file : str or file-like, optional
-            Python script or Jupyter notebook file. If no file is provided, the Client will make its
-            best effort to dynamically find the script/notebook file that is calling this function.
+        filepath : str or file-like, optional
+            Python script or Jupyter notebook filepath. If no filepath is provided, the Client will
+            make its best effort to dynamically find the script/notebook file that is calling this
+            function.
         git_sha : str, optional
             Git commit hash associated with this code version.
         remote_url : str, optional
             URL for a remote Git repository containing `git_sha`.
 
         """
-        # prehandle file
-        if isinstance(file, six.string_types):
-            file = open(file, 'r')
-        elif file is None:
+        # prehandle filepath
+        if isinstance(filepath, six.string_types):
+            file = open(filepath, 'r')
+        elif hasattr(filepath, 'read'):  # if `filepath` is file-like
+            file = filepath
+        elif filepath is None:
             try:
-                filename = _utils.get_notebook_filepath()
+                filepath = _utils.get_notebook_filepath()
             except OSError:  # notebook not found
                 try:
-                    filename = _utils.get_script_filepath()
+                    filepath = _utils.get_script_filepath()
                 except OSError:  # script not found
                     print("unable to find code file; skipping")
+                    file = None
                 else:
-                    print("reading code from {}".format(filename))
-                    file = open(filename, 'r')
+                    print("reading code from {}".format(filepath))
+                    file = open(filepath, 'r')
             else:
-                print("reading code from {}".format(filename))
+                print("reading code from {}".format(filepath))
                 try:
                     file = _utils.save_notebook()
                 except OSError:  # unable to save
                     # just read it now, I guess
                     print("unable to save notebook; reading current state instead")
-                    with open(filename, 'r') as f:
+                    with open(filepath, 'r') as f:
                         contents = f.read()
                     file = six.StringIO(contents)
+        else:
+            raise TypeError("`filepath` must be string or file-like, not {}".format(type(filepath)))
 
         # prehandle git_sha
         if git_sha is None:
