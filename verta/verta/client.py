@@ -2116,7 +2116,7 @@ class ExperimentRun:
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
         if len(response_msg.observations) == 0:
-            raise KeyError(key)
+            raise KeyError("no observation found with key {}".format(key))
         else:
             return [_utils.unravel_observation(observation)[1:]  # drop key from tuple
                     for observation in response_msg.observations]  # TODO: support Artifacts
