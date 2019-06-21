@@ -96,7 +96,9 @@ class Client:
         # verify connection
         socket = host if port is None else "{}:{}".format(host, port)
         try:
-            response = requests.get("{}://{}/v1/project/verifyConnection".format(scheme, socket), headers=auth)
+            response = _utils.make_request("GET",
+                                           "{}://{}/v1/project/verifyConnection".format(scheme, socket),
+                                           auth)
         except requests.ConnectionError:
             six.raise_from(requests.ConnectionError("connection failed; please check `host` and `port`"),
                            None)
@@ -1142,7 +1144,7 @@ class ExperimentRun:
         # upload artifact to artifact store
         url = self._get_url_for_artifact(key, "PUT")
         artifact_stream, _ = _artifact_utils.ensure_bytestream(artifact)
-        response = requests.put(url, data=artifact_stream)
+        response = _utils.make_request("PUT", url, data=artifact_stream)
         response.raise_for_status()
 
     def _log_artifact_path(self, key, artifact_path, artifact_type):
@@ -1217,7 +1219,7 @@ class ExperimentRun:
         else:
             # download artifact from artifact store
             url = self._get_url_for_artifact(key, "GET")
-            response = requests.get(url)
+            response = _utils.make_request("GET", url)
             response.raise_for_status()
 
             return response.content, artifact.path_only
