@@ -26,7 +26,7 @@ _VALID_HTTP_METHODS = {'GET', 'POST', 'PUT', 'DELETE'}
 _VALID_FLAT_KEY_CHARS = set(string.ascii_letters + string.digits + '_-')
 
 
-def make_request(method, url, auth=None, retry=None, **kwargs):
+def make_request(method, url, auth=None, retry=None, ignore_conn_err=False, **kwargs):
     """
     Makes a REST request.
 
@@ -40,6 +40,8 @@ def make_request(method, url, auth=None, retry=None, **kwargs):
         Verta authentication headers.
     retry : urllib3.util.retry.Retry, optional
         Connection retry configuration.
+    ignore_conn_err : bool, default False
+        Whether to ignore a connection error and instead return a success with empty contents.
     **kwargs
         Parameters to requests.request().
 
@@ -60,7 +62,20 @@ def make_request(method, url, auth=None, retry=None, **kwargs):
 
     with requests.Session() as s:
         s.mount(url, HTTPAdapter(max_retries=retry))
-        return s.request(method, url, **kwargs)
+        try:
+            response = s.request(method, url, **kwargs)
+        except requests.RequestException as e:
+            if not ignore_conn_err:
+                raise e
+        else:
+            if response.ok or not ignore_conn_err:
+                return response
+        # fabricate response
+        response = requests.Response()
+        response.status_code = 200  # success
+        response._content = six.ensure_binary("{}")  # empty contents
+        return response
+
 
 
 def proto_to_json(msg):
