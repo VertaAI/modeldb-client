@@ -98,7 +98,8 @@ class Client:
         try:
             response = requests.get("{}://{}/v1/project/verifyConnection".format(scheme, socket), headers=auth)
         except requests.ConnectionError:
-            raise requests.ConnectionError("connection failed; please check `host` and `port`")
+            six.raise_from(requests.ConnectionError("connection failed; please check `host` and `port`"),
+                           None)
         response.raise_for_status()
         print("connection successfully established")
 
@@ -708,7 +709,8 @@ class ExperimentRuns:
             try:
                 key, operator, value = map(str.strip, self._OP_PATTERN.split(predicate, maxsplit=1))
             except ValueError:
-                raise ValueError("predicate `{}` must be a two-operand comparison".format(predicate))
+                six.raise_from(ValueError("predicate `{}` must be a two-operand comparison".format(predicate)),
+                               None)
 
             # cast operator into protobuf enum variant
             operator = self._OP_MAP[operator]
@@ -717,7 +719,8 @@ class ExperimentRuns:
             try:
                 expr_node = ast.parse(value, mode='eval')
             except SyntaxError:
-                raise ValueError("value `{}` must be a number or string literal".format(value))
+                six.raise_from(ValueError("value `{}` must be a number or string literal".format(value)),
+                               None)
             value_node = expr_node.body
             if type(value_node) is ast.Num:
                 value = value_node.n
