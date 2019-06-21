@@ -26,7 +26,7 @@ _VALID_HTTP_METHODS = {'GET', 'POST', 'PUT', 'DELETE'}
 _VALID_FLAT_KEY_CHARS = set(string.ascii_letters + string.digits + '_-')
 
 
-def make_request(method, url, auth, retry, **kwargs):
+def make_request(method, url, auth=None, retry=None, **kwargs):
     """
     Makes a REST request.
 
@@ -36,9 +36,9 @@ def make_request(method, url, auth, retry, **kwargs):
         HTTP method.
     url : str
         URL.
-    auth : dict
+    auth : dict, optional
         Verta authentication headers.
-    retry : urllib3.util.retry.Retry
+    retry : urllib3.util.retry.Retry, optional
         Connection retry configuration.
     **kwargs
         Parameters to requests.request().
@@ -51,8 +51,12 @@ def make_request(method, url, auth, retry, **kwargs):
     if method.upper() not in _VALID_HTTP_METHODS:
         raise ValueError("`method` must be one of {}".format(_VALID_HTTP_METHODS))
 
-    # add `auth` to `kwargs['headers']`
-    kwargs.setdefault('headers', {}).update(auth)
+    if retry is None:
+        retry = 0
+
+    if auth is not None:
+        # add `auth` to `kwargs['headers']`
+        kwargs.setdefault('headers', {}).update(auth)
 
     with requests.Session() as s:
         s.mount(url, HTTPAdapter(max_retries=retry))
