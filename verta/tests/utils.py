@@ -82,19 +82,19 @@ def st_key_values(draw, min_size=1, max_size=12, scalars_only=False):
                                 max_size=max_size))
 
 
-def delete_project(id_, client):
-    request_url = "{}://{}/v1/project/deleteProject".format(client._scheme, client._socket)
-    response = requests.delete(request_url, json={'id': id_}, headers=client._auth)
+def delete_project(id_, conn):
+    request_url = "{}://{}/v1/project/deleteProject".format(conn.scheme, conn.socket)
+    response = requests.delete(request_url, json={'id': id_}, headers=conn.auth)
     response.raise_for_status()
 
 
-def delete_experiment(id_, client):
-    request_url = "{}://{}/v1/experiment/deleteExperiment".format(client._scheme, client._socket)
-    response = requests.delete(request_url, json={'id': id_}, headers=client._auth)
+def delete_experiment(id_, conn):
+    request_url = "{}://{}/v1/experiment/deleteExperiment".format(conn.scheme, conn.socket)
+    response = requests.delete(request_url, json={'id': id_}, headers=conn.auth)
     response.raise_for_status()
 
 
-def delete_experiment_run(id_, client):
-    request_url = "{}://{}/v1/experiment-run/deleteExperimentRun".format(client._scheme, client._socket)
-    response = requests.delete(request_url, json={'id': id_}, headers=client._auth)
+def delete_experiment_run(id_, conn):
+    request_url = "{}://{}/v1/experiment-run/deleteExperimentRun".format(conn.scheme, conn.socket)
+    response = requests.delete(request_url, json={'id': id_}, headers=conn.auth)
     response.raise_for_status()

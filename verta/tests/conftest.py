@@ -49,7 +49,7 @@ def client(host, port, email, dev_key):
     yield client
 
     if client.proj is not None:
-        utils.delete_project(client.proj.id, client)
+        utils.delete_project(client.proj.id, client._conn)
 
 
 @pytest.fixture
