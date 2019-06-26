@@ -11,8 +11,8 @@ class TestGetChildren:
         for _ in range(3):
             expt_ids.append(client.set_experiment().id)
 
-        response = requests.get("http://{}/v1/experiment/getExperimentsInProject".format(client._socket),
-                                params={'project_id': proj.id}, headers=client._auth)
+        response = requests.get("http://{}/v1/experiment/getExperimentsInProject".format(client._conn.socket),
+                                params={'project_id': proj.id}, headers=client._conn.auth)
         response.raise_for_status()
         assert set(expt_ids) == set(experiment['id'] for experiment in response.json()['experiments'])
 
@@ -27,8 +27,8 @@ class TestGetChildren:
         for _ in range(3):
             run_ids.append(client.set_experiment_run().id)
 
-        response = requests.get("http://{}/v1/experiment-run/getExperimentRunsInProject".format(client._socket),
-                                params={'project_id': proj.id}, headers=client._auth)
+        response = requests.get("http://{}/v1/experiment-run/getExperimentRunsInProject".format(client._conn.socket),
+                                params={'project_id': proj.id}, headers=client._conn.auth)
         response.raise_for_status()
         assert set(run_ids) == set(experiment_run['id'] for experiment_run in response.json()['experiment_runs'])
 
@@ -40,7 +40,7 @@ class TestGetChildren:
         for _ in range(3):
             run_ids.append(client.set_experiment_run().id)
 
-        response = requests.get("http://{}/v1/experiment-run/getExperimentRunsInExperiment".format(client._socket),
-                                params={'experiment_id': expt.id}, headers=client._auth)
+        response = requests.get("http://{}/v1/experiment-run/getExperimentRunsInExperiment".format(client._conn.socket),
+                                params={'experiment_id': expt.id}, headers=client._conn.auth)
         response.raise_for_status()
         assert set(run_ids) == set(experiment_run['id'] for experiment_run in response.json()['experiment_runs'])

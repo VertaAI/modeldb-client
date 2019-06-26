@@ -10,6 +10,7 @@ import sys
 
 import requests
 from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 from google.protobuf import json_format
 from google.protobuf.struct_pb2 import Value, ListValue, Struct, NULL_VALUE
@@ -26,7 +27,40 @@ _VALID_HTTP_METHODS = {'GET', 'POST', 'PUT', 'DELETE'}
 _VALID_FLAT_KEY_CHARS = set(string.ascii_letters + string.digits + '_-')
 
 
-def make_request(method, url, auth, retry, **kwargs):
+class Connection:
+    def __init__(self, scheme=None, socket=None, auth=None, max_retries=0, ignore_conn_err=False):
+        """
+        HTTP connection configuration utility struct.
+
+        Parameters
+        ----------
+        scheme : {'http', 'https'}, optional
+            HTTP authentication scheme.
+        socket : str, optional
+            Hostname and port.
+        auth : dict, optional
+            Verta authentication headers.
+        max_retries : int, default 0
+            Maximum number of times to retry a request on a connection failure. This only attempts retries
+            on HTTP codes {403, 503, 504} which commonly occur during back end connection lapses.
+        ignore_conn_err : bool, default False
+            Whether to ignore connection errors and instead return successes with empty contents.
+
+        """
+        self.scheme = scheme
+        self.socket = socket
+        self.auth = auth
+        # TODO: retry on 404s, but only if we're sure it's not legitimate e.g. from a GET
+        self.retry = Retry(total=max_retries,
+                           backoff_factor=1,  # each retry waits (2**retry_num) seconds
+                           method_whitelist=False,  # retry on all HTTP methods
+                           status_forcelist=(403, 503, 504),  # only retry on these status codes
+                           raise_on_redirect=False,  # return Response instead of raising after max retries
+                           raise_on_status=False)  # return Response instead of raising after max retries
+        self.ignore_conn_err = ignore_conn_err
+
+
+def make_request(method, url, conn, **kwargs):
     """
     Makes a REST request.
 
@@ -36,10 +70,8 @@ def make_request(method, url, auth, retry, **kwargs):
         HTTP method.
     url : str
         URL.
-    auth : dict
-        Verta authentication headers.
-    retry : urllib3.util.retry.Retry
-        Connection retry configuration.
+    conn : verta._utils.Connection
+        Connection authentication and configuration.
     **kwargs
         Parameters to requests.request().
 
@@ -51,12 +83,26 @@ def make_request(method, url, auth, retry, **kwargs):
     if method.upper() not in _VALID_HTTP_METHODS:
         raise ValueError("`method` must be one of {}".format(_VALID_HTTP_METHODS))
 
-    # add `auth` to `kwargs['headers']`
-    kwargs.setdefault('headers', {}).update(auth)
+    if conn.auth is not None:
+        # add auth to `kwargs['headers']`
+        kwargs.setdefault('headers', {}).update(conn.auth)
 
     with requests.Session() as s:
-        s.mount(url, HTTPAdapter(max_retries=retry))
-        return s.request(method, url, **kwargs)
+        s.mount(url, HTTPAdapter(max_retries=conn.retry))
+        try:
+            response = s.request(method, url, **kwargs)
+        except (requests.exceptions.BaseHTTPError,
+                requests.exceptions.RequestException) as e:
+            if not conn.ignore_conn_err:
+                raise e
+        else:
+            if response.ok or not conn.ignore_conn_err:
+                return response
+        # fabricate response
+        response = requests.Response()
+        response.status_code = 200  # success
+        response._content = six.ensure_binary("{}")  # empty contents
+        return response
 
 
 def proto_to_json(msg):
