@@ -617,6 +617,34 @@ def get_notebook_filepath():
     raise OSError("unable to find notebook file")
 
 
+def get_script_filepath():
+    """
+    Returns the filesystem path of the Python script running the Client.
+
+    This function iterates back through the call stack until it finds a non-Verta stack frame and
+    returns its filepath.
+
+    Returns
+    -------
+    str
+
+    Raises
+    ------
+    OSError
+        If the calling script cannot be identified.
+
+    """
+    for frame_info in inspect.stack():
+        module = inspect.getmodule(frame_info[0])
+        if module is None or module.__name__.split('.', 1)[0] != "verta":
+            filepath = frame_info[1]
+            if os.path.exists(filepath):  # e.g. Jupyter fakes the filename for cells
+                return filepath
+            else:
+                break  # continuing might end up returning a built-in
+    raise OSError("unable to find script file")
+
+
 def get_git_commit_hash():
     try:
         return six.ensure_str(
