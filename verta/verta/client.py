@@ -2080,9 +2080,9 @@ class ExperimentRun:
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
         return _utils.unravel_observations(response_msg.experiment_run.observations)
 
-    def log_modules_for_deployment(self, paths, search_path=None):
+    def log_modules(self, paths, search_path=None):
         """
-        Logs local Python modules to use for deployment on Verta.
+        Logs local Python modules to this Experiment Run.
 
         Parameters
         ----------
