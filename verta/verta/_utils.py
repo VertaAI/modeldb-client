@@ -1,9 +1,12 @@
 import six
+from six.moves.urllib.parse import urljoin
 
 import datetime
+import inspect
 import json
 import numbers
 import os
+import re
 import string
 import subprocess
 import sys
@@ -22,6 +25,22 @@ try:
     import pandas as pd
 except ImportError:  # pandas not installed
     pass
+
+try:
+    import ipykernel
+except ImportError:  # Jupyter not installed
+    pass
+else:
+    from IPython.display import Javascript, display
+    try:  # Python 3
+        from notebook.notebookapp import list_running_servers
+    except ImportError:  # Python 2
+        import warnings
+        from IPython.utils.shimmodule import ShimWarning
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=ShimWarning)
+            from IPython.html.notebookapp import list_running_servers
+        del warnings, ShimWarning  # remove ad hoc imports from scope
 
 
 _VALID_HTTP_METHODS = {'GET', 'POST', 'PUT', 'DELETE'}
@@ -505,6 +524,97 @@ def get_python_version():
 
     """
     return '.'.join(map(str, sys.version_info[:3]))
+
+
+def save_notebook(timeout=5):
+    """
+    Saves the current notebook on disk and returns its contents after the file has been rewritten.
+
+    Parameters
+    ----------
+    timeout : float, default 5
+        Maximum number of seconds to wait for the notebook to save.
+
+    Returns
+    -------
+    notebook_contents : file-like
+        An in-memory copy of the notebook's contents at the time this function returns. This can
+        be ignored, but is nonetheless available to minimize the risk of a race condition caused by
+        delaying the read until a later time.
+
+    Raises
+    ------
+    OSError
+        If the notebook is not saved within `timeout` seconds.
+
+    """
+    notebook_path = get_notebook_filepath()
+    modtime = os.path.getmtime(notebook_path)
+
+    display(Javascript('''
+    require(["base/js/namespace"],function(Jupyter) {
+        Jupyter.notebook.save_checkpoint();
+    });
+    '''))
+
+    # wait for file to be modified
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        new_modtime = os.path.getmtime(notebook_path)
+        if new_modtime > modtime:
+            break
+        time.sleep(0.01)
+    else:
+        raise OSError("unable to save notebook")
+
+    # wait for file to be rewritten
+    timeout -= (time.time() - start_time)  # remaining time
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        with open(notebook_path, 'r') as f:
+            contents = f.read()
+        if contents:
+            return six.StringIO(contents)
+        time.sleep(0.01)
+    else:
+        raise OSError("unable to read saved notebook")
+
+
+def get_notebook_filepath():
+    """
+    Returns the filesystem path of the Jupyter notebook running the Client.
+
+    This implementation is from https://github.com/jupyter/notebook/issues/1000#issuecomment-359875246.
+
+    Returns
+    -------
+    str
+
+    Raises
+    ------
+    OSError
+        If one of the following is true:
+            - Jupyter is not installed
+            - Client is not being called from a notebook
+            - the calling notebook cannot be identified
+
+    """
+    try:
+        connection_file = ipykernel.connect.get_connection_file()
+    except (NameError,  # Jupyter not installed
+            RuntimeError):  # not in a Notebook
+        pass
+    else:
+        kernel_id = re.search('kernel-(.*).json', connection_file).group(1)
+        for server in list_running_servers():
+            response = requests.get(urljoin(server['url'], 'api/sessions'),
+                                    params={'token': server.get('token', '')})
+            if response.ok:
+                for session in response.json():
+                    if session['kernel']['id'] == kernel_id:
+                        relative_path = session['notebook']['path']
+                        return os.path.join(server['notebook_dir'], relative_path)
+    raise OSError("unable to find notebook file")
 
 
 def get_git_commit_hash():
