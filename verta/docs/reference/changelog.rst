@@ -2,6 +2,42 @@ Release Notes
 =============
 
 
+v0.12.0 (2019-06-27)
+--------------------
+
+Backwards Incompatibilities
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+- `The dump() and load() functions have been removed from the public utils module.
+  <https://github.com/VertaAI/modeldb-client/commit/c17013d333e0a5fbbdea1d62632a7e00755a1f56>`_
+
+New Features
+^^^^^^^^^^^^
+- `implement ignore_conn_err parameter and attribute to Client
+  <https://github.com/VertaAI/modeldb-client/pull/118>`_
+- `implement log_modules() for uploading custom Python modules for deployment
+  <https://github.com/VertaAI/modeldb-client/pull/120>`_
+
+Bug Fixes
+^^^^^^^^^
+- `enable logging lists, and dictionaries with string keys, as attributes on client.set_*() to match run.log_attribute()
+  <https://github.com/VertaAI/modeldb-client/pull/113>`_
+- `simplify stack traces by suppressing contexts during handling for a remaining handful of raise statements
+  <https://github.com/VertaAI/modeldb-client/commit/886f3bb42f4e841e3d5885d8afaeb0e84cf9754e>`_
+- `add missing error message to get_observation()
+  <https://github.com/VertaAI/modeldb-client/commit/4c77343ba2a74f07b7338509ea9850b0106453bc>`_
+
+Internal Changes
+^^^^^^^^^^^^^^^^
+- `use internal Connection utility object for connection configuration
+  <https://github.com/VertaAI/modeldb-client/pull/118>`_
+- `define Artifact Store bucket names using a checksum of the artifact
+  <https://github.com/VertaAI/modeldb-client/pull/116>`_
+- `check for dataset CSV existence before wget in census-end-to-end.ipynb
+  <https://github.com/VertaAI/modeldb-client/commit/ccd7831a40624bbb90fcd8764ee5b96a36224bc2>`_
+- `expand and unify gitignores
+  <https://github.com/VertaAI/modeldb-client/pull/119>`_
+
+
 v0.11.7 (2019-06-10)
 --------------------
 
