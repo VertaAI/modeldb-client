@@ -512,6 +512,61 @@ def get_python_version():
     return '.'.join(map(str, sys.version_info[:3]))
 
 
+def get_git_commit_hash():
+    try:
+        return six.ensure_str(
+            subprocess.check_output(["git", "rev-parse", "--verify", "HEAD"])
+        ).strip()
+    except:
+        pass
+    raise OSError("unable to find git commit hash")
+
+
+def get_git_commit_dirtiness():
+    try:
+        diff_paths = six.ensure_str(
+            subprocess.check_output(["git", "status", "--porcelain"])
+        ).splitlines()
+    except:
+        pass
+    else:
+        return not all(path.startswith("??") for path in diff_paths)
+    raise OSError("unable to find git status")
+
+
+def get_git_remote_url():
+    try:
+        return six.ensure_str(
+            subprocess.check_output(["git", "ls-remote", "--get-url"])
+        ).strip()
+    except:
+        pass
+    raise OSError("unable to find git remote URL")
+
+
+def get_git_branch_name():
+    try:
+        return six.ensure_str(
+            subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"])
+        ).strip()
+    except:
+        pass
+    raise OSError("unable to find git branch name")
+
+
+def get_git_repo_root_dir():
+    try:
+        dirpath = six.ensure_str(
+            subprocess.check_output(["git", "rev-parse", "--show-toplevel"])
+        ).strip()
+    except:
+        pass
+    else:
+        # append trailing separator
+        return os.path.join(dirpath, "")
+    raise OSError("unable to find git repository root directory")
+
+
 # TODO: support pip3 and conda
 # def get_env_dependencies():
 #     """
