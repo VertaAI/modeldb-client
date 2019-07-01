@@ -1644,8 +1644,6 @@ class ExperimentRun:
             dataset.
 
         """
-        _utils.validate_flat_key(key)
-
         dataset, path_only = self._get_artifact(key)
         if path_only:
             return dataset
@@ -1819,8 +1817,6 @@ class ExperimentRun:
             Filesystem path of the model, the model object, or a bytestream representing the model.
 
         """
-        _utils.validate_flat_key(key)
-
         model, path_only = self._get_artifact(key)
         if path_only:
             return model
@@ -1907,8 +1903,6 @@ class ExperimentRun:
             Filesystem path of the image, the image object, or a bytestream representing the image.
 
         """
-        _utils.validate_flat_key(key)
-
         image, path_only = self._get_artifact(key)
         if path_only:
             return image
@@ -1977,8 +1971,6 @@ class ExperimentRun:
             artifact.
 
         """
-        _utils.validate_flat_key(key)
-
         artifact, path_only = self._get_artifact(key)
         if path_only:
             return artifact
