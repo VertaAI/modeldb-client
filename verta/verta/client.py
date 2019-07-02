@@ -6,6 +6,7 @@ import ast
 import hashlib
 import os
 import re
+import sys
 import warnings
 import zipfile
 
@@ -2072,7 +2073,7 @@ class ExperimentRun:
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
         return _utils.unravel_observations(response_msg.experiment_run.observations)
 
-    def log_modules(self, paths, search_path=None):
+    def log_modules(self, paths):
         """
         Logs local Python modules to this Experiment Run.
 
@@ -2080,45 +2081,44 @@ class ExperimentRun:
         ----------
         paths : str or list of str
             File and directory paths to include. If a directory is provided, it will be recursively
-            searched for Python files.
-        search_path : str, optional
-            The path at which Deployment Service will start searching for module files. For example,
-            this is what one would append to ``$PYTHONPATH`` or ``sys.path``. If not provided, it will
-            default to the deepest common directory between `paths` and the current directory.
+            searched for Python files. Must follow the same structure that would be done for
+            imports. The path must be importable.
 
         """
         if isinstance(paths, six.string_types):
             paths = [paths]
 
-        # convert into absolute paths
-        paths = map(os.path.abspath, paths)
         # add trailing separator to directories
         paths = [os.path.join(path, "") if os.path.isdir(path) else path
                  for path in paths]
 
-        if search_path is None:
-            # obtain deepest common directory
-            curr_dir = os.path.join(os.path.abspath(os.curdir), "")
-            paths_plus = paths + [curr_dir]
-            common_prefix = os.path.commonprefix(paths_plus)
-            search_path = os.path.dirname(common_prefix)
-        else:
-            # convert into absolute path
-            search_path = os.path.abspath(search_path)
+        # For each path given, search among the possible sources of such import for a match.
+        # It also assumes that only one match will happen. Multiple matches would lead to multiple
+        # possible matches for `import`, which leads to weird behavior.
+        # TODO: consider including better logic for multiple matches.
+        def find_paths():
+            for path in paths:
+                for base in filter(lambda p: p != '', sys.path):
+                    joint_path = os.path.join(base, path)
+                    if os.path.exists(joint_path):
+                        yield joint_path, base
+                        break
+                else:
+                    raise ValueError('Could not find path "%s" among the possible imports' % path)
 
         bytestream = six.BytesIO()
         with zipfile.ZipFile(bytestream, 'w') as zipf:
-            for path in paths:
+            for path, base in find_paths():
                 if os.path.isdir(path):
                     for root, _, subpaths in os.walk(path):
                         for subpath in subpaths:
                             if os.path.splitext(subpath)[1].startswith(".py"):
                                 module_filepath = os.path.join(root, subpath)
                                 zipf.write(module_filepath,
-                                           os.path.relpath(module_filepath, search_path))
+                                           os.path.relpath(module_filepath, base))
                 else:
                     module_filepath = path
                     zipf.write(module_filepath,
-                                os.path.relpath(module_filepath, search_path))
+                                os.path.relpath(module_filepath, base))
 
         self._log_artifact("custom_modules", bytestream, _CommonService.ArtifactTypeEnum.BLOB)
