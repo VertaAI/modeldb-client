@@ -58,6 +58,8 @@ class ModelAPI:
     def _data_to_api(data, name=""):
         if hasattr(data, 'iloc'):  # if pandas
             if hasattr(data, 'columns'):  # if DataFrame
+                if len(set(data.columns)) < len(data.columns):
+                    raise ValueError("column names must all be unique")
                 return {'type': "VertaList",
                         'name': name,
                         'value': [ModelAPI._data_to_api(data[name], str(name)) for name in data.columns]}
