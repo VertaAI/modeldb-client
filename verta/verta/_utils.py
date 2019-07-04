@@ -105,6 +105,48 @@ def make_request(method, url, conn, **kwargs):
         return response
 
 
+def find_filepaths(paths, extensions, include_hidden=False):
+    """
+    Unravels a list of file and directory paths into a list of only filepaths by walking through the
+    directories.
+
+    Parameters
+    ----------
+    paths : str or list of str
+        File and directory paths.
+    extensions : str or list of str
+        What files to include while walking through directories.
+    include_hidden : bool, default False
+        Whether to include hidden files and subdirectories found while walking through directories.
+
+    """
+    if isinstance(paths, six.string_types):
+        paths = [paths]
+    # convert into absolute paths
+    paths = map(os.path.abspath, paths)
+
+    if isinstance(extensions, six.string_types):
+        extensions = [extensions]
+    # prepend period to file extensions where missing
+    extensions = map(lambda ext: ext if ext.startswith('.') else ".{}".format(ext), extensions)
+    extensions = set(extensions)
+
+    filepaths = []
+    for path in paths:
+        if os.path.isdir(path):
+            for root, _, subpaths in os.walk(path):
+                if os.path.basename(root).startswith('.') and not include_hidden:
+                    continue
+                for subpath in subpaths:
+                    if os.path.basename(subpath).startswith('.') and not include_hidden:
+                        continue
+                    if os.path.splitext(subpath)[1] in extensions:
+                        filepaths.append(os.path.join(root, subpath))
+        else:
+            filepaths.append(path)
+    return filepaths
+
+
 def proto_to_json(msg):
     """
     Converts a `protobuf` `Message` object into a JSON-compliant dictionary.
