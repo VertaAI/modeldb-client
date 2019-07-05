@@ -2106,19 +2106,11 @@ class ExperimentRun:
             # convert into absolute path
             search_path = os.path.abspath(search_path)
 
+        filepaths = _utils.find_filepaths(paths, (".py", ".pyc", ".pyo"))
+
         bytestream = six.BytesIO()
         with zipfile.ZipFile(bytestream, 'w') as zipf:
-            for path in paths:
-                if os.path.isdir(path):
-                    for root, _, subpaths in os.walk(path):
-                        for subpath in subpaths:
-                            if os.path.splitext(subpath)[1].startswith(".py"):
-                                module_filepath = os.path.join(root, subpath)
-                                zipf.write(module_filepath,
-                                           os.path.relpath(module_filepath, search_path))
-                else:
-                    module_filepath = path
-                    zipf.write(module_filepath,
-                                os.path.relpath(module_filepath, search_path))
+            for filepath in filepaths:
+                zipf.write(filepath, os.path.relpath(filepath, search_path))
 
         self._log_artifact("custom_modules", bytestream, _CommonService.ArtifactTypeEnum.BLOB)
