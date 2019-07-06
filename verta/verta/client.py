@@ -6,6 +6,7 @@ import ast
 import hashlib
 import os
 import re
+import time
 import warnings
 import zipfile
 
@@ -1019,7 +1020,7 @@ class ExperimentRun:
         else:
             response.raise_for_status()
 
-    def _get_url_for_artifact(self, key, method):
+    def _get_url_for_artifact(self, key, method, artifact_type=0):
         """
         Obtains a URL to use for accessing stored artifacts.
 
@@ -1029,6 +1030,9 @@ class ExperimentRun:
             Name of the artifact.
         method : {'GET', 'PUT'}
             HTTP method to request for the generated URL.
+        artifact_type : int, optional
+            Variant of `_CommonService.ArtifactTypeEnum`. This informs the backend what slot to check
+            for the artifact, if necessary.
 
         Returns
         -------
@@ -1040,7 +1044,7 @@ class ExperimentRun:
             raise ValueError("`method` must be one of {'GET', 'PUT'}")
 
         Message = _ExperimentRunService.GetUrlForArtifact
-        msg = Message(id=self.id, key=key, method=method.upper())
+        msg = Message(id=self.id, key=key, method=method.upper(), artifact_type=artifact_type)
         data = _utils.proto_to_json(msg)
         response = _utils.make_request("POST",
                                        "{}://{}/v1/experiment-run/getUrlForArtifact".format(self._conn.scheme, self._conn.socket),
@@ -2149,3 +2153,166 @@ class ExperimentRun:
                 zipf.write(filepath, os.path.relpath(filepath, search_path))
 
         self._log_artifact("custom_modules", bytestream, _CommonService.ArtifactTypeEnum.BLOB, 'zip')
+
+    def log_code(self, paths=None, find_git=False, remote_url=None, commit_hash=None):
+        """
+        Logs the code version to this Experiment Run.
+
+        A code version is either information about a Git snapshot or a bundle of Python source code
+        files.
+
+        Parameters
+        ----------
+        paths : str, optional
+            Python script or Jupyter notebook filepath. If no filepath is provided, the Client will
+            make its best effort to find the script/notebook file that is calling this function.
+        find_git : bool, default False
+            Whether or not to attempt to obtain information from the current local git repository.
+        remote_url : str, optional
+            URL for a remote Git repository containing `commit_hash`. If no URL is provided and
+            `find_git` is ``True``, the Client will make its best effort to find it.
+        commit_hash : str, optional
+            Git commit hash associated with this code version. If no hash is provided and `find_git`
+            is ``True``, the Client will make its best effort to find it.
+
+        Examples
+        --------
+        Upload the currently executing notebook/script:
+
+        >>> run.log_code()
+
+        Upload a specific source code file:
+
+        >>> run.log_code("../trainer/training_pipeline.py")
+
+        Log the location of the currently executing notebook/script relative to the Git repository
+        root plus snapshot information:
+
+        >>> run.log_code(find_git=True)
+
+        """
+        if paths is None:
+            # find dynamically
+            try:
+                paths = [_utils.get_notebook_filepath()]
+            except OSError:  # notebook not found
+                try:
+                    paths = [_utils.get_script_filepath()]
+                except OSError:  # script not found
+                    print("unable to find code file; skipping")
+        elif isinstance(paths, six.string_types):
+            paths = [paths]
+
+        msg = _ExperimentRunService.LogExperimentRunCodeVersion(id=self.id)
+        if find_git or commit_hash is not None or remote_url is not None:
+            if find_git:
+                # adjust paths to be relative to repo root
+                repo_root = _utils.get_git_repo_root_dir()
+                paths = [os.path.relpath(path, repo_root)
+                         for path in paths]
+                # append trailing separator to directories
+                paths = [os.path.join(path, "") if os.path.isdir(path) else path
+                         for path in paths]
+            msg.code_version.git_snapshot.filepaths.extend(paths)
+
+            try:
+                msg.code_version.git_snapshot.repo = remote_url or (_utils.get_git_remote_url() if find_git else "")
+            except OSError as e:
+                print("{}; skipping".format(e))
+
+            try:
+                msg.code_version.git_snapshot.hash = commit_hash or (_utils.get_git_commit_hash() if find_git else "")
+            except OSError as e:
+                print("{}; skipping".format(e))
+
+            try:
+                # TODO: if `commit_hash` is not the current one, it's dirty
+                msg.code_version.git_snapshot.is_dirty = _utils.get_git_commit_dirtiness() if find_git else False
+            except OSError as e:
+                print("{}; skipping".format(e))
+        else:  # log code as Artifact
+            # get filepaths
+            paths = _utils.find_filepaths(paths, (".py", ".pyc", ".pyo", ".ipynb"))
+
+            if len(paths) > 1:  # TODO: remove when Web App supports multiple files
+                raise ValueError("only a single code file is currently supported")
+
+            # obtain deepest common directory
+            #     ZipFile.write() completely drops "../" path components,
+            #     so we need to resolve them by finding a common subpath to start at
+            curr_dir = os.path.join(os.path.abspath(os.curdir), "")
+            paths_plus = paths + [curr_dir]
+            common_prefix = os.path.commonprefix(paths_plus)
+            common_dir = os.path.dirname(common_prefix)
+
+            # write ZIP archive
+            zipstream = six.BytesIO()
+            with zipfile.ZipFile(zipstream, 'w') as zipf:
+                for path in paths:
+                    # TODO: save notebook
+                    zipf.write(path, os.path.relpath(path, common_dir))
+
+            msg.code_version.code_archive.path = hashlib.sha256(zipstream.read()).hexdigest()
+            zipstream.seek(0)
+            msg.code_version.code_archive.path_only = False
+            msg.code_version.code_archive.artifact_type = _CommonService.ArtifactTypeEnum.CODE
+            msg.code_version.code_archive.filename_extension = 'zip'
+        # TODO: check if we actually have any loggable information
+        msg.code_version.date_logged = _utils.now()
+
+        data = _utils.proto_to_json(msg)
+        response = _utils.make_request("POST",
+                                        "{}://{}/v1/experiment-run/logExperimentRunCodeVersion".format(self._conn.scheme, self._conn.socket),
+                                        self._conn, json=data)
+        if not response.ok:
+            if response.status_code == 409:
+                raise ValueError("a code version has already been logged to this Experiment Run")
+            else:
+                response.raise_for_status()
+
+        if msg.code_version.WhichOneof("code") == 'code_archive':
+            # upload artifact to artifact store
+            url = self._get_url_for_artifact("verta_code_archive", "PUT", msg.code_version.code_archive.artifact_type)
+            response = _utils.make_request("PUT", url, self._conn, data=zipstream)
+            response.raise_for_status()
+
+    def get_code(self):
+        """
+        Gets the code version from this Experiment Run.
+
+        Returns
+        -------
+        dict or zipfile.ZipFile
+            Either:
+                - a dictionary containing Git snapshot information with the following items:
+                    - **filepaths** (*list of str*)
+                    - **repo** (*str*) – Remote repository URL
+                    - **hash** (*str*) – Commit hash
+                    - **is_dirty** (*bool*)
+                - a `ZipFile <https://docs.python.org/3/library/zipfile.html#zipfile.ZipFile>`_
+                  containing Python source code files
+
+        """
+        Message = _ExperimentRunService.GetExperimentRunCodeVersion
+        msg = Message(id=self.id)
+        data = _utils.proto_to_json(msg)
+        response = _utils.make_request("GET",
+                                        "{}://{}/v1/experiment-run/getExperimentRunCodeVersion".format(self._conn.scheme, self._conn.socket),
+                                        self._conn, params=data)
+        response.raise_for_status()
+
+        response_msg = _utils.json_to_proto(response.json(), Message.Response)
+        code_ver_msg = response_msg.code_version
+        which_code = code_ver_msg.WhichOneof('code')
+        if which_code == 'git_snapshot':
+            return _utils.proto_to_json(code_ver_msg.git_snapshot)
+        elif which_code == 'code_archive':
+            # download artifact from artifact store
+            url = self._get_url_for_artifact("verta_code_archive", "GET", code_ver_msg.code_archive.artifact_type)
+            response = _utils.make_request("GET", url, self._conn)
+            response.raise_for_status()
+
+            code_archive = six.BytesIO(response.content)
+            return zipfile.ZipFile(code_archive, 'r')  # TODO: return a util class instead, maybe
+        else:
+            raise RuntimeError("unable find code in response")

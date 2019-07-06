@@ -148,7 +148,7 @@ def find_filepaths(paths, extensions, include_hidden=False):
     if isinstance(extensions, six.string_types):
         extensions = [extensions]
     # prepend period to file extensions where missing
-    extensions = map(lambda ext: ext if ext.startswith('.') else ".{}".format(ext), extensions)
+    extensions = map(lambda ext: ext if ext.startswith('.') else ('.' + ext), extensions)
     extensions = set(extensions)
 
     filepaths = []
