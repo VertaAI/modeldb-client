@@ -2241,7 +2241,7 @@ class ExperimentRun:
             #     ZipFile.write() completely drops "../" path components,
             #     so we need to resolve them by finding a common subpath to start at
             curr_dir = os.path.join(os.path.abspath(os.curdir), "")
-            paths_plus = paths + [curr_dir]
+            paths_plus = list(map(os.path.abspath, paths)) + [curr_dir]
             common_prefix = os.path.commonprefix(paths_plus)
             common_dir = os.path.dirname(common_prefix)
 
