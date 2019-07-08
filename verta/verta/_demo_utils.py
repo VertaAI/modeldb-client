@@ -87,11 +87,9 @@ class DeployedModel:
         if self._input_headers is None:
             self._set_input_headers()
 
-        input_body = {
-            'token': self._prediction_token,
-            'data': json.dumps(x)
-        }
-        result = requests.post(self._prediction_url, data=input_body)
+        result = requests.post(self._prediction_url,
+                               headers={'Access-token': self._prediction_token},
+                               json=x)
 
         if return_input_body:
             return result, input_body
