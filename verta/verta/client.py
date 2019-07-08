@@ -1727,8 +1727,8 @@ class ExperimentRun:
             _artifact_utils.reset_stream(requirements)  # reset cursor to beginning as a courtesy
             for req_dep in req_deps:
                 if req_dep.startswith("cloudpickle"):  # if present, check version
-                    our_ver = cloudpickle_dep.lstrip("cloudpickle==")
-                    their_ver = req_dep.lstrip("cloudpickle==")
+                    our_ver = cloudpickle_dep.split('==')[-1]
+                    their_ver = req_dep.split('==')[-1]
                     if our_ver != their_ver:  # versions conflict, so raise exception
                         raise ValueError("Client is running with cloudpickle v{}, but the provided requirements specify v{}; "
                                          "these must match".format(our_ver, their_ver))
