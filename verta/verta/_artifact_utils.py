@@ -59,6 +59,31 @@ def get_file_ext(file):
         return extension
 
 
+def ext_from_method(method):
+    """
+    Returns an appropriate file extension for a given model serialization method.
+
+    Parameters
+    ----------
+    method : str
+        The return value of `method` from ``serialize_model()``.
+
+    Returns
+    -------
+    str or None
+        Filename extension without the leading period.
+
+    """
+    if method ==  "keras":
+        return 'hdf5'
+    elif method in ("joblib", "cloudpickle", "pickle"):
+        return 'pkl'
+    elif method is None:
+        return None
+    else:
+        raise ValueError("unrecognized method value: {}".format(method))
+
+
 def reset_stream(stream):
     """
     Resets the cursor of a stream to the beginning.
