@@ -3,6 +3,7 @@ import six.moves.cPickle as pickle
 
 import csv
 import json
+import os
 
 import cloudpickle
 
@@ -17,6 +18,45 @@ try:
     from tensorflow import keras
 except ImportError:  # TensorFlow not installed
     pass
+
+
+def get_file_ext(file):
+    """
+    Obtain the filename extension of `file`.
+
+    Parameters
+    ----------
+    file : str or file handle
+        Filepath or on-disk file stream.
+
+    Returns
+    -------
+    str
+        Filename extension without the leading period.
+
+    Raises
+    ------
+    TypeError
+        If a filepath cannot be obtained from the argument.
+    ValueError
+        If the filepath lacks an extension.
+
+    """
+    if isinstance(file, six.string_types):
+        filepath = file
+    elif hasattr(file, 'read') and hasattr(file, 'name'):  # `open()` object
+        filepath = file.name
+    else:
+        raise TypeError("unable to obtain filepath from object of type {}".format(type(file)))
+
+    filename = os.path.basename(filepath).lstrip('.')
+    try:
+        _, extension = filename.split(os.extsep, 1)
+    except ValueError:
+        six.raise_from(ValueError("no extension found in \"{}\"".format(filepath)),
+                       None)
+    else:
+        return extension
 
 
 def reset_stream(stream):
