@@ -171,7 +171,7 @@ def serialize_model(model):
             reset_stream(model)  # reset cursor to beginning in case user forgot
             model = deserialize_model(model.read())
         except pickle.UnpicklingError:  # unrecognized model
-            bytestream = ensure_bytestream(model)  # pass along file-like
+            bytestream, _ = ensure_bytestream(model)  # pass along file-like
             method = None
             model_type = "custom"
         finally:
