@@ -1,12 +1,13 @@
 import six
 
-from datetime import datetime
+import datetime
 import json
 import numbers
 import os
 import string
 import subprocess
 import sys
+import time
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -501,7 +502,7 @@ def timestamp_to_str(timestamp):
 
     """
     num_digits = len(str(timestamp))
-    return str(datetime.fromtimestamp(timestamp*10**(10 - num_digits)))
+    return str(datetime.datetime.fromtimestamp(timestamp*10**(10 - num_digits)))
 
 
 def now():
