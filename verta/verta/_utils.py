@@ -1,12 +1,13 @@
 import six
 
-from datetime import datetime
+import datetime
 import json
 import numbers
 import os
 import string
 import subprocess
 import sys
+import time
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -404,27 +405,7 @@ def generate_default_name():
         String generated from the current process ID and Unix timestamp.
 
     """
-    return "{}{}".format(os.getpid(), str(to_timestamp(datetime.now())).replace('.', ''))
-
-
-def to_timestamp(dt):
-    """
-    Converts a datetime instance into a Unix timestamp.
-
-    Equivalent to Python 3's ``dt.timestamp()`` on a naive datetime instance.
-
-    Parameters
-    ----------
-    dt : datetime.datetime
-        datetime instance.
-
-    Returns
-    -------
-    float
-        Unix timestamp.
-
-    """
-    return (dt - datetime.fromtimestamp(0)).total_seconds()
+    return "{}{}".format(os.getpid(), str(time.time()).replace('.', ''))
 
 
 def timestamp_to_ms(timestamp):
@@ -470,12 +451,8 @@ def ensure_timestamp(timestamp):
         try:  # attempt with pandas, which can parse many time string formats
             return timestamp_to_ms(pd.Timestamp(timestamp).timestamp())
         except NameError:  # pandas not installed
-            try:  # fall back on std lib, and parse as ISO 8601
-                timestamp_to_ms(to_timestamp(datetime.fromisoformat(timestamp)))
-            except ValueError:
-                six.raise_from(ValueError("`timestamp` must be in ISO 8601 format,"
-                                          " e.g. \"2017-10-30T00:44:16+00:00\""),
-                               None)
+            six.raise_from(ValueError("pandas must be installed to parse datetime strings"),
+                           None)
         except ValueError:  # can't be handled by pandas
             six.raise_from(ValueError("unable to parse datetime string \"{}\"".format(timestamp)),
                            None)
@@ -501,7 +478,7 @@ def timestamp_to_str(timestamp):
 
     """
     num_digits = len(str(timestamp))
-    return str(datetime.fromtimestamp(timestamp*10**(10 - num_digits)))
+    return str(datetime.datetime.fromtimestamp(timestamp*10**(10 - num_digits)))
 
 
 def now():
@@ -514,7 +491,7 @@ def now():
         Current Unix timestamp in milliseconds.
 
     """
-    return timestamp_to_ms(to_timestamp(datetime.now()))
+    return timestamp_to_ms(time.time())
 
 
 def get_python_version():
