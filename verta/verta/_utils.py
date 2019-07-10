@@ -471,12 +471,8 @@ def ensure_timestamp(timestamp):
         try:  # attempt with pandas, which can parse many time string formats
             return timestamp_to_ms(pd.Timestamp(timestamp).timestamp())
         except NameError:  # pandas not installed
-            try:  # fall back on std lib, and parse as ISO 8601
-                timestamp_to_ms(to_timestamp(datetime.fromisoformat(timestamp)))
-            except ValueError:
-                six.raise_from(ValueError("`timestamp` must be in ISO 8601 format,"
-                                          " e.g. \"2017-10-30T00:44:16+00:00\""),
-                               None)
+            six.raise_from(ValueError("pandas must be installed to parse datetime strings"),
+                           None)
         except ValueError:  # can't be handled by pandas
             six.raise_from(ValueError("unable to parse datetime string \"{}\"".format(timestamp)),
                            None)
