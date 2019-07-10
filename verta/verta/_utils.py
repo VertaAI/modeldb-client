@@ -405,27 +405,7 @@ def generate_default_name():
         String generated from the current process ID and Unix timestamp.
 
     """
-    return "{}{}".format(os.getpid(), str(to_timestamp(datetime.now())).replace('.', ''))
-
-
-def to_timestamp(dt):
-    """
-    Converts a datetime instance into a Unix timestamp.
-
-    Equivalent to Python 3's ``dt.timestamp()`` on a naive datetime instance.
-
-    Parameters
-    ----------
-    dt : datetime.datetime
-        datetime instance.
-
-    Returns
-    -------
-    float
-        Unix timestamp.
-
-    """
-    return (dt - datetime.fromtimestamp(0)).total_seconds()
+    return "{}{}".format(os.getpid(), str(time.time()).replace('.', ''))
 
 
 def timestamp_to_ms(timestamp):
@@ -511,7 +491,7 @@ def now():
         Current Unix timestamp in milliseconds.
 
     """
-    return timestamp_to_ms(to_timestamp(datetime.now()))
+    return timestamp_to_ms(time.time())
 
 
 def get_python_version():
