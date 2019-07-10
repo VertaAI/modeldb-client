@@ -2151,6 +2151,7 @@ class ExperimentRun:
         with zipfile.ZipFile(bytestream, 'w') as zipf:
             for filepath in filepaths:
                 zipf.write(filepath, os.path.relpath(filepath, search_path))
+        bytestream.seek(0)
 
         self._log_artifact("custom_modules", bytestream, _CommonService.ArtifactTypeEnum.BLOB, 'zip')
 
@@ -2251,6 +2252,7 @@ class ExperimentRun:
                 for path in paths:
                     # TODO: save notebook
                     zipf.write(path, os.path.relpath(path, common_dir))
+            zipstream.seek(0)
 
             msg.code_version.code_archive.path = hashlib.sha256(zipstream.read()).hexdigest()
             zipstream.seek(0)
