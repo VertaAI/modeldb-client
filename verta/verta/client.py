@@ -603,12 +603,12 @@ class ExperimentRuns:
     0.8921755939794525
 
     """
-    _OP_MAP = {'==': _ExperimentRunService.OperatorEnum.EQ,
-               '!=': _ExperimentRunService.OperatorEnum.NE,
-               '>':  _ExperimentRunService.OperatorEnum.GT,
-               '>=': _ExperimentRunService.OperatorEnum.GTE,
-               '<':  _ExperimentRunService.OperatorEnum.LT,
-               '<=': _ExperimentRunService.OperatorEnum.LTE}
+    _OP_MAP = {'==': _CommonService.OperatorEnum.EQ,
+               '!=': _CommonService.OperatorEnum.NE,
+               '>':  _CommonService.OperatorEnum.GT,
+               '>=': _CommonService.OperatorEnum.GTE,
+               '<':  _CommonService.OperatorEnum.LT,
+               '<=': _CommonService.OperatorEnum.LTE}
     _OP_PATTERN = re.compile(r"({})".format('|'.join(sorted(six.viewkeys(_OP_MAP), key=lambda s: len(s), reverse=True))))
 
     def __init__(self, conn, expt_run_ids=None):
@@ -709,7 +709,7 @@ class ExperimentRuns:
             else:
                 raise ValueError("value `{}` must be a number or string literal".format(value))
 
-            predicates.append(_ExperimentRunService.KeyValueQuery(key=key, value=_utils.python_to_val_proto(value),
+            predicates.append(_CommonService.KeyValueQuery(key=key, value=_utils.python_to_val_proto(value),
                                                                   operator=operator))
         Message = _ExperimentRunService.FindExperimentRuns
         msg = Message(project_id=_proj_id, experiment_id=_expt_id, experiment_run_ids=expt_run_ids,
