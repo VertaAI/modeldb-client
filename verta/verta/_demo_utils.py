@@ -88,7 +88,10 @@ class DeployedModel:
             self._set_input_headers()
 
         result = requests.post(self._prediction_url,
-                               headers={'Access-token': self._prediction_token},
+                               headers={
+                                   'Access-token': self._prediction_token,
+                                   'Content-length': len(json.dumps(x).encode('utf-8')),
+                               },
                                json=x)
 
         if return_input_body:
