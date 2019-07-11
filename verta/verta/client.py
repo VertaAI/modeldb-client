@@ -2228,11 +2228,14 @@ class ExperimentRun:
             except OSError as e:
                 print("{}; skipping".format(e))
 
-            try:
-                # TODO: if `commit_hash` is not the current one, it's dirty
-                msg.code_version.git_snapshot.is_dirty = _utils.get_git_commit_dirtiness() if use_git else False
-            except OSError as e:
-                print("{}; skipping".format(e))
+            if use_git:
+                try:
+                    # TODO: if `commit_hash` is not the current one, it's dirty
+                    is_dirty = _utils.get_git_commit_dirtiness()
+                except OSError as e:
+                    print("{}; skipping".format(e))
+                else:
+                    msg.code_version.git_snapshot.is_dirty = _CommonService.TernaryEnum.TRUE if is_dirty else _CommonService.TernaryEnum.FALSE
         else:  # log code as Artifact
             # get filepaths
             paths = _utils.find_filepaths(paths, (".py", ".pyc", ".pyo", ".ipynb"))
@@ -2312,7 +2315,17 @@ class ExperimentRun:
         code_ver_msg = response_msg.code_version
         which_code = code_ver_msg.WhichOneof('code')
         if which_code == 'git_snapshot':
-            return _utils.proto_to_json(code_ver_msg.git_snapshot)
+            git_snapshot_msg = code_ver_msg.git_snapshot
+            git_snapshot = {}
+            if git_snapshot_msg.filepaths:
+                git_snapshot['filepaths'] = git_snapshot_msg.filepaths
+            if git_snapshot_msg.repo:
+                git_snapshot['remote_url'] = git_snapshot_msg.repo
+            if git_snapshot_msg.hash:
+                git_snapshot['commit_hash'] = git_snapshot_msg.hash
+                if git_snapshot_msg.is_dirty != _CommonService.TernaryEnum.UNKNOWN:
+                    git_snapshot['is_dirty'] = git_snapshot_msg.is_dirty == _CommonService.TernaryEnum.TRUE
+            return git_snapshot
         elif which_code == 'code_archive':
             # download artifact from artifact store
             url = self._get_url_for_artifact("verta_code_archive", "GET", code_ver_msg.code_archive.artifact_type)
