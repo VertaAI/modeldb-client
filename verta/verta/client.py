@@ -2155,7 +2155,7 @@ class ExperimentRun:
 
         self._log_artifact("custom_modules", bytestream, _CommonService.ArtifactTypeEnum.BLOB, 'zip')
 
-    def log_code(self, paths=None, find_git=False, remote_url=None, commit_hash=None):
+    def log_code(self, paths=None, use_git=False, remote_url=None, commit_hash=None):
         """
         Logs the code version to this Experiment Run.
 
@@ -2167,13 +2167,13 @@ class ExperimentRun:
         paths : str, optional
             Python script or Jupyter notebook filepath. If no filepath is provided, the Client will
             make its best effort to find the script/notebook file that is calling this function.
-        find_git : bool, default False
-            Whether or not to attempt to obtain information from the current local git repository.
+        use_git : bool, default False
+            Whether to attempt to find and use information from the current local git repository.
         remote_url : str, optional
             URL for a remote Git repository containing `commit_hash`. If no URL is provided and
-            `find_git` is ``True``, the Client will make its best effort to find it.
+            `use_git` is ``True``, the Client will make its best effort to find it.
         commit_hash : str, optional
-            Git commit hash associated with this code version. If no hash is provided and `find_git`
+            Git commit hash associated with this code version. If no hash is provided and `use_git`
             is ``True``, the Client will make its best effort to find it.
 
         Examples
@@ -2189,7 +2189,7 @@ class ExperimentRun:
         Log the location of the currently executing notebook/script relative to the Git repository
         root plus snapshot information:
 
-        >>> run.log_code(find_git=True)
+        >>> run.log_code(use_git=True)
 
         """
         if paths is None:
@@ -2205,8 +2205,8 @@ class ExperimentRun:
             paths = [paths]
 
         msg = _ExperimentRunService.LogExperimentRunCodeVersion(id=self.id)
-        if find_git or commit_hash is not None or remote_url is not None:
-            if find_git:
+        if use_git or commit_hash is not None or remote_url is not None:
+            if use_git:
                 # adjust paths to be relative to repo root
                 repo_root = _utils.get_git_repo_root_dir()
                 paths = [os.path.relpath(path, repo_root)
@@ -2217,18 +2217,18 @@ class ExperimentRun:
             msg.code_version.git_snapshot.filepaths.extend(paths)
 
             try:
-                msg.code_version.git_snapshot.repo = remote_url or (_utils.get_git_remote_url() if find_git else "")
+                msg.code_version.git_snapshot.repo = remote_url or (_utils.get_git_remote_url() if use_git else "")
             except OSError as e:
                 print("{}; skipping".format(e))
 
             try:
-                msg.code_version.git_snapshot.hash = commit_hash or (_utils.get_git_commit_hash() if find_git else "")
+                msg.code_version.git_snapshot.hash = commit_hash or (_utils.get_git_commit_hash() if use_git else "")
             except OSError as e:
                 print("{}; skipping".format(e))
 
             try:
                 # TODO: if `commit_hash` is not the current one, it's dirty
-                msg.code_version.git_snapshot.is_dirty = _utils.get_git_commit_dirtiness() if find_git else False
+                msg.code_version.git_snapshot.is_dirty = _utils.get_git_commit_dirtiness() if use_git else False
             except OSError as e:
                 print("{}; skipping".format(e))
         else:  # log code as Artifact
