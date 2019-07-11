@@ -2160,7 +2160,8 @@ class ExperimentRun:
         Logs the code version to this Experiment Run.
 
         A code version is either information about a Git snapshot or a bundle of Python source code
-        files.
+        files. If `find_git` is ``True``—or `remote_url` or `commit_hash` are assigned values—then
+        this function will log a Git snapshot. Otherwise, it will log Python source code files.
 
         Parameters
         ----------
@@ -2212,6 +2213,7 @@ class ExperimentRun:
                 paths = [os.path.relpath(path, repo_root)
                          for path in paths]
                 # append trailing separator to directories
+                #     This is necessary for the `os.path.commonprefix()` part later to work properly.
                 paths = [os.path.join(path, "") if os.path.isdir(path) else path
                          for path in paths]
             msg.code_version.git_snapshot.filepaths.extend(paths)
@@ -2240,9 +2242,12 @@ class ExperimentRun:
 
             # obtain deepest common directory
             #     ZipFile.write() completely drops "../" path components,
-            #     so we need to resolve them by finding a common subpath to start at
+            #     so we need to resolve them by finding a common subpath to start at.
             curr_dir = os.path.join(os.path.abspath(os.curdir), "")
             paths_plus = list(map(os.path.abspath, paths)) + [curr_dir]
+            #     `commonprefix()` works character by character; if the first few characters of two
+            #     different files are the same, `commonprefix()` will keep it. Therefore we have to
+            #     get the actual `dirname()` of the common prefix.
             common_prefix = os.path.commonprefix(paths_plus)
             common_dir = os.path.dirname(common_prefix)
 
