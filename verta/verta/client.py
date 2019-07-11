@@ -603,12 +603,12 @@ class ExperimentRuns:
     0.8921755939794525
 
     """
-    _OP_MAP = {'==': _ExperimentRunService.OperatorEnum.EQ,
-               '!=': _ExperimentRunService.OperatorEnum.NE,
-               '>':  _ExperimentRunService.OperatorEnum.GT,
-               '>=': _ExperimentRunService.OperatorEnum.GTE,
-               '<':  _ExperimentRunService.OperatorEnum.LT,
-               '<=': _ExperimentRunService.OperatorEnum.LTE}
+    _OP_MAP = {'==': _CommonService.OperatorEnum.EQ,
+               '!=': _CommonService.OperatorEnum.NE,
+               '>':  _CommonService.OperatorEnum.GT,
+               '>=': _CommonService.OperatorEnum.GTE,
+               '<':  _CommonService.OperatorEnum.LT,
+               '<=': _CommonService.OperatorEnum.LTE}
     _OP_PATTERN = re.compile(r"({})".format('|'.join(sorted(six.viewkeys(_OP_MAP), key=lambda s: len(s), reverse=True))))
 
     def __init__(self, conn, expt_run_ids=None):
@@ -709,7 +709,7 @@ class ExperimentRuns:
             else:
                 raise ValueError("value `{}` must be a number or string literal".format(value))
 
-            predicates.append(_ExperimentRunService.KeyValueQuery(key=key, value=_utils.python_to_val_proto(value),
+            predicates.append(_CommonService.KeyValueQuery(key=key, value=_utils.python_to_val_proto(value),
                                                                   operator=operator))
         Message = _ExperimentRunService.FindExperimentRuns
         msg = Message(project_id=_proj_id, experiment_id=_expt_id, experiment_run_ids=expt_run_ids,
@@ -1051,7 +1051,7 @@ class ExperimentRun:
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
         return response_msg.url
 
-    def _log_artifact(self, key, artifact, artifact_type):
+    def _log_artifact(self, key, artifact, artifact_type, extension=None):
         """
         Logs an artifact to this Experiment Run.
 
@@ -1067,6 +1067,8 @@ class ExperimentRun:
                 - Otherwise, the object will be serialized and uploaded as an artifact.
         artifact_type : int
             Variant of `_CommonService.ArtifactTypeEnum`.
+        extension : str, optional
+            Filename extension associated with the artifact.
 
         """
         basename = key
@@ -1074,16 +1076,23 @@ class ExperimentRun:
             basename = os.path.basename(artifact)
             artifact = open(artifact, 'rb')
 
-        data_stream, _ = _artifact_utils.ensure_bytestream(artifact)
-        data_hash = hashlib.sha256(data_stream.read()).hexdigest()
-        artifact_path = os.path.join(data_hash, basename)
+        artifact_stream, method = _artifact_utils.ensure_bytestream(artifact)
+
+        if extension is None:
+            extension = _artifact_utils.ext_from_method(method)
+
+        # obtain checksum for upload bucket
+        artifact_hash = hashlib.sha256(artifact_stream.read()).hexdigest()
+        artifact_stream.seek(0)
+        artifact_path = os.path.join(artifact_hash, basename)
 
         # log key to ModelDB
         Message = _ExperimentRunService.LogArtifact
         artifact_msg = _CommonService.Artifact(key=key,
                                                path=artifact_path,
                                                path_only=False,
-                                               artifact_type=artifact_type)
+                                               artifact_type=artifact_type,
+                                               filename_extension=extension)
         msg = Message(id=self.id, artifact=artifact_msg)
         data = _utils.proto_to_json(msg)
         response = _utils.make_request("POST",
@@ -1098,7 +1107,7 @@ class ExperimentRun:
 
         # upload artifact to artifact store
         url = self._get_url_for_artifact(key, "PUT")
-        artifact_stream, _ = _artifact_utils.ensure_bytestream(artifact)
+        artifact_stream.seek(0)  # reuse stream that was created for checksum
         response = _utils.make_request("PUT", url, self._conn, data=artifact_stream)
         response.raise_for_status()
 
@@ -1603,7 +1612,12 @@ class ExperimentRun:
         """
         _utils.validate_flat_key(key)
 
-        self._log_artifact(key, dataset, _CommonService.ArtifactTypeEnum.DATA)
+        try:
+            extension = _artifact_utils.get_file_ext(dataset)
+        except (TypeError, ValueError):
+            extension = None
+
+        self._log_artifact(key, dataset, _CommonService.ArtifactTypeEnum.DATA, extension)
 
     def log_dataset_path(self, key, dataset_path):
         """
@@ -1703,9 +1717,15 @@ class ExperimentRun:
 
         # prehandle model
         _artifact_utils.reset_stream(model)  # reset cursor to beginning in case user forgot
+        try:
+            model_extension = _artifact_utils.get_file_ext(model)
+        except (TypeError, ValueError):
+            model_extension = None
         model, method, model_type = _artifact_utils.serialize_model(model)
         if method is None:
             raise ValueError("will not be able to deploy model due to unknown serialization method")
+        if model_extension is None:
+            model_extension = _artifact_utils.ext_from_method(method)
 
         # prehandle model_api
         _artifact_utils.reset_stream(model_api)  # reset cursor to beginning in case user forgot
@@ -1727,8 +1747,8 @@ class ExperimentRun:
             _artifact_utils.reset_stream(requirements)  # reset cursor to beginning as a courtesy
             for req_dep in req_deps:
                 if req_dep.startswith("cloudpickle"):  # if present, check version
-                    our_ver = cloudpickle_dep.lstrip("cloudpickle==")
-                    their_ver = req_dep.lstrip("cloudpickle==")
+                    our_ver = cloudpickle_dep.split('==')[-1]
+                    their_ver = req_dep.split('==')[-1]
                     if our_ver != their_ver:  # versions conflict, so raise exception
                         raise ValueError("Client is running with cloudpickle v{}, but the provided requirements specify v{}; "
                                          "these must match".format(our_ver, their_ver))
@@ -1750,11 +1770,11 @@ class ExperimentRun:
         else:
             train_data = None
 
-        self._log_artifact("model.pkl", model, _CommonService.ArtifactTypeEnum.MODEL)
-        self._log_artifact("model_api.json", model_api, _CommonService.ArtifactTypeEnum.BLOB)
-        self._log_artifact("requirements.txt", requirements, _CommonService.ArtifactTypeEnum.BLOB)
+        self._log_artifact("model.pkl", model, _CommonService.ArtifactTypeEnum.MODEL, model_extension)
+        self._log_artifact("model_api.json", model_api, _CommonService.ArtifactTypeEnum.BLOB, 'json')
+        self._log_artifact("requirements.txt", requirements, _CommonService.ArtifactTypeEnum.BLOB, 'txt')
         if train_data is not None:
-            self._log_artifact("train_data", train_data, _CommonService.ArtifactTypeEnum.DATA)
+            self._log_artifact("train_data", train_data, _CommonService.ArtifactTypeEnum.DATA, 'csv')
 
 
     def log_model(self, key, model):
@@ -1775,9 +1795,17 @@ class ExperimentRun:
         """
         _utils.validate_flat_key(key)
 
-        model, _, _ = _artifact_utils.serialize_model(model)
+        try:
+            extension = _artifact_utils.get_file_ext(model)
+        except (TypeError, ValueError):
+            extension = None
 
-        self._log_artifact(key, model, _CommonService.ArtifactTypeEnum.MODEL)
+        model, method, _ = _artifact_utils.serialize_model(model)
+
+        if extension is None:
+            extension = _artifact_utils.ext_from_method(method)
+
+        self._log_artifact(key, model, _CommonService.ArtifactTypeEnum.MODEL, extension)
 
     def log_model_path(self, key, model_path):
         """
@@ -1845,25 +1873,28 @@ class ExperimentRun:
         _utils.validate_flat_key(key)
 
         # convert pyplot, Figure or Image to bytestream
-        bytestream = six.BytesIO()
+        bytestream, extension = six.BytesIO(), 'png'
         try:  # handle matplotlib
-            image.savefig(bytestream)
+            image.savefig(bytestream, format=extension)
         except AttributeError:
             try:  # handle PIL Image
                 colors = image.getcolors()
             except AttributeError:
-                pass
+                try:
+                    extension = _artifact_utils.get_file_ext(image)
+                except (TypeError, ValueError):
+                    extension = None
             else:
                 if len(colors) == 1 and all(val == 255 for val in colors[0][1]):
                     warnings.warn("the image being logged is blank")
-                image.save(bytestream, 'png')
+                image.save(bytestream, extension)
 
         bytestream.seek(0)
         if bytestream.read(1):
             bytestream.seek(0)
             image = bytestream
 
-        self._log_artifact(key, image, _CommonService.ArtifactTypeEnum.IMAGE)
+        self._log_artifact(key, image, _CommonService.ArtifactTypeEnum.IMAGE, extension)
 
     def log_image_path(self, key, image_path):
         """
@@ -1930,7 +1961,12 @@ class ExperimentRun:
         """
         _utils.validate_flat_key(key)
 
-        self._log_artifact(key, artifact, _CommonService.ArtifactTypeEnum.BLOB)
+        try:
+            extension = _artifact_utils.get_file_ext(artifact)
+        except (TypeError, ValueError):
+            extension = None
+
+        self._log_artifact(key, artifact, _CommonService.ArtifactTypeEnum.BLOB, extension)
 
     def log_artifact_path(self, key, artifact_path):
         """
@@ -2113,4 +2149,4 @@ class ExperimentRun:
             for filepath in filepaths:
                 zipf.write(filepath, os.path.relpath(filepath, search_path))
 
-        self._log_artifact("custom_modules", bytestream, _CommonService.ArtifactTypeEnum.BLOB)
+        self._log_artifact("custom_modules", bytestream, _CommonService.ArtifactTypeEnum.BLOB, 'zip')
