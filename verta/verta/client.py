@@ -2230,8 +2230,7 @@ class ExperimentRun:
 
             if use_git:
                 try:
-                    # TODO: if `commit_hash` is not the current one, it's dirty
-                    is_dirty = _utils.get_git_commit_dirtiness()
+                    is_dirty = _utils.get_git_commit_dirtiness(commit_hash)
                 except OSError as e:
                     print("{}; skipping".format(e))
                 else:

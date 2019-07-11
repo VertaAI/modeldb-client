@@ -657,16 +657,26 @@ def get_git_commit_hash():
     raise OSError("unable to find git commit hash")
 
 
-def get_git_commit_dirtiness():
-    try:
-        diff_paths = six.ensure_str(
-            subprocess.check_output(["git", "status", "--porcelain"])
-        ).splitlines()
-    except:
-        pass
+def get_git_commit_dirtiness(commit_hash=None):
+    if commit_hash is not None:
+        try:  # compare `commit_hash` to the working tree and index
+            diffs = six.ensure_str(
+                subprocess.check_output(["git", "diff-index", commit_hash])
+            ).splitlines()
+        except:
+            pass
+        else:
+            return len(diffs) > 0
     else:
-        return not all(path.startswith("??") for path in diff_paths)
-    raise OSError("unable to find git status")
+        try:
+            diff_paths = six.ensure_str(
+                subprocess.check_output(["git", "status", "--porcelain"])
+            ).splitlines()
+        except:
+            pass
+        else:
+            return not all(path.startswith("??") for path in diff_paths)
+    raise OSError("unable to determine git commit dirtiness")
 
 
 def get_git_remote_url():
