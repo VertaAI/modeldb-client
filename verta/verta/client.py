@@ -1107,7 +1107,7 @@ class ExperimentRun:
 
         # upload artifact to artifact store
         url = self._get_url_for_artifact(key, "PUT")
-        artifact_stream.seek(0)
+        artifact_stream.seek(0)  # reuse stream that was created for checksum
         response = _utils.make_request("PUT", url, self._conn, data=artifact_stream)
         response.raise_for_status()
 
