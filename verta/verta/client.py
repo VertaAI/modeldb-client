@@ -2250,10 +2250,12 @@ class ExperimentRun:
                 repo_root = _utils.get_git_repo_root_dir()
                 paths = [os.path.relpath(path, repo_root)
                          for path in paths]
-                # append trailing separator to directories
-                #     This is necessary for the `os.path.commonprefix()` part later to work properly.
-                paths = [os.path.join(path, "") if os.path.isdir(path) else path
-                         for path in paths]
+            else:
+                # adjust paths to be absolute
+                paths = map(os.path.abspath, paths)
+            # append trailing separator to directories as a courtesy
+            paths = [os.path.join(path, "") if os.path.isdir(path) else path
+                        for path in paths]
             msg.code_version.git_snapshot.filepaths.extend(paths)
 
             try:
