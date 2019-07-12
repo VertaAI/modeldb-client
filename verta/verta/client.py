@@ -2283,12 +2283,10 @@ class ExperimentRun:
             # obtain deepest common directory
             #     ZipFile.write() completely drops "../" path components,
             #     so we need to resolve them by finding a common subpath to start at.
-            curr_dir = os.path.join(os.path.abspath(os.curdir), "")
-            paths_plus = list(map(os.path.abspath, paths)) + [curr_dir]
             #     `commonprefix()` works character by character; if the first few characters of two
             #     different files are the same, `commonprefix()` will keep it. Therefore we have to
             #     get the actual `dirname()` of the common prefix.
-            common_prefix = os.path.commonprefix(paths_plus)
+            common_prefix = os.path.commonprefix(paths)
             common_dir = os.path.dirname(common_prefix)
 
             # write ZIP archive
