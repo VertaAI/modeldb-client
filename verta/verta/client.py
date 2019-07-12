@@ -2179,18 +2179,56 @@ class ExperimentRun:
 
         Examples
         --------
-        Upload the currently executing notebook/script:
+        Find and upload the currently executing notebook/script:
 
         >>> run.log_code()
+        >>> run.get_code().printdir()
+        File Name                                  Modified             Size
+        classification.ipynb                2019-07-10 17:18:24        10287
 
         Upload a specific source code file:
 
         >>> run.log_code("../trainer/training_pipeline.py")
+        >>> run.get_code().printdir()
+        File Name                                  Modified             Size
+        trainer/training_pipeline.py        2019-05-31 10:34:44          964
 
-        Log the location of the currently executing notebook/script relative to the Git repository
-        root plus snapshot information:
+        Find and log Git snapshot information, plus the location of the currently executing
+        notebook/script relative to the repository root:
 
         >>> run.log_code(use_git=True)
+        >>> run.get_code()
+        {'filepaths': ['comparison/outcomes/classification.ipynb'],
+         'remote_url': 'git@github.com:VertaAI/experiments.git',
+         'commit_hash': 'f99abcfae6c3ce6d22597f95ad6ef260d31527a6',
+         'is_dirty': False}
+
+        Find and log Git snapshot information, plus the location of a specific source code file
+        relative to the repository root:
+
+        >>> run.log_code("../trainer/training_pipeline.py", use_git=True)
+        >>> run.get_code()
+        {'filepaths': ['comparison/trainer/training_pipeline.py'],
+         'remote_url': 'git@github.com:VertaAI/experiments.git',
+         'commit_hash': 'f99abcfae6c3ce6d22597f95ad6ef260d31527a6',
+         'is_dirty': False}
+
+        Find and log Git snapshot information—overwriting the commit hash—plus the location of the
+        currently executing notebook/script relative to the repository root:
+
+        >>> run.log_code(use_git=True, commit_hash="bd16ba622d8a21ba5ede6cb021193f66efec4654")
+        >>> run.get_code()
+        {'filepaths': ['comparison/outcomes/classification.ipynb'],
+         'remote_url': 'git@github.com:VertaAI/experiments.git',
+         'commit_hash': 'bd16ba622d8a21ba5ede6cb021193f66efec4654',
+         'is_dirty': True}
+
+        Log a particular remote URL:
+
+        >>> run.log_code(remote_url="git@github.com:convoliution/experiments.git")
+        >>> run.get_code()
+        {'filepaths': [/Users/miliu/Documents/client/workflows/demos/sandbox.ipynb'],
+         'remote_url': 'git@github.com:convoliution/experiments.git'}
 
         """
         if paths is None:
@@ -2293,7 +2331,7 @@ class ExperimentRun:
         -------
         dict or zipfile.ZipFile
             Either:
-                - a dictionary containing Git snapshot information with the following items:
+                - a dictionary containing Git snapshot information with at most the following items:
                     - **filepaths** (*list of str*)
                     - **repo** (*str*) – Remote repository URL
                     - **hash** (*str*) – Commit hash
