@@ -663,8 +663,7 @@ class ExperimentRuns:
 
         Examples
         --------
-        >>> runs.find(["code_version == '0.2.1'",
-        ...            "hyperparameters.hidden_size == 256",
+        >>> runs.find(["hyperparameters.hidden_size == 256",
         ...            "metrics.accuracy >= .8"])
         <ExperimentRuns containing 3 runs>
 
