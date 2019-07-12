@@ -2159,9 +2159,8 @@ class ExperimentRun:
         """
         Logs the code version to this Experiment Run.
 
-        A code version is either information about a Git snapshot or a bundle of Python source code
-        files. If `find_git` is ``True``—or `remote_url` or `commit_hash` are assigned values—then
-        this function will log a Git snapshot. Otherwise, it will log Python source code files.
+        A code version is either information about a Git snapshot (if `use_git` is ``True``) or a bundle of Python source code
+        files. `use_git` must be ``True`` to set `remote_url` or `commit_hash`.
 
         Parameters
         ----------
@@ -2169,13 +2168,13 @@ class ExperimentRun:
             Python script or Jupyter notebook filepath. If no filepath is provided, the Client will
             make its best effort to find the script/notebook file that is calling this function.
         use_git : bool, default False
-            Whether to attempt to find and use information from the current local git repository.
+            Whether to log Git snapshot information instead of source code.
         remote_url : str, optional
-            URL for a remote Git repository containing `commit_hash`. If no URL is provided and
-            `use_git` is ``True``, the Client will make its best effort to find it.
+            URL for a remote Git repository containing `commit_hash`. `use_git` must be ``True``. If
+            no URL is provided, the Client will make its best effort to find it.
         commit_hash : str, optional
-            Git commit hash associated with this code version. If no hash is provided and `use_git`
-            is ``True``, the Client will make its best effort to find it.
+            Git commit hash associated with this code version. `use_git` must be ``True``. If no hash
+            is provided, the Client will make its best effort to find it.
 
         Examples
         --------
@@ -2193,7 +2192,7 @@ class ExperimentRun:
         File Name                                  Modified             Size
         trainer/training_pipeline.py        2019-05-31 10:34:44          964
 
-        Find and log Git snapshot information, plus the location of the currently executing
+        Log Git snapshot information, plus the location of the currently executing
         notebook/script relative to the repository root:
 
         >>> run.log_code(use_git=True)
@@ -2203,7 +2202,7 @@ class ExperimentRun:
          'commit_hash': 'f99abcfae6c3ce6d22597f95ad6ef260d31527a6',
          'is_dirty': False}
 
-        Find and log Git snapshot information, plus the location of a specific source code file
+        Log Git snapshot information, plus the location of a specific source code file
         relative to the repository root:
 
         >>> run.log_code("../trainer/training_pipeline.py", use_git=True)
@@ -2213,7 +2212,7 @@ class ExperimentRun:
          'commit_hash': 'f99abcfae6c3ce6d22597f95ad6ef260d31527a6',
          'is_dirty': False}
 
-        Find and log Git snapshot information—overwriting the commit hash—plus the location of the
+        Log Git snapshot information—overwriting the commit hash—plus the location of the
         currently executing notebook/script relative to the repository root:
 
         >>> run.log_code(use_git=True, commit_hash="bd16ba622d8a21ba5ede6cb021193f66efec4654")
@@ -2223,14 +2222,10 @@ class ExperimentRun:
          'commit_hash': 'bd16ba622d8a21ba5ede6cb021193f66efec4654',
          'is_dirty': True}
 
-        Log a particular remote URL:
-
-        >>> run.log_code(remote_url="git@github.com:convoliution/experiments.git")
-        >>> run.get_code()
-        {'filepaths': [/Users/miliu/Documents/client/workflows/demos/sandbox.ipynb'],
-         'remote_url': 'git@github.com:convoliution/experiments.git'}
-
         """
+        if not use_git and (remote_url is not None or commit_hash is not None):
+            raise ValueError("`remote_url` or `commit_hash` can only be set if `use_git` is True")
+
         if paths is None:
             # find dynamically
             try:
@@ -2244,15 +2239,11 @@ class ExperimentRun:
             paths = [paths]
 
         msg = _ExperimentRunService.LogExperimentRunCodeVersion(id=self.id)
-        if use_git or commit_hash is not None or remote_url is not None:
-            if use_git:
-                # adjust paths to be relative to repo root
-                repo_root = _utils.get_git_repo_root_dir()
-                paths = [os.path.relpath(path, repo_root)
-                         for path in paths]
-            else:
-                # adjust paths to be absolute
-                paths = map(os.path.abspath, paths)
+        if use_git:
+            # adjust paths to be relative to repo root
+            repo_root = _utils.get_git_repo_root_dir()
+            paths = [os.path.relpath(path, repo_root)
+                        for path in paths]
             # append trailing separator to directories as a courtesy
             paths = [os.path.join(path, "") if os.path.isdir(path) else path
                         for path in paths]
