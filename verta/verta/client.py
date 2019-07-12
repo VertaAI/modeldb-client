@@ -45,6 +45,8 @@ class Client:
         on HTTP codes {403, 503, 504} which commonly occur during back end connection lapses.
     ignore_conn_err : bool, default False
         Whether to ignore connection errors and instead return successes with empty contents.
+    use_git : bool, default False
+        Whether to use a local Git repository for certain operations.
 
     Attributes
     ----------
@@ -54,6 +56,9 @@ class Client:
     ignore_conn_err : bool
         Whether to ignore connection errors and instead return successes with empty contents. Changes
         to this value propagate to any objects that are/were created from this Client.
+    use_git : bool
+        Whether to use a local Git repository for certain operations. Changes to this value propagate
+        to any objects that are/were created from this Client.
     proj : :class:`Project` or None
         Currently active Project.
     expt : :class:`Experiment` or None
@@ -64,7 +69,8 @@ class Client:
     """
     _GRPC_PREFIX = "Grpc-Metadata-"
 
-    def __init__(self, host, port=None, email=None, dev_key=None, max_retries=5, ignore_conn_err=False):
+    def __init__(self, host, port=None, email=None, dev_key=None,
+                 max_retries=5, ignore_conn_err=False, use_git=False):
         if email is None and 'VERTA_EMAIL' in os.environ:
             email = os.environ['VERTA_EMAIL']
             print("set email from environment")
@@ -105,7 +111,19 @@ class Client:
         response.raise_for_status()
         print("connection successfully established")
 
+        # verify Git
+        conf = _utils.Configuration(use_git)
+        if conf.use_git:
+            try:
+                repo_root_dir = _utils.get_git_repo_root_dir()
+            except OSError:
+                six.raise_from(OSError("failed to locate Git repository; please check your working directory"),
+                               None)
+            print("Git repository successfully located at {}".format(repo_root_dir))
+
+
         self._conn = conn
+        self._conf = conf
 
         self.proj = None
         self.expt = None
@@ -125,6 +143,14 @@ class Client:
     @ignore_conn_err.setter
     def ignore_conn_err(self, value):
         self._conn.ignore_conn_err = value
+
+    @property
+    def use_git(self):
+        return self._conf.use_git
+
+    @use_git.setter
+    def use_git(self, value):
+        self._conf.use_git = value
 
     @property
     def expt_runs(self):
