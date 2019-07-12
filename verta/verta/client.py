@@ -169,7 +169,7 @@ class Client:
             expt_run_ids = [expt_run.id
                             for expt_run in response_msg.experiment_runs
                             if expt_run.experiment_id == self.expt.id]
-            return ExperimentRuns(self._conn, expt_run_ids)
+            return ExperimentRuns(self._conn, self._conf, expt_run_ids)
 
     def set_project(self, name=None, desc=None, tags=None, attrs=None, id=None):
         """
@@ -209,7 +209,7 @@ class Client:
         if self.proj is not None:
             self.expt = None
 
-        proj = Project(self._conn,
+        proj = Project(self._conn, self._conf,
                        name,
                        desc, tags, attrs,
                        id)
@@ -252,7 +252,7 @@ class Client:
         if self.proj is None:
             raise AttributeError("a project must first be in progress")
 
-        expt = Experiment(self._conn,
+        expt = Experiment(self._conn, self._conf,
                           self.proj.id, name,
                           desc, tags, attrs)
 
@@ -294,7 +294,7 @@ class Client:
         if self.expt is None:
             raise AttributeError("an experiment must first be in progress")
 
-        return ExperimentRun(self._conn,
+        return ExperimentRun(self._conn, self._conf,
                              self.proj.id, self.expt.id, name,
                              desc, tags, attrs)
 
@@ -319,7 +319,7 @@ class Project:
         Experiment Runs under this Project.
 
     """
-    def __init__(self, conn,
+    def __init__(self, conn, conf,
                  proj_name=None,
                  desc=None, tags=None, attrs=None,
                  _proj_id=None):
@@ -350,6 +350,7 @@ class Project:
                 print("created new Project: {}".format(proj.name))
 
         self._conn = conn
+        self._conf = conf
         self.id = proj.id
 
     def __repr__(self):
@@ -382,7 +383,7 @@ class Project:
         expt_run_ids = [expt_run.id
                         for expt_run
                         in _utils.json_to_proto(response.json(), Message.Response).experiment_runs]
-        return ExperimentRuns(self._conn, expt_run_ids)
+        return ExperimentRuns(self._conn, self._conf, expt_run_ids)
 
     @staticmethod
     def _generate_default_name():
@@ -465,7 +466,7 @@ class Experiment:
         Experiment Runs under this Experiment.
 
     """
-    def __init__(self, conn,
+    def __init__(self, conn, conf,
                  proj_id=None, expt_name=None,
                  desc=None, tags=None, attrs=None,
                  _expt_id=None):
@@ -498,6 +499,7 @@ class Experiment:
             raise ValueError("insufficient arguments")
 
         self._conn = conn
+        self._conf = conf
         self.id = expt.id
 
     def __repr__(self):
@@ -530,7 +532,7 @@ class Experiment:
         expt_run_ids = [expt_run.id
                         for expt_run
                         in _utils.json_to_proto(response.json(), Message.Response).experiment_runs]
-        return ExperimentRuns(self._conn, expt_run_ids)
+        return ExperimentRuns(self._conn, self._conf, expt_run_ids)
 
     @staticmethod
     def _generate_default_name():
@@ -638,8 +640,9 @@ class ExperimentRuns:
                '<=': _CommonService.OperatorEnum.LTE}
     _OP_PATTERN = re.compile(r"({})".format('|'.join(sorted(six.viewkeys(_OP_MAP), key=lambda s: len(s), reverse=True))))
 
-    def __init__(self, conn, expt_run_ids=None):
+    def __init__(self, conn, conf, expt_run_ids=None):
         self._conn = conn
+        self._conf = conf
         self._ids = expt_run_ids if expt_run_ids is not None else []
 
     def __repr__(self):
@@ -648,10 +651,10 @@ class ExperimentRuns:
     def __getitem__(self, key):
         if isinstance(key, int):
             expt_run_id = self._ids[key]
-            return ExperimentRun(self._conn, _expt_run_id=expt_run_id)
+            return ExperimentRun(self._conn, self._conf, _expt_run_id=expt_run_id)
         elif isinstance(key, slice):
             expt_run_ids = self._ids[key]
-            return self.__class__(self._conn, expt_run_ids)
+            return self.__class__(self._conn, self._conf, expt_run_ids)
         else:
             raise TypeError("index must be integer or slice, not {}".format(type(key)))
 
@@ -662,7 +665,7 @@ class ExperimentRuns:
         if isinstance(other, self.__class__):
             self_ids_set = set(self._ids)
             other_ids = [expt_run_id for expt_run_id in other._ids if expt_run_id not in self_ids_set]
-            return self.__class__(self._conn, self._ids + other_ids)
+            return self.__class__(self._conn, self._conf, self._ids + other_ids)
         else:
             return NotImplemented
 
@@ -750,7 +753,7 @@ class ExperimentRuns:
         if ret_all_info:
             return response_msg.experiment_runs
         else:
-            return self.__class__(self._conn, [expt_run.id for expt_run in response_msg.experiment_runs])
+            return self.__class__(self._conn, self._conf, [expt_run.id for expt_run in response_msg.experiment_runs])
 
     def sort(self, key, descending=False, ret_all_info=False):
         """
@@ -796,7 +799,7 @@ class ExperimentRuns:
         if ret_all_info:
             return response_msg.experiment_runs
         else:
-            return self.__class__(self._conn, [expt_run.id for expt_run in response_msg.experiment_runs])
+            return self.__class__(self._conn, self._conf, [expt_run.id for expt_run in response_msg.experiment_runs])
 
     def top_k(self, key, k, ret_all_info=False, _proj_id=None, _expt_id=None):
         """
@@ -848,7 +851,7 @@ class ExperimentRuns:
         if ret_all_info:
             return response_msg.experiment_runs
         else:
-            return self.__class__(self._conn, [expt_run.id for expt_run in response_msg.experiment_runs])
+            return self.__class__(self._conn, self._conf, [expt_run.id for expt_run in response_msg.experiment_runs])
 
     def bottom_k(self, key, k, ret_all_info=False, _proj_id=None, _expt_id=None):
         """
@@ -899,7 +902,7 @@ class ExperimentRuns:
         if ret_all_info:
             return response_msg.experiment_runs
         else:
-            return self.__class__(self._conn, [expt_run.id for expt_run in response_msg.experiment_runs])
+            return self.__class__(self._conn, self._conf, [expt_run.id for expt_run in response_msg.experiment_runs])
 
 
 class ExperimentRun:
@@ -919,7 +922,7 @@ class ExperimentRun:
         Name of this Experiment Run.
 
     """
-    def __init__(self, conn,
+    def __init__(self, conn, conf,
                  proj_id=None, expt_id=None, expt_run_name=None,
                  desc=None, tags=None, attrs=None,
                  _expt_run_id=None):
@@ -952,6 +955,7 @@ class ExperimentRun:
             raise ValueError("insufficient arguments")
 
         self._conn = conn
+        self._conf = conf
         self.id = expt_run.id
 
     def __repr__(self):
