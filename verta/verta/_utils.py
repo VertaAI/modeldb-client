@@ -125,6 +125,10 @@ def make_request(method, url, conn, **kwargs):
         return response
 
 
+def is_hidden(path):  # to avoid "./".startswith('.')
+    return os.path.basename(path.rstrip('/')).startswith('.') and path != "."
+
+
 def find_filepaths(paths, extensions, include_hidden=False):
     """
     Unravels a list of file and directory paths into a list of only filepaths by walking through the
@@ -142,24 +146,22 @@ def find_filepaths(paths, extensions, include_hidden=False):
     """
     if isinstance(paths, six.string_types):
         paths = [paths]
-    # convert into absolute paths
-    paths = map(os.path.abspath, paths)
 
     if isinstance(extensions, six.string_types):
         extensions = [extensions]
     # prepend period to file extensions where missing
-    extensions = map(lambda ext: ext if ext.startswith('.') else ".{}".format(ext), extensions)
+    extensions = map(lambda ext: ext if ext.startswith('.') else ('.' + ext), extensions)
     extensions = set(extensions)
 
     filepaths = []
     for path in paths:
         if os.path.isdir(path):
             for root, _, subpaths in os.walk(path):
-                if os.path.basename(root).startswith('.') and not include_hidden:
-                    continue
+                if is_hidden(root) and not include_hidden:
+                    continue  # skip hidden directories
                 for subpath in subpaths:
-                    if os.path.basename(subpath).startswith('.') and not include_hidden:
-                        continue
+                    if is_hidden(subpath) and not include_hidden:
+                        continue  # skip hidden files
                     if os.path.splitext(subpath)[1] in extensions:
                         filepaths.append(os.path.join(root, subpath))
         else:
@@ -655,16 +657,26 @@ def get_git_commit_hash():
     raise OSError("unable to find git commit hash")
 
 
-def get_git_commit_dirtiness():
-    try:
-        diff_paths = six.ensure_str(
-            subprocess.check_output(["git", "status", "--porcelain"])
-        ).splitlines()
-    except:
-        pass
+def get_git_commit_dirtiness(commit_hash=None):
+    if commit_hash is not None:
+        try:  # compare `commit_hash` to the working tree and index
+            diffs = six.ensure_str(
+                subprocess.check_output(["git", "diff-index", commit_hash])
+            ).splitlines()
+        except:
+            pass
+        else:
+            return len(diffs) > 0
     else:
-        return not all(path.startswith("??") for path in diff_paths)
-    raise OSError("unable to find git status")
+        try:
+            diff_paths = six.ensure_str(
+                subprocess.check_output(["git", "status", "--porcelain"])
+            ).splitlines()
+        except:
+            pass
+        else:
+            return not all(path.startswith("??") for path in diff_paths)
+    raise OSError("unable to determine git commit dirtiness")
 
 
 def get_git_remote_url():
