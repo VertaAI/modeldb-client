@@ -2185,7 +2185,7 @@ class ExperimentRun:
 
         self._log_artifact("custom_modules", bytestream, _CommonService.ArtifactTypeEnum.BLOB, 'zip')
 
-    def log_code(self, paths=None, use_git=False, remote_url=None, commit_hash=None):
+    def log_code(self, paths=None, use_git=None, remote_url=None, commit_hash=None):
         """
         Logs the code version to this Experiment Run.
 
@@ -2197,8 +2197,9 @@ class ExperimentRun:
         paths : str, optional
             Python script or Jupyter notebook filepath. If no filepath is provided, the Client will
             make its best effort to find the script/notebook file that is calling this function.
-        use_git : bool, default False
-            Whether to log Git snapshot information instead of source code.
+        use_git : bool, optional
+            Whether to log Git snapshot information instead of source code. If no value is provided,
+            it will default to `client.use_git` (which is False by default).
         remote_url : str, optional
             URL for a remote Git repository containing `commit_hash`. `use_git` must be ``True``. If
             no URL is provided, the Client will make its best effort to find it.
@@ -2253,6 +2254,8 @@ class ExperimentRun:
          'is_dirty': True}
 
         """
+        if use_git is None:
+            use_git = self._conf.use_git
         if not use_git and (remote_url is not None or commit_hash is not None):
             raise ValueError("`remote_url` or `commit_hash` can only be set if `use_git` is True")
 
