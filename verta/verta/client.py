@@ -45,7 +45,7 @@ class Client:
         on HTTP codes {403, 503, 504} which commonly occur during back end connection lapses.
     ignore_conn_err : bool, default False
         Whether to ignore connection errors and instead return successes with empty contents.
-    use_git : bool, default False
+    use_git : bool, default True
         Whether to use a local Git repository for certain operations such as Code Versioning.
 
     Attributes
@@ -67,7 +67,7 @@ class Client:
     _GRPC_PREFIX = "Grpc-Metadata-"
 
     def __init__(self, host, port=None, email=None, dev_key=None,
-                 max_retries=5, ignore_conn_err=False, use_git=False):
+                 max_retries=5, ignore_conn_err=False, use_git=True):
         if email is None and 'VERTA_EMAIL' in os.environ:
             email = os.environ['VERTA_EMAIL']
             print("set email from environment")

@@ -81,13 +81,13 @@ class Connection:
 
 
 class Configuration:
-    def __init__(self, use_git=False):
+    def __init__(self, use_git=True):
         """
         Client behavior configuration utility struct.
 
         Parameters
         ----------
-        use_git : bool, default False
+        use_git : bool, default True
             Whether to use a local Git repository for certain operations.
 
         """
