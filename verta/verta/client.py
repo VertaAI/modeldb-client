@@ -2185,20 +2185,20 @@ class ExperimentRun:
 
         self._log_artifact("custom_modules", bytestream, _CommonService.ArtifactTypeEnum.BLOB, 'zip')
 
-    def log_code(self, paths=None, remote_url=None, commit_hash=None):
+    def log_code(self, exec_path=None, repo_url=None, commit_hash=None):
         """
         Logs the code version to this Experiment Run.
 
         A code version is either information about a Git snapshot or a bundle of Python source code files.
 
-        `remote_url` and `commit_hash` can only be set if `use_git` was set to ``True`` in the Client.
+        `repo_url` and `commit_hash` can only be set if `use_git` was set to ``True`` in the Client.
 
         Parameters
         ----------
-        paths : str, optional
-            Python script or Jupyter notebook filepath. If no filepath is provided, the Client will
-            make its best effort to find the script/notebook file that is calling this function.
-        remote_url : str, optional
+        exec_path : str, optional
+            Filepath to the executable Python script or Jupyter notebook. If no filepath is provided,
+            the Client will make its best effort to find the currently running script/notebook file.
+        repo_url : str, optional
             URL for a remote Git repository containing `commit_hash`. If no URL is provided, the Client
             will make its best effort to find it.
         commit_hash : str, optional
@@ -2214,8 +2214,8 @@ class ExperimentRun:
 
             >>> run.log_code()
             >>> run.get_code()
-            {'filepaths': ['comparison/outcomes/classification.ipynb'],
-            'remote_url': 'git@github.com:VertaAI/experiments.git',
+            {'exec_path': 'comparison/outcomes/classification.ipynb',
+            'repo_url': 'git@github.com:VertaAI/experiments.git',
             'commit_hash': 'f99abcfae6c3ce6d22597f95ad6ef260d31527a6',
             'is_dirty': False}
 
@@ -2224,8 +2224,8 @@ class ExperimentRun:
 
             >>> run.log_code("../trainer/training_pipeline.py")
             >>> run.get_code()
-            {'filepaths': ['comparison/trainer/training_pipeline.py'],
-            'remote_url': 'git@github.com:VertaAI/experiments.git',
+            {'exec_path': 'comparison/trainer/training_pipeline.py',
+            'repo_url': 'git@github.com:VertaAI/experiments.git',
             'commit_hash': 'f99abcfae6c3ce6d22597f95ad6ef260d31527a6',
             'is_dirty': False}
 
@@ -2236,46 +2236,46 @@ class ExperimentRun:
             >>> run.log_code()
             >>> zip_file = run.get_code()
             >>> zip_file.printdir()
-            File Name                                  Modified             Size
-            classification.ipynb                2019-07-10 17:18:24        10287
+            File Name                          Modified             Size
+            classification.ipynb        2019-07-10 17:18:24        10287
 
             Upload a specific source code file:
 
             >>> run.log_code("../trainer/training_pipeline.py")
             >>> zip_file = run.get_code()
             >>> zip_file.printdir()
-            File Name                                  Modified             Size
-            trainer/training_pipeline.py        2019-05-31 10:34:44          964
+            File Name                          Modified             Size
+            training_pipeline.py        2019-05-31 10:34:44          964
 
         """
-        if not self._conf.use_git and (remote_url is not None or commit_hash is not None):
-            raise ValueError("`remote_url` and `commit_hash` can only be set if `use_git` was set to True in the Client")
+        if not self._conf.use_git and (repo_url is not None or commit_hash is not None):
+            raise ValueError("`repo_url` and `commit_hash` can only be set if `use_git` was set to True in the Client")
 
-        if paths is None:
+        if exec_path is None:
             # find dynamically
             try:
-                paths = [_utils.get_notebook_filepath()]
+                exec_path = _utils.get_notebook_filepath()
             except OSError:  # notebook not found
                 try:
-                    paths = [_utils.get_script_filepath()]
+                    exec_path = _utils.get_script_filepath()
                 except OSError:  # script not found
                     print("unable to find code file; skipping")
-        elif isinstance(paths, six.string_types):
-            paths = [paths]
+        else:
+            if not os.path.isfile(exec_path):
+                raise ValueError("`exec_path` \"{}\" must be a valid filepath".format(exec_path))
 
         msg = _ExperimentRunService.LogExperimentRunCodeVersion(id=self.id)
         if self._conf.use_git:
-            # adjust paths to be relative to repo root
-            repo_root = _utils.get_git_repo_root_dir()
-            paths = [os.path.relpath(path, repo_root)
-                        for path in paths]
-            # append trailing separator to directories as a courtesy
-            paths = [os.path.join(path, "") if os.path.isdir(path) else path
-                        for path in paths]
-            msg.code_version.git_snapshot.filepaths.extend(paths)
+            try:
+                # adjust `exec_path` to be relative to repo root
+                exec_path = os.path.relpath(exec_path, _utils.get_git_repo_root_dir())
+            except OSError as e:
+                print("{}; logging absolute path to file instead")
+                exec_path = os.path.abspath(exec_path)
+            msg.code_version.git_snapshot.filepaths.append(exec_path)
 
             try:
-                msg.code_version.git_snapshot.repo = remote_url or _utils.get_git_remote_url()
+                msg.code_version.git_snapshot.repo = repo_url or _utils.get_git_remote_url()
             except OSError as e:
                 print("{}; skipping".format(e))
 
@@ -2291,27 +2291,11 @@ class ExperimentRun:
             else:
                 msg.code_version.git_snapshot.is_dirty = _CommonService.TernaryEnum.TRUE if is_dirty else _CommonService.TernaryEnum.FALSE
         else:  # log code as Artifact
-            # get filepaths
-            paths = _utils.find_filepaths(paths, (".py", ".pyc", ".pyo", ".ipynb"))
-
-            if len(paths) > 1:  # TODO: remove when Web App supports multiple files
-                raise ValueError("only a single code file is currently supported")
-
-            # obtain deepest common directory
-            #     ZipFile.write() completely drops "../" path components,
-            #     so we need to resolve them by finding a common subpath to start at.
-            #     `commonprefix()` works character by character; if the first few characters of two
-            #     different files are the same, `commonprefix()` will keep it. Therefore we have to
-            #     get the actual `dirname()` of the common prefix.
-            common_prefix = os.path.commonprefix(paths)
-            common_dir = os.path.dirname(common_prefix)
-
             # write ZIP archive
             zipstream = six.BytesIO()
             with zipfile.ZipFile(zipstream, 'w') as zipf:
-                for path in paths:
-                    # TODO: save notebook
-                    zipf.write(path, os.path.relpath(path, common_dir))
+                # TODO: save notebook
+                zipf.write(exec_path, os.path.basename(exec_path))  # write as base filename
             zipstream.seek(0)
 
             msg.code_version.code_archive.path = hashlib.sha256(zipstream.read()).hexdigest()
@@ -2372,7 +2356,7 @@ class ExperimentRun:
             if git_snapshot_msg.filepaths:
                 git_snapshot['filepaths'] = git_snapshot_msg.filepaths
             if git_snapshot_msg.repo:
-                git_snapshot['remote_url'] = git_snapshot_msg.repo
+                git_snapshot['repo_url'] = git_snapshot_msg.repo
             if git_snapshot_msg.hash:
                 git_snapshot['commit_hash'] = git_snapshot_msg.hash
                 if git_snapshot_msg.is_dirty != _CommonService.TernaryEnum.UNKNOWN:
