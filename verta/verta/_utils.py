@@ -80,6 +80,20 @@ class Connection:
         self.ignore_conn_err = ignore_conn_err
 
 
+class Configuration:
+    def __init__(self, use_git=False):
+        """
+        Client behavior configuration utility struct.
+
+        Parameters
+        ----------
+        use_git : bool, default False
+            Whether to use a local Git repository for certain operations.
+
+        """
+        self.use_git = use_git
+
+
 def make_request(method, url, conn, **kwargs):
     """
     Makes a REST request.

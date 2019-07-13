@@ -45,6 +45,8 @@ class Client:
         on HTTP codes {403, 503, 504} which commonly occur during back end connection lapses.
     ignore_conn_err : bool, default False
         Whether to ignore connection errors and instead return successes with empty contents.
+    use_git : bool, default False
+        Whether to use a local Git repository for certain operations.
 
     Attributes
     ----------
@@ -54,6 +56,9 @@ class Client:
     ignore_conn_err : bool
         Whether to ignore connection errors and instead return successes with empty contents. Changes
         to this value propagate to any objects that are/were created from this Client.
+    use_git : bool
+        Whether to use a local Git repository for certain operations. Changes to this value propagate
+        to any objects that are/were created from this Client.
     proj : :class:`Project` or None
         Currently active Project.
     expt : :class:`Experiment` or None
@@ -64,7 +69,8 @@ class Client:
     """
     _GRPC_PREFIX = "Grpc-Metadata-"
 
-    def __init__(self, host, port=None, email=None, dev_key=None, max_retries=5, ignore_conn_err=False):
+    def __init__(self, host, port=None, email=None, dev_key=None,
+                 max_retries=5, ignore_conn_err=False, use_git=False):
         if email is None and 'VERTA_EMAIL' in os.environ:
             email = os.environ['VERTA_EMAIL']
             print("set email from environment")
@@ -105,7 +111,19 @@ class Client:
         response.raise_for_status()
         print("connection successfully established")
 
+        # verify Git
+        conf = _utils.Configuration(use_git)
+        if conf.use_git:
+            try:
+                repo_root_dir = _utils.get_git_repo_root_dir()
+            except OSError:
+                six.raise_from(OSError("failed to locate Git repository; please check your working directory"),
+                               None)
+            print("Git repository successfully located at {}".format(repo_root_dir))
+
+
         self._conn = conn
+        self._conf = conf
 
         self.proj = None
         self.expt = None
@@ -127,6 +145,14 @@ class Client:
         self._conn.ignore_conn_err = value
 
     @property
+    def use_git(self):
+        return self._conf.use_git
+
+    @use_git.setter
+    def use_git(self, value):
+        self._conf.use_git = value
+
+    @property
     def expt_runs(self):
         if self.expt is None:
             return None
@@ -143,7 +169,7 @@ class Client:
             expt_run_ids = [expt_run.id
                             for expt_run in response_msg.experiment_runs
                             if expt_run.experiment_id == self.expt.id]
-            return ExperimentRuns(self._conn, expt_run_ids)
+            return ExperimentRuns(self._conn, self._conf, expt_run_ids)
 
     def set_project(self, name=None, desc=None, tags=None, attrs=None, id=None):
         """
@@ -183,7 +209,7 @@ class Client:
         if self.proj is not None:
             self.expt = None
 
-        proj = Project(self._conn,
+        proj = Project(self._conn, self._conf,
                        name,
                        desc, tags, attrs,
                        id)
@@ -226,7 +252,7 @@ class Client:
         if self.proj is None:
             raise AttributeError("a project must first be in progress")
 
-        expt = Experiment(self._conn,
+        expt = Experiment(self._conn, self._conf,
                           self.proj.id, name,
                           desc, tags, attrs)
 
@@ -268,7 +294,7 @@ class Client:
         if self.expt is None:
             raise AttributeError("an experiment must first be in progress")
 
-        return ExperimentRun(self._conn,
+        return ExperimentRun(self._conn, self._conf,
                              self.proj.id, self.expt.id, name,
                              desc, tags, attrs)
 
@@ -293,7 +319,7 @@ class Project:
         Experiment Runs under this Project.
 
     """
-    def __init__(self, conn,
+    def __init__(self, conn, conf,
                  proj_name=None,
                  desc=None, tags=None, attrs=None,
                  _proj_id=None):
@@ -324,6 +350,7 @@ class Project:
                 print("created new Project: {}".format(proj.name))
 
         self._conn = conn
+        self._conf = conf
         self.id = proj.id
 
     def __repr__(self):
@@ -356,7 +383,7 @@ class Project:
         expt_run_ids = [expt_run.id
                         for expt_run
                         in _utils.json_to_proto(response.json(), Message.Response).experiment_runs]
-        return ExperimentRuns(self._conn, expt_run_ids)
+        return ExperimentRuns(self._conn, self._conf, expt_run_ids)
 
     @staticmethod
     def _generate_default_name():
@@ -439,7 +466,7 @@ class Experiment:
         Experiment Runs under this Experiment.
 
     """
-    def __init__(self, conn,
+    def __init__(self, conn, conf,
                  proj_id=None, expt_name=None,
                  desc=None, tags=None, attrs=None,
                  _expt_id=None):
@@ -472,6 +499,7 @@ class Experiment:
             raise ValueError("insufficient arguments")
 
         self._conn = conn
+        self._conf = conf
         self.id = expt.id
 
     def __repr__(self):
@@ -504,7 +532,7 @@ class Experiment:
         expt_run_ids = [expt_run.id
                         for expt_run
                         in _utils.json_to_proto(response.json(), Message.Response).experiment_runs]
-        return ExperimentRuns(self._conn, expt_run_ids)
+        return ExperimentRuns(self._conn, self._conf, expt_run_ids)
 
     @staticmethod
     def _generate_default_name():
@@ -612,8 +640,9 @@ class ExperimentRuns:
                '<=': _CommonService.OperatorEnum.LTE}
     _OP_PATTERN = re.compile(r"({})".format('|'.join(sorted(six.viewkeys(_OP_MAP), key=lambda s: len(s), reverse=True))))
 
-    def __init__(self, conn, expt_run_ids=None):
+    def __init__(self, conn, conf, expt_run_ids=None):
         self._conn = conn
+        self._conf = conf
         self._ids = expt_run_ids if expt_run_ids is not None else []
 
     def __repr__(self):
@@ -622,10 +651,10 @@ class ExperimentRuns:
     def __getitem__(self, key):
         if isinstance(key, int):
             expt_run_id = self._ids[key]
-            return ExperimentRun(self._conn, _expt_run_id=expt_run_id)
+            return ExperimentRun(self._conn, self._conf, _expt_run_id=expt_run_id)
         elif isinstance(key, slice):
             expt_run_ids = self._ids[key]
-            return self.__class__(self._conn, expt_run_ids)
+            return self.__class__(self._conn, self._conf, expt_run_ids)
         else:
             raise TypeError("index must be integer or slice, not {}".format(type(key)))
 
@@ -636,7 +665,7 @@ class ExperimentRuns:
         if isinstance(other, self.__class__):
             self_ids_set = set(self._ids)
             other_ids = [expt_run_id for expt_run_id in other._ids if expt_run_id not in self_ids_set]
-            return self.__class__(self._conn, self._ids + other_ids)
+            return self.__class__(self._conn, self._conf, self._ids + other_ids)
         else:
             return NotImplemented
 
@@ -724,7 +753,7 @@ class ExperimentRuns:
         if ret_all_info:
             return response_msg.experiment_runs
         else:
-            return self.__class__(self._conn, [expt_run.id for expt_run in response_msg.experiment_runs])
+            return self.__class__(self._conn, self._conf, [expt_run.id for expt_run in response_msg.experiment_runs])
 
     def sort(self, key, descending=False, ret_all_info=False):
         """
@@ -770,7 +799,7 @@ class ExperimentRuns:
         if ret_all_info:
             return response_msg.experiment_runs
         else:
-            return self.__class__(self._conn, [expt_run.id for expt_run in response_msg.experiment_runs])
+            return self.__class__(self._conn, self._conf, [expt_run.id for expt_run in response_msg.experiment_runs])
 
     def top_k(self, key, k, ret_all_info=False, _proj_id=None, _expt_id=None):
         """
@@ -822,7 +851,7 @@ class ExperimentRuns:
         if ret_all_info:
             return response_msg.experiment_runs
         else:
-            return self.__class__(self._conn, [expt_run.id for expt_run in response_msg.experiment_runs])
+            return self.__class__(self._conn, self._conf, [expt_run.id for expt_run in response_msg.experiment_runs])
 
     def bottom_k(self, key, k, ret_all_info=False, _proj_id=None, _expt_id=None):
         """
@@ -873,7 +902,7 @@ class ExperimentRuns:
         if ret_all_info:
             return response_msg.experiment_runs
         else:
-            return self.__class__(self._conn, [expt_run.id for expt_run in response_msg.experiment_runs])
+            return self.__class__(self._conn, self._conf, [expt_run.id for expt_run in response_msg.experiment_runs])
 
 
 class ExperimentRun:
@@ -893,7 +922,7 @@ class ExperimentRun:
         Name of this Experiment Run.
 
     """
-    def __init__(self, conn,
+    def __init__(self, conn, conf,
                  proj_id=None, expt_id=None, expt_run_name=None,
                  desc=None, tags=None, attrs=None,
                  _expt_run_id=None):
@@ -926,6 +955,7 @@ class ExperimentRun:
             raise ValueError("insufficient arguments")
 
         self._conn = conn
+        self._conf = conf
         self.id = expt_run.id
 
     def __repr__(self):
@@ -2155,7 +2185,7 @@ class ExperimentRun:
 
         self._log_artifact("custom_modules", bytestream, _CommonService.ArtifactTypeEnum.BLOB, 'zip')
 
-    def log_code(self, paths=None, use_git=False, remote_url=None, commit_hash=None):
+    def log_code(self, paths=None, use_git=None, remote_url=None, commit_hash=None):
         """
         Logs the code version to this Experiment Run.
 
@@ -2167,8 +2197,9 @@ class ExperimentRun:
         paths : str, optional
             Python script or Jupyter notebook filepath. If no filepath is provided, the Client will
             make its best effort to find the script/notebook file that is calling this function.
-        use_git : bool, default False
-            Whether to log Git snapshot information instead of source code.
+        use_git : bool, optional
+            Whether to log Git snapshot information instead of source code. If no value is provided,
+            it will default to `client.use_git` (which is False by default).
         remote_url : str, optional
             URL for a remote Git repository containing `commit_hash`. `use_git` must be ``True``. If
             no URL is provided, the Client will make its best effort to find it.
@@ -2223,6 +2254,8 @@ class ExperimentRun:
          'is_dirty': True}
 
         """
+        if use_git is None:
+            use_git = self._conf.use_git
         if not use_git and (remote_url is not None or commit_hash is not None):
             raise ValueError("`remote_url` or `commit_hash` can only be set if `use_git` is True")
 
