@@ -1413,7 +1413,7 @@ class ExperimentRun:
         response = _utils.make_request("PUT", url, self._conn, data=artifact_stream)
         response.raise_for_status()
 
-    def _log_artifact_path(self, key, artifact_path, artifact_type):
+    def _log_artifact_path(self, key, artifact_path, artifact_type, linked_artifact_id=None):
         """
         Logs the filesystem path of an artifact to this Experiment Run.
 
@@ -1425,14 +1425,17 @@ class ExperimentRun:
             Filesystem path of the artifact.
         artifact_type : int
             Variant of `_CommonService.ArtifactTypeEnum`.
-
+        # TODO: this design might need to be revisited by @miliu
+        linked_artifact_id: string, optional
+            Id of linked artifact
         """
         # log key-path to ModelDB
         Message = _ExperimentRunService.LogArtifact
         artifact_msg = _CommonService.Artifact(key=key,
                                                path=artifact_path,
                                                path_only=True,
-                                               artifact_type=artifact_type)
+                                               artifact_type=artifact_type,
+                                               linked_artifact_id=linked_artifact_id)
         msg = Message(id=self.id, artifact=artifact_msg)
         data = _utils.proto_to_json(msg)
         response = _utils.make_request("POST",
@@ -1921,6 +1924,11 @@ class ExperimentRun:
 
         self._log_artifact(key, dataset, _CommonService.ArtifactTypeEnum.DATA, extension)
 
+    def log_dataset_version(self, key, version_id):
+        # TODO: hack because path_only artifact needs a placeholder path
+        self._log_artifact_path(key, "See attached dataset version", _CommonService.ArtifactTypeEnum.DATA, 
+            version_id)
+    
     def log_dataset_path(self, key, dataset_path):
         """
         Logs the filesystem path of an dataset to this Experiment Run.
@@ -2077,7 +2085,6 @@ class ExperimentRun:
         self._log_artifact("requirements.txt", requirements, _CommonService.ArtifactTypeEnum.BLOB, 'txt')
         if train_data is not None:
             self._log_artifact("train_data", train_data, _CommonService.ArtifactTypeEnum.DATA, 'csv')
-
 
     def log_model(self, key, model):
         """
