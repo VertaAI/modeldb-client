@@ -1924,10 +1924,12 @@ class ExperimentRun:
 
         self._log_artifact(key, dataset, _CommonService.ArtifactTypeEnum.DATA, extension)
 
-    def log_dataset_version(self, key, version_id):
+    def log_dataset_version(self, key, dataset_version):
         # TODO: hack because path_only artifact needs a placeholder path
+        if type(dataset_version) is not DatasetVersion:
+            raise ValueError('dataset_version should be of type DatasetVersion')
         self._log_artifact_path(key, "See attached dataset version", _CommonService.ArtifactTypeEnum.DATA, 
-            version_id)
+            dataset_version.id)
     
     def log_dataset_path(self, key, dataset_path):
         """
