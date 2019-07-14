@@ -17,6 +17,8 @@ from ._protos.public.modeldb import CommonService_pb2 as _CommonService
 from ._protos.public.modeldb import ProjectService_pb2 as _ProjectService
 from ._protos.public.modeldb import ExperimentService_pb2 as _ExperimentService
 from ._protos.public.modeldb import ExperimentRunService_pb2 as _ExperimentRunService
+from ._protos.public.modeldb import DatasetService_pb2 as _DatasetService
+from ._protos.public.modeldb import DatasetVersionService_pb2 as _DatasetVersionService
 from . import _utils
 from . import _artifact_utils
 from . import utils
@@ -45,6 +47,8 @@ class Client:
         on HTTP codes {403, 503, 504} which commonly occur during back end connection lapses.
     ignore_conn_err : bool, default False
         Whether to ignore connection errors and instead return successes with empty contents.
+    use_git : bool, default False
+        Whether to use a local Git repository for certain operations.
 
     Attributes
     ----------
@@ -54,6 +58,9 @@ class Client:
     ignore_conn_err : bool
         Whether to ignore connection errors and instead return successes with empty contents. Changes
         to this value propagate to any objects that are/were created from this Client.
+    use_git : bool
+        Whether to use a local Git repository for certain operations. Changes to this value propagate
+        to any objects that are/were created from this Client.
     proj : :class:`Project` or None
         Currently active Project.
     expt : :class:`Experiment` or None
@@ -64,7 +71,8 @@ class Client:
     """
     _GRPC_PREFIX = "Grpc-Metadata-"
 
-    def __init__(self, host, port=None, email=None, dev_key=None, max_retries=5, ignore_conn_err=False):
+    def __init__(self, host, port=None, email=None, dev_key=None,
+                 max_retries=5, ignore_conn_err=False, use_git=False):
         if email is None and 'VERTA_EMAIL' in os.environ:
             email = os.environ['VERTA_EMAIL']
             print("set email from environment")
@@ -105,7 +113,19 @@ class Client:
         response.raise_for_status()
         print("connection successfully established")
 
+        # verify Git
+        conf = _utils.Configuration(use_git)
+        if conf.use_git:
+            try:
+                repo_root_dir = _utils.get_git_repo_root_dir()
+            except OSError:
+                six.raise_from(OSError("failed to locate Git repository; please check your working directory"),
+                               None)
+            print("Git repository successfully located at {}".format(repo_root_dir))
+
+
         self._conn = conn
+        self._conf = conf
 
         self.proj = None
         self.expt = None
@@ -127,6 +147,14 @@ class Client:
         self._conn.ignore_conn_err = value
 
     @property
+    def use_git(self):
+        return self._conf.use_git
+
+    @use_git.setter
+    def use_git(self, value):
+        self._conf.use_git = value
+
+    @property
     def expt_runs(self):
         if self.expt is None:
             return None
@@ -143,7 +171,7 @@ class Client:
             expt_run_ids = [expt_run.id
                             for expt_run in response_msg.experiment_runs
                             if expt_run.experiment_id == self.expt.id]
-            return ExperimentRuns(self._conn, expt_run_ids)
+            return ExperimentRuns(self._conn, self._conf, expt_run_ids)
 
     def set_project(self, name=None, desc=None, tags=None, attrs=None, id=None):
         """
@@ -183,7 +211,7 @@ class Client:
         if self.proj is not None:
             self.expt = None
 
-        proj = Project(self._conn,
+        proj = Project(self._conn, self._conf,
                        name,
                        desc, tags, attrs,
                        id)
@@ -226,7 +254,7 @@ class Client:
         if self.proj is None:
             raise AttributeError("a project must first be in progress")
 
-        expt = Experiment(self._conn,
+        expt = Experiment(self._conn, self._conf,
                           self.proj.id, name,
                           desc, tags, attrs)
 
@@ -268,10 +296,277 @@ class Client:
         if self.expt is None:
             raise AttributeError("an experiment must first be in progress")
 
-        return ExperimentRun(self._conn,
+        return ExperimentRun(self._conn, self._conf,
                              self.proj.id, self.expt.id, name,
                              desc, tags, attrs)
 
+    # TODO: dataset visibility cannot be set via a client
+    def create_dataset(self, name=None, desc=None, tags=None, attrs=None, 
+        dataset_type=None, id=None):
+        return Dataset(self._conn, self._conf, name, desc, tags, attrs, dataset_type, id)
+
+    def get_dataset(self, dataset_id):
+        return Dataset._get(self._conn, _dataset_id=dataset_id)
+
+    # TODO: needs to be paginated, maybe sorted and filtered
+    def get_all_datasets(self):
+        if self.expt is None:
+            return None
+        else:
+            Message = _DatasetService.GetAllDatasets
+            msg = Message()
+            data = _utils.proto_to_json(msg)
+            response = _utils.make_request("GET",
+                                           "{}://{}/v1/dataset/getAllDatasets".format(self._conn.scheme, self._conn.socket),
+                                           self._conn, params=data)
+            response.raise_for_status()
+
+            response_msg = _utils.json_to_proto(response.json(), Message.Response)
+            return [Dataset(self._conn, self._conf, _dataset_id = dataset.id) 
+                    for dataset in response_msg.datasets]
+
+    def create_dataset_version(self, dataset_id, 
+        parent_id=None, desc=None, tags=None, dataset_type=None, attrs=None,
+        version=None, dataset_version_info=None):
+        return DatasetVersion(self._conn, self._conf, dataset_id, parent_id,
+            desc, tags, dataset_type, attrs, version, dataset_version_info)
+
+    # TODO: this should also allow gets based on dataset_id and version, but
+    # not supported by backend yet
+    def get_dataset_version(self, dataset_version_id):
+        return DatasetVersion._get(self._conn, _dataset_version_id=dataset_version_id)
+
+    def get_all_versions_for_dataset(self, dataset_id):
+        Message = _DatasetVersionService.GetAllDatasetVersionsByDatasetId
+        msg = Message(dataset_id=dataset_id)
+        data = _utils.proto_to_json(msg)
+        response = _utils.make_request("GET",
+                                        "{}://{}/v1/dataset-version/getAllDatasetVersionsByDatasetId".format(self._conn.scheme, self._conn.socket),
+                                        self._conn, params=data)
+        response.raise_for_status()
+
+        response_msg = _utils.json_to_proto(response.json(), Message.Response)
+        return [DatasetVersion(self._conn, self._conf, _dataset_version_id = dataset_version.id) 
+                for dataset_version in response_msg.dataset_versions]
+
+    # TODO: sorting seems to be incorrect
+    def get_latest_version_for_dataset(self, dataset_id, ascending=None, sort_key=None):
+        Message = _DatasetVersionService.GetLatestDatasetVersionByDatasetId
+        msg = Message(dataset_id=dataset_id, ascending=ascending, sort_key=sort_key)
+        data = _utils.proto_to_json(msg)
+        response = _utils.make_request("GET",
+                                        "{}://{}/v1/dataset-version/getLatestDatasetVersionByDatasetId".format(self._conn.scheme, self._conn.socket),
+                                        self._conn, params=data)
+        response.raise_for_status()
+
+        response_msg = _utils.json_to_proto(response.json(), Message.Response)
+        return response_msg.dataset_version
+
+# TODO: dataset type not stored yet
+class Dataset:
+    # TODO: delete is not supported on the API yet
+    def __init__(self, conn, conf,
+        name=None, desc=None, tags=None, attrs=None, dataset_type=None, _dataset_id=None):
+        if name is not None and _dataset_id is not None:
+            raise ValueError("cannot specify both `name` and `_dataset_id`")
+
+        # retrieve dataset by id
+        if _dataset_id is not None:
+            dataset = Dataset._get(conn, _dataset_id=_dataset_id)
+            if dataset is None:
+                raise ValueError("Dataset with ID {} not found".format(_dataset_id))
+        else:
+            # create a new dataset
+            if name is None:
+                name = Dataset._generate_default_name()
+            try:
+                dataset = Dataset._create(conn, name, desc, tags, attrs)
+            except requests.HTTPError as e:
+                if e.response.status_code == 409:  # already exists
+                    if any(param is not None for param in (desc, tags, attrs)):
+                        warnings.warn("Dataset with name {} already exists;"
+                                        " cannot initialize `desc`, `tags`, or `attrs`".format(dataset_name))
+                    dataset = Dataset._get(conn, name)
+                else:
+                    raise e
+            else:
+                print("created new Dataset: {}".format(dataset.name))
+
+        # TODO: store all parts of dataset
+        self._conn = conn
+        self._conf = conf
+        self.id = dataset.id
+        self.dataset_type = dataset.dataset_type
+
+    def __repr__(self):
+        return "<Dataset \"{}\">".format(self.name)
+
+    @staticmethod
+    def _generate_default_name():
+        return "Dataset {}".format(_utils.generate_default_name())
+
+    @property
+    def name(self):
+        # TODO: this call seems a little unnecessary
+        Message = _DatasetService.GetDatasetById
+        msg = Message(id=self.id)
+        data = _utils.proto_to_json(msg)
+        response = _utils.make_request("GET",
+                                       "{}://{}/v1/dataset/getDatasetById".format(self._conn.scheme, self._conn.socket),
+                                       self._conn, params=data)
+        response.raise_for_status()
+
+        response_msg = _utils.json_to_proto(response.json(), Message.Response)
+        return response_msg.dataset.name
+
+    @staticmethod
+    def _get(conn, dataset_name=None, _dataset_id=None):
+        if _dataset_id is not None:
+            Message = _DatasetService.GetDatasetById
+            msg = Message(id=_dataset_id)
+            data = _utils.proto_to_json(msg)
+            response = _utils.make_request("GET",
+                                           "{}://{}/v1/dataset/getDatasetById".format(conn.scheme, conn.socket),
+                                           conn, params=data)
+
+            if response.ok:
+                response_msg = _utils.json_to_proto(response.json(), Message.Response)
+                return response_msg.dataset
+            else:
+                if response.status_code == 404 and response.json()['code'] == 5:
+                    return None
+                else:
+                    response.raise_for_status()
+        else:
+            raise ValueError("insufficient arguments")
+    
+    @staticmethod
+    def _create(conn, dataset_name, desc=None, tags=None, attrs=None):
+        if attrs is not None:
+            attrs = [_CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value, allow_collection=True))
+                     for key, value in six.viewitems(attrs)]
+
+        Message = _DatasetService.CreateDataset
+        msg = Message(name=dataset_name, description=desc, tags=tags, attributes=attrs)
+        data = _utils.proto_to_json(msg)
+        response = _utils.make_request("POST",
+                                       "{}://{}/v1/dataset/createDataset".format(conn.scheme, conn.socket),
+                                       conn, json=data)
+
+        if response.ok:
+            response_msg = _utils.json_to_proto(response.json(), Message.Response)
+            return response_msg.dataset
+        else:
+            response.raise_for_status()
+
+# TODO: visibility not done
+# TODO: delete version not implemented
+class DatasetVersion:
+    def __init__(self, conn, conf, dataset_id=None, 
+        parent_id=None, desc=None, tags=None, attrs=None, dataset_type=None, 
+        version=None, dataset_version_info=None, _dataset_version_id=None):
+        
+        # retrieve dataset by id
+        if _dataset_version_id is not None:
+            dataset_version = DatasetVersion._get(conn, _dataset_version_id)
+            if dataset_version is None:
+                raise ValueError("DatasetVersion with ID {} not found".format(_dataset_version_id))
+        else:
+            if dataset_id is None:
+                raise ValueError('dataset_id must be specified') 
+                
+            # create a new dataset version
+            try:
+                dataset_version = DatasetVersion._create(conn, dataset_id, 
+                    parent_id, desc, tags, attrs, dataset_type, version,
+                    dataset_version_info)
+            # TODO: handle dups
+            except requests.HTTPError as e:
+                # if e.response.status_code == 409:  # already exists
+                #     if any(param is not None for param in (desc, tags, attrs)):
+                #         warnings.warn("Dataset with name {} already exists;"
+                #                         " cannot initialize `desc`, `tags`, or `attrs`".format(dataset_name))
+                #     dataset_version = DatasetVersion._get(conn, dataset_id, version)
+                # else:
+                #     raise e
+                raise e
+            else:
+                print("created new DatasetVersion: {}".format(
+                    dataset_version.version))
+
+        # TODO: should copy over other info too
+        self._conn = conn
+        self._conf = conf
+        self.dataset_id = dataset_version.dataset_id
+        self.parent_id = dataset_version.parent_id
+        self.desc = dataset_version.description
+        self.tags = dataset_version.tags
+        self.attrs = dataset_version.attributes
+        self.id = dataset_version.id
+        self.version = dataset_version.version
+        self.dataset_type = dataset_version.dataset_type
+
+    def __repr__(self):
+        return "<DatasetVersion \"{}\">".format(self.id)
+
+    # TODO: get by dataset_id and version is not supported on the backend
+    @staticmethod
+    def _get(conn, _dataset_version_id=None):
+        if _dataset_version_id is not None:
+            Message = _DatasetVersionService.GetDatasetVersionById
+            msg = Message(id=_dataset_version_id)
+            data = _utils.proto_to_json(msg)
+            response = _utils.make_request("GET",
+                                           "{}://{}/v1/dataset-version/getDatasetVersionById".format(conn.scheme, conn.socket),
+                                           conn, params=data)
+
+            if response.ok:
+                response_msg = _utils.json_to_proto(response.json(), Message.Response)
+                return response_msg.dataset_version
+            else:
+                if response.status_code == 404 and response.json()['code'] == 5:
+                    return None
+                else:
+                    response.raise_for_status()
+        else:
+            raise ValueError("insufficient arguments")
+    
+    @staticmethod
+    def _create(conn, dataset_id, parent_id=None, desc=None, tags=None, 
+        dataset_type=None, attrs=None, version=None, 
+        dataset_version_info=None):
+        if attrs is not None:
+            attrs = [_CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value, allow_collection=True))
+                     for key, value in six.viewitems(attrs)]
+
+        Message = _DatasetVersionService.CreateDatasetVersion
+        if dataset_type == _DatasetService.DatasetTypeEnum.DatasetType.PATH:
+            msg = Message(dataset_id=dataset_id, parent_id=parent_id,
+                description=desc, tags=tags, dataset_type=dataset_type,
+                attributes=attrs, version=version,
+                path_dataset_info=dataset_version_info)
+        elif dataset_type == _DatasetService.DatasetTypeEnum.DatasetType.QUERY:
+            msg = Message(dataset_id=dataset_id, parent_id=parent_id,
+                description=desc, tags=tags, dataset_type=dataset_type,
+                attributes=attrs, version=version,
+                # different dataset versions
+                query_dataset_info=dataset_version_info)
+        else:
+            msg = Message(dataset_id=dataset_id, parent_id=parent_id,
+                description=desc, tags=tags, dataset_type=dataset_type,
+                attributes=attrs, version=version,
+                raw_dataset_info=dataset_version_info)
+        
+        data = _utils.proto_to_json(msg)
+        response = _utils.make_request("POST",
+                                       "{}://{}/v1/dataset-version/createDatasetVersion".format(conn.scheme, conn.socket),
+                                       conn, json=data)
+
+        if response.ok:
+            response_msg = _utils.json_to_proto(response.json(), Message.Response)
+            return response_msg.dataset_version
+        else:
+            response.raise_for_status()
 
 class Project:
     """
@@ -293,7 +588,7 @@ class Project:
         Experiment Runs under this Project.
 
     """
-    def __init__(self, conn,
+    def __init__(self, conn, conf,
                  proj_name=None,
                  desc=None, tags=None, attrs=None,
                  _proj_id=None):
@@ -324,6 +619,7 @@ class Project:
                 print("created new Project: {}".format(proj.name))
 
         self._conn = conn
+        self._conf = conf
         self.id = proj.id
 
     def __repr__(self):
@@ -356,7 +652,7 @@ class Project:
         expt_run_ids = [expt_run.id
                         for expt_run
                         in _utils.json_to_proto(response.json(), Message.Response).experiment_runs]
-        return ExperimentRuns(self._conn, expt_run_ids)
+        return ExperimentRuns(self._conn, self._conf, expt_run_ids)
 
     @staticmethod
     def _generate_default_name():
@@ -439,7 +735,7 @@ class Experiment:
         Experiment Runs under this Experiment.
 
     """
-    def __init__(self, conn,
+    def __init__(self, conn, conf,
                  proj_id=None, expt_name=None,
                  desc=None, tags=None, attrs=None,
                  _expt_id=None):
@@ -472,6 +768,7 @@ class Experiment:
             raise ValueError("insufficient arguments")
 
         self._conn = conn
+        self._conf = conf
         self.id = expt.id
 
     def __repr__(self):
@@ -504,7 +801,7 @@ class Experiment:
         expt_run_ids = [expt_run.id
                         for expt_run
                         in _utils.json_to_proto(response.json(), Message.Response).experiment_runs]
-        return ExperimentRuns(self._conn, expt_run_ids)
+        return ExperimentRuns(self._conn, self._conf, expt_run_ids)
 
     @staticmethod
     def _generate_default_name():
@@ -612,8 +909,9 @@ class ExperimentRuns:
                '<=': _CommonService.OperatorEnum.LTE}
     _OP_PATTERN = re.compile(r"({})".format('|'.join(sorted(six.viewkeys(_OP_MAP), key=lambda s: len(s), reverse=True))))
 
-    def __init__(self, conn, expt_run_ids=None):
+    def __init__(self, conn, conf, expt_run_ids=None):
         self._conn = conn
+        self._conf = conf
         self._ids = expt_run_ids if expt_run_ids is not None else []
 
     def __repr__(self):
@@ -622,10 +920,10 @@ class ExperimentRuns:
     def __getitem__(self, key):
         if isinstance(key, int):
             expt_run_id = self._ids[key]
-            return ExperimentRun(self._conn, _expt_run_id=expt_run_id)
+            return ExperimentRun(self._conn, self._conf, _expt_run_id=expt_run_id)
         elif isinstance(key, slice):
             expt_run_ids = self._ids[key]
-            return self.__class__(self._conn, expt_run_ids)
+            return self.__class__(self._conn, self._conf, expt_run_ids)
         else:
             raise TypeError("index must be integer or slice, not {}".format(type(key)))
 
@@ -636,7 +934,7 @@ class ExperimentRuns:
         if isinstance(other, self.__class__):
             self_ids_set = set(self._ids)
             other_ids = [expt_run_id for expt_run_id in other._ids if expt_run_id not in self_ids_set]
-            return self.__class__(self._conn, self._ids + other_ids)
+            return self.__class__(self._conn, self._conf, self._ids + other_ids)
         else:
             return NotImplemented
 
@@ -724,7 +1022,7 @@ class ExperimentRuns:
         if ret_all_info:
             return response_msg.experiment_runs
         else:
-            return self.__class__(self._conn, [expt_run.id for expt_run in response_msg.experiment_runs])
+            return self.__class__(self._conn, self._conf, [expt_run.id for expt_run in response_msg.experiment_runs])
 
     def sort(self, key, descending=False, ret_all_info=False):
         """
@@ -770,7 +1068,7 @@ class ExperimentRuns:
         if ret_all_info:
             return response_msg.experiment_runs
         else:
-            return self.__class__(self._conn, [expt_run.id for expt_run in response_msg.experiment_runs])
+            return self.__class__(self._conn, self._conf, [expt_run.id for expt_run in response_msg.experiment_runs])
 
     def top_k(self, key, k, ret_all_info=False, _proj_id=None, _expt_id=None):
         """
@@ -822,7 +1120,7 @@ class ExperimentRuns:
         if ret_all_info:
             return response_msg.experiment_runs
         else:
-            return self.__class__(self._conn, [expt_run.id for expt_run in response_msg.experiment_runs])
+            return self.__class__(self._conn, self._conf, [expt_run.id for expt_run in response_msg.experiment_runs])
 
     def bottom_k(self, key, k, ret_all_info=False, _proj_id=None, _expt_id=None):
         """
@@ -873,7 +1171,7 @@ class ExperimentRuns:
         if ret_all_info:
             return response_msg.experiment_runs
         else:
-            return self.__class__(self._conn, [expt_run.id for expt_run in response_msg.experiment_runs])
+            return self.__class__(self._conn, self._conf, [expt_run.id for expt_run in response_msg.experiment_runs])
 
 
 class ExperimentRun:
@@ -893,7 +1191,7 @@ class ExperimentRun:
         Name of this Experiment Run.
 
     """
-    def __init__(self, conn,
+    def __init__(self, conn, conf,
                  proj_id=None, expt_id=None, expt_run_name=None,
                  desc=None, tags=None, attrs=None,
                  _expt_run_id=None):
@@ -926,6 +1224,7 @@ class ExperimentRun:
             raise ValueError("insufficient arguments")
 
         self._conn = conn
+        self._conf = conf
         self.id = expt_run.id
 
     def __repr__(self):
@@ -2155,7 +2454,7 @@ class ExperimentRun:
 
         self._log_artifact("custom_modules", bytestream, _CommonService.ArtifactTypeEnum.BLOB, 'zip')
 
-    def log_code(self, paths=None, use_git=False, remote_url=None, commit_hash=None):
+    def log_code(self, paths=None, use_git=None, remote_url=None, commit_hash=None):
         """
         Logs the code version to this Experiment Run.
 
@@ -2167,8 +2466,9 @@ class ExperimentRun:
         paths : str, optional
             Python script or Jupyter notebook filepath. If no filepath is provided, the Client will
             make its best effort to find the script/notebook file that is calling this function.
-        use_git : bool, default False
-            Whether to log Git snapshot information instead of source code.
+        use_git : bool, optional
+            Whether to log Git snapshot information instead of source code. If no value is provided,
+            it will default to `client.use_git` (which is False by default).
         remote_url : str, optional
             URL for a remote Git repository containing `commit_hash`. `use_git` must be ``True``. If
             no URL is provided, the Client will make its best effort to find it.
@@ -2223,6 +2523,8 @@ class ExperimentRun:
          'is_dirty': True}
 
         """
+        if use_git is None:
+            use_git = self._conf.use_git
         if not use_git and (remote_url is not None or commit_hash is not None):
             raise ValueError("`remote_url` or `commit_hash` can only be set if `use_git` is True")
 
