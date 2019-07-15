@@ -25,6 +25,7 @@ Project
 
 .. autoclass:: verta.client.Project
     :members:
+    :inherited-members:
 
 
 Experiment
@@ -32,6 +33,7 @@ Experiment
 
 .. autoclass:: verta.client.Experiment
     :members:
+    :inherited-members:
 
 
 ExperimentRun
@@ -39,6 +41,7 @@ ExperimentRun
 
 .. autoclass:: verta.client.ExperimentRun
     :members:
+    :inherited-members:
 
 
 Utilities
