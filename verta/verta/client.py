@@ -288,6 +288,29 @@ class Client:
                              desc, tags, attrs)
 
 
+class _ModelDBEntity:
+    def __init__(self, conn, conf, service_module, service_url_component, id):
+        self._conn = conn
+        self._conf = conf
+
+        self._service = service_module
+        self._request_url = "{}://{}/v1/{}/{}".format(self._conn.scheme,
+                                                      self._conn.socket,
+                                                      service_url_component,
+                                                      '{}')  # endpoint placeholder
+
+        self.id = id
+
+    def _get_url_for_artifact(self):
+        pass
+
+    def log_code(self):
+        pass
+
+    def get_code(self):
+        pass
+
+
 class Project:
     """
     Object representing a machine learning Project.
