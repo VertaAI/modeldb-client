@@ -2,6 +2,48 @@ Release Notes
 =============
 
 
+v0.12.1 (2019-07-16)
+--------------------
+
+Backwards Incompatibilities
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+- `The non-public prediction utility now uses our updated REST prediction endpoint
+  <https://github.com/VertaAI/modeldb-client/pull/128>`_
+
+New Features
+^^^^^^^^^^^^
+- `implement log_code() and get_code() for code versioning
+  <https://github.com/VertaAI/modeldb-client/pull/135>`_
+- `allow periods in Artifact get functions
+  <https://github.com/VertaAI/modeldb-client/pull/121>`_
+- `enable retrieving integers as integers (instead of as floats) from the back end
+  <https://github.com/VertaAI/modeldb-client/commit/cd34c949ab419075e22f6bc7a87eecf7eda86857>`_
+
+Bug Fixes
+^^^^^^^^^
+- `catch and raise duplicate column name error on ModelAPI initialization
+  <https://github.com/VertaAI/modeldb-client/pull/123>`_
+- `properly handle daylight saving time when logging observation timestamps
+  <https://github.com/VertaAI/modeldb-client/pull/131>`_
+
+Internal Changes
+^^^^^^^^^^^^^^^^
+- `implement internal Configuration utility struct
+  <https://github.com/VertaAI/modeldb-client/pull/134>`_
+- `add PyTorch example notebook
+  <https://github.com/VertaAI/modeldb-client/blob/master/workflows/examples/pytorch.ipynb>`_
+- `implement internal utility for unwrapping directory paths into contained filepaths
+  <https://github.com/VertaAI/modeldb-client/pull/124>`_
+- `implement internal utilities for reading Git information from the local filesystem
+  <https://github.com/VertaAI/modeldb-client/pull/126>`_
+- `implement internal utilities for finding executing Python source files
+  <https://github.com/VertaAI/modeldb-client/pull/133>`_
+- `implement internal utility for getting the file extension from a filepath
+  <https://github.com/VertaAI/modeldb-client/pull/129>`_
+- `log file extensions with Artifacts
+  <https://github.com/VertaAI/modeldb-client/pull/130>`_
+
+
 v0.12.0 (2019-06-27)
 --------------------
 
