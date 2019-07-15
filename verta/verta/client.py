@@ -303,7 +303,8 @@ class Client:
     # TODO: dataset visibility cannot be set via a client
     def create_dataset(self, name=None, desc=None, tags=None, attrs=None, 
         dataset_type=None, id=None):
-        return Dataset(self._conn, self._conf, name, desc, tags, attrs, dataset_type, id)
+        return Dataset(self._conn, self._conf, name=name, dataset_type=dataset_type,  
+            desc=desc, tags=tags, attrs=attrs, _dataset_id=id)
 
     def get_dataset(self, dataset_id):
         return Dataset._get(self._conn, _dataset_id=dataset_id)
@@ -325,11 +326,13 @@ class Client:
             return [Dataset(self._conn, self._conf, _dataset_id = dataset.id) 
                     for dataset in response_msg.datasets]
 
-    def create_dataset_version(self, dataset_id, 
+    def create_dataset_version(self, dataset, dataset_version_info,
         parent_id=None, desc=None, tags=None, dataset_type=None, attrs=None,
-        version=None, dataset_version_info=None):
-        return DatasetVersion(self._conn, self._conf, dataset_id, parent_id,
-            desc, tags, dataset_type, attrs, version, dataset_version_info)
+        version=None):
+        return DatasetVersion(self._conn, self._conf, dataset_id=dataset.id, 
+            dataset_type=dataset.dataset_type, 
+            dataset_version_info=dataset_version_info, parent_id=parent_id,
+            desc=desc, tags=tags, attrs=attrs, version=version)
 
     # TODO: this should also allow gets based on dataset_id and version, but
     # not supported by backend yet
@@ -362,11 +365,67 @@ class Client:
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
         return response_msg.dataset_version
 
-# TODO: dataset type not stored yet
+class PathBasedDataset:
+    def __init__(self, path):
+        self.base_path = path
+        self.location_type = self.get_path_type(path)
+        self.dataset_part_infos = self.get_dataset_part_infos()
+        self.size = 0 # TODO: sum up all dataset part sizes
+
+    @staticmethod
+    def get_path_type(path):
+        # TODO: only default right now
+        return _DatasetVersionService.PathLocationTypeEnum.PathLocationType.LOCAL_FILE_SYSTEM
+
+    def get_dataset_part_infos(self):
+        dataset_part_infos = []
+        if self.location_type == _DatasetVersionService.PathLocationTypeEnum.PathLocationType.LOCAL_FILE_SYSTEM:
+            # find all files there and create dataset_part_infos
+            if os.path.isdir(self.base_path):
+                raise NotImplementedError('Directories not supported')
+            else:
+                dataset_part_infos.append(self.get_file_info(self.base_path))
+        else:
+            raise NotImplementedError('Only local files supported not supported')
+        return dataset_part_infos
+
+    @staticmethod
+    def get_file_info(path):
+        dataset_part_info = _DatasetVersionService.DatasetPartInfo()
+        dataset_part_info.path = path
+        dataset_part_info.size = os.path.getsize(path)
+        dataset_part_info.checksum = PathBasedDataset.compute_file_hash(path)
+        dataset_part_info.last_modified_at_source = int(os.path.getmtime(path))
+        return dataset_part_info
+
+    @staticmethod
+    def compute_file_hash(path):
+        BLOCKSIZE = 65536
+        hasher = hashlib.md5()
+        with open(path, 'rb') as afile:
+            buf = afile.read(BLOCKSIZE)
+            while len(buf) > 0:
+                hasher.update(buf)
+                buf = afile.read(BLOCKSIZE)
+        return hasher.hexdigest()
+
+_DATASET_TYPE_MAP = {
+    'RAW' :  _DatasetService.DatasetTypeEnum.DatasetType.RAW,
+    'PATH' : _DatasetService.DatasetTypeEnum.DatasetType.PATH,
+    'QUERY' : _DatasetService.DatasetTypeEnum.DatasetType.QUERY
+}
+
+_PATH_DATASET_TYPE_MAP = {
+    'LOCAL_FILE_SYSTEM' :  _DatasetVersionService.PathLocationTypeEnum.PathLocationType.LOCAL_FILE_SYSTEM,
+    'NETWORK_FILE_SYSTEM' : _DatasetVersionService.PathLocationTypeEnum.PathLocationType.NETWORK_FILE_SYSTEM,
+    'HADOOP_FILE_SYSTEM' : _DatasetVersionService.PathLocationTypeEnum.PathLocationType.HADOOP_FILE_SYSTEM,
+    'S3_FILE_SYSTEM' : _DatasetVersionService.PathLocationTypeEnum.PathLocationType.S3_FILE_SYSTEM
+}
+
 class Dataset:
     # TODO: delete is not supported on the API yet
     def __init__(self, conn, conf,
-        name=None, desc=None, tags=None, attrs=None, dataset_type=None, _dataset_id=None):
+        name=None, dataset_type=None, desc=None, tags=None, attrs=None, _dataset_id=None):
         if name is not None and _dataset_id is not None:
             raise ValueError("cannot specify both `name` and `_dataset_id`")
 
@@ -380,12 +439,12 @@ class Dataset:
             if name is None:
                 name = Dataset._generate_default_name()
             try:
-                dataset = Dataset._create(conn, name, desc, tags, attrs)
+                dataset = Dataset._create(conn, name, dataset_type, desc, tags, attrs)
             except requests.HTTPError as e:
                 if e.response.status_code == 409:  # already exists
                     if any(param is not None for param in (desc, tags, attrs)):
                         warnings.warn("Dataset with name {} already exists;"
-                                        " cannot initialize `desc`, `tags`, or `attrs`".format(dataset_name))
+                                        " cannot initialize `desc`, `tags`, or `attrs`".format(name))
                     dataset = Dataset._get(conn, name)
                 else:
                     raise e
@@ -397,6 +456,7 @@ class Dataset:
         self._conf = conf
         self.id = dataset.id
         self.dataset_type = dataset.dataset_type
+        print ("id: " + str(dataset.id) + ", dataset_type:" + str(dataset.dataset_type))
 
     def __repr__(self):
         return "<Dataset \"{}\">".format(self.name)
@@ -430,8 +490,9 @@ class Dataset:
                                            conn, params=data)
 
             if response.ok:
-                response_msg = _utils.json_to_proto(response.json(), Message.Response)
-                return response_msg.dataset
+                dataset = _utils.json_to_proto(response.json(), Message.Response).dataset
+                # dataset.dataset_type = _DATASET_TYPE_MAP[dataset.dataset_type]
+                return dataset
             else:
                 if response.status_code == 404 and response.json()['code'] == 5:
                     return None
@@ -441,30 +502,32 @@ class Dataset:
             raise ValueError("insufficient arguments")
     
     @staticmethod
-    def _create(conn, dataset_name, desc=None, tags=None, attrs=None):
+    def _create(conn, dataset_name, dataset_type, desc=None, tags=None, attrs=None):
         if attrs is not None:
             attrs = [_CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value, allow_collection=True))
                      for key, value in six.viewitems(attrs)]
 
         Message = _DatasetService.CreateDataset
-        msg = Message(name=dataset_name, description=desc, tags=tags, attributes=attrs)
+        msg = Message(name=dataset_name, dataset_type=dataset_type, 
+            description=desc, tags=tags, attributes=attrs)
         data = _utils.proto_to_json(msg)
         response = _utils.make_request("POST",
                                        "{}://{}/v1/dataset/createDataset".format(conn.scheme, conn.socket),
                                        conn, json=data)
 
         if response.ok:
-            response_msg = _utils.json_to_proto(response.json(), Message.Response)
-            return response_msg.dataset
+            dataset = _utils.json_to_proto(response.json(), Message.Response).dataset
+            # dataset.dataset_type = _DATASET_TYPE_MAP[dataset.dataset_type]
+            return dataset
         else:
             response.raise_for_status()
 
 # TODO: visibility not done
 # TODO: delete version not implemented
 class DatasetVersion:
-    def __init__(self, conn, conf, dataset_id=None, 
-        parent_id=None, desc=None, tags=None, attrs=None, dataset_type=None, 
-        version=None, dataset_version_info=None, _dataset_version_id=None):
+    def __init__(self, conn, conf, dataset_id=None, dataset_type=None, 
+        dataset_version_info=None, parent_id=None, desc=None, tags=None, 
+        attrs=None, version=None, _dataset_version_id=None):
         
         # retrieve dataset by id
         if _dataset_version_id is not None:
@@ -478,8 +541,9 @@ class DatasetVersion:
             # create a new dataset version
             try:
                 dataset_version = DatasetVersion._create(conn, dataset_id, 
-                    parent_id, desc, tags, attrs, dataset_type, version,
-                    dataset_version_info)
+                    dataset_type, dataset_version_info, parent_id=parent_id, 
+                    desc=desc, tags=tags, attrs=attrs, version=version)
+            
             # TODO: handle dups
             except requests.HTTPError as e:
                 # if e.response.status_code == 409:  # already exists
@@ -521,8 +585,10 @@ class DatasetVersion:
                                            conn, params=data)
 
             if response.ok:
-                response_msg = _utils.json_to_proto(response.json(), Message.Response)
-                return response_msg.dataset_version
+                dataset_version = _utils.json_to_proto(response.json(), Message.Response).dataset_version
+                # dataset_version.dataset_type = _DATASET_TYPE_MAP[dataset_version.dataset_type]
+                return dataset_version
+                
             else:
                 if response.status_code == 404 and response.json()['code'] == 5:
                     return None
@@ -532,19 +598,26 @@ class DatasetVersion:
             raise ValueError("insufficient arguments")
     
     @staticmethod
-    def _create(conn, dataset_id, parent_id=None, desc=None, tags=None, 
-        dataset_type=None, attrs=None, version=None, 
-        dataset_version_info=None):
+    def _create(conn, dataset_id, dataset_type, dataset_version_info, 
+        parent_id=None, desc=None, tags=None, attrs=None, version=None):
         if attrs is not None:
             attrs = [_CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value, allow_collection=True))
                      for key, value in six.viewitems(attrs)]
 
         Message = _DatasetVersionService.CreateDatasetVersion
         if dataset_type == _DatasetService.DatasetTypeEnum.DatasetType.PATH:
+            # turn dataset_version_info into proto format
+            version_msg = _DatasetVersionService.PathBasedDatasetInfo
+            converted_dataset_version_info = version_msg(
+                location_type=dataset_version_info.location_type,
+                size=dataset_version_info.size,
+                dataset_path_infos=dataset_version_info.dataset_part_infos,
+                base_path=dataset_version_info.base_path
+            )
             msg = Message(dataset_id=dataset_id, parent_id=parent_id,
                 description=desc, tags=tags, dataset_type=dataset_type,
                 attributes=attrs, version=version,
-                path_dataset_info=dataset_version_info)
+                path_based_dataset_info=converted_dataset_version_info)
         elif dataset_type == _DatasetService.DatasetTypeEnum.DatasetType.QUERY:
             msg = Message(dataset_id=dataset_id, parent_id=parent_id,
                 description=desc, tags=tags, dataset_type=dataset_type,
@@ -563,8 +636,9 @@ class DatasetVersion:
                                        conn, json=data)
 
         if response.ok:
-            response_msg = _utils.json_to_proto(response.json(), Message.Response)
-            return response_msg.dataset_version
+            dataset_version = _utils.json_to_proto(response.json(), Message.Response).dataset_version
+            # dataset_version.dataset_type = _DATASET_TYPE_MAP[dataset_version.dataset_type]
+            return dataset_version
         else:
             response.raise_for_status()
 
