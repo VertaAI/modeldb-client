@@ -541,7 +541,7 @@ class _ModelDBEntity:
             raise RuntimeError("unable find code in response")
 
 
-class Project:
+class Project(_ModelDBEntity):
     """
     Object representing a machine learning Project.
 
@@ -591,9 +591,7 @@ class Project:
             else:
                 print("created new Project: {}".format(proj.name))
 
-        self._conn = conn
-        self._conf = conf
-        self.id = proj.id
+        super(Project, self).__init__(conn, conf, _ProjectService, "project", proj.id)
 
     def __repr__(self):
         return "<Project \"{}\">".format(self.name)
@@ -688,7 +686,7 @@ class Project:
             response.raise_for_status()
 
 
-class Experiment:
+class Experiment(_ModelDBEntity):
     """
     Object representing a machine learning Experiment.
 
@@ -740,9 +738,7 @@ class Experiment:
         else:
             raise ValueError("insufficient arguments")
 
-        self._conn = conn
-        self._conf = conf
-        self.id = expt.id
+        super(Experiment, self).__init__(conn, conf, _ExperimentService, "experiment", expt.id)
 
     def __repr__(self):
         return "<Experiment \"{}\">".format(self.name)
@@ -1147,7 +1143,7 @@ class ExperimentRuns:
             return self.__class__(self._conn, self._conf, [expt_run.id for expt_run in response_msg.experiment_runs])
 
 
-class ExperimentRun:
+class ExperimentRun(_ModelDBEntity):
     """
     Object representing a machine learning Experiment Run.
 
@@ -1196,9 +1192,7 @@ class ExperimentRun:
         else:
             raise ValueError("insufficient arguments")
 
-        self._conn = conn
-        self._conf = conf
-        self.id = expt_run.id
+        super(ExperimentRun, self).__init__(conn, conf, _ExperimentRunService, "experiment-run", expt_run.id)
 
     def __repr__(self):
         Message = _ExperimentRunService.GetExperimentRunById
