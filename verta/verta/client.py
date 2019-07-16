@@ -11,8 +11,6 @@ import re
 import time
 import warnings
 import zipfile
-import datetime
-import pytz
 
 import PIL
 import requests
@@ -458,17 +456,14 @@ class PathBasedDataset:
 
 class BigQueryDataset:
     def __init__(self, job_id=None, query="", execution_timestamp="", bq_location="",
-    data_source_uri="",query_template="",query_parameters=[],num_records=0):
-        print("job_id : "+ job_id)
-        print("location : "+ bq_location)
+        data_source_uri="",query_template="",query_parameters=[],num_records=0):
+        """https://googleapis.github.io/google-cloud-python/latest/bigquery/generated/google.cloud.bigquery.job.QueryJob.html#google.cloud.bigquery.job.QueryJob.query_plan"""
         if job_id is not None and bq_location:
             self.job_id = job_id
             job = self.get_bq_job(job_id, bq_location)
-            print("job : "+ str(job))
             self.execution_timestamp = int((job.started - datetime.datetime(1970,1,1, tzinfo=pytz.UTC)).total_seconds())
             self.data_source_uri = job.self_link
             self.query = job.query
-            job.query_parameters
             #TODO: extract the query template
             self.query_template = job.query
             self.query_parameters = []
@@ -479,7 +474,7 @@ class BigQueryDataset:
                 raise ValueError("query not found")
             self.query = query
             self.execution_timestamp = execution_timestamp
-            self.data_source_uri=data_source_uri
+            self.data_source_uri = data_source_uri
             self.query_template = query_template
             self.query_parameters = query_parameters
             self.num_records = num_records
