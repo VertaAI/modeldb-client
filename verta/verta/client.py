@@ -108,19 +108,8 @@ class Client:
         response.raise_for_status()
         print("connection successfully established")
 
-        # verify Git
-        conf = _utils.Configuration(use_git)
-        if conf.use_git:
-            try:
-                repo_root_dir = _utils.get_git_repo_root_dir()
-            except OSError:
-                six.raise_from(OSError("failed to locate Git repository; please check your working directory"),
-                               None)
-            print("Git repository successfully located at {}".format(repo_root_dir))
-
-
         self._conn = conn
-        self._conf = conf
+        self._conf = _utils.Configuration(use_git)
 
         self.proj = None
         self.expt = None
@@ -398,7 +387,15 @@ class _ModelDBEntity:
             training_pipeline.py        2019-05-31 10:34:44          964
 
         """
-        if not self._conf.use_git and (repo_url is not None or commit_hash is not None):
+        if self._conf.use_git:
+            # verify Git
+            try:
+                repo_root_dir = _utils.get_git_repo_root_dir()
+            except OSError:
+                six.raise_from(OSError("failed to locate Git repository; please check your working directory"),
+                               None)
+            print("Git repository successfully located at {}".format(repo_root_dir))
+        elif repo_url is not None or commit_hash is not None:
             raise ValueError("`repo_url` and `commit_hash` can only be set if `use_git` was set to True in the Client")
 
         if exec_path is None:
