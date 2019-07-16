@@ -90,7 +90,7 @@ class DeployedModel:
         result = requests.post(self._prediction_url,
                                headers={
                                    'Access-token': self._prediction_token,
-                                   'Content-length': len(json.dumps(x).encode('utf-8')),
+                                   'Content-length': str(len(json.dumps(x).encode('utf-8'))),
                                },
                                json=x)
 
