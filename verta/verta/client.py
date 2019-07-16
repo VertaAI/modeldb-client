@@ -24,6 +24,7 @@ from ._protos.public.modeldb import DatasetVersionService_pb2 as _DatasetVersion
 from . import _utils
 from . import _artifact_utils
 from . import utils
+from google.cloud import bigquery
 from boto3 import client as BotoClient
 
 class Client:
@@ -454,6 +455,36 @@ class PathBasedDataset:
                 buf = afile.read(BLOCKSIZE)
         return hasher.hexdigest()
 
+class BigQueryDataset:
+    def __init__(self, job_id=None, query="", execution_timestamp="", bq_location="",
+        data_source_uri="",query_template="",query_parameters=[],num_records=0):
+        """https://googleapis.github.io/google-cloud-python/latest/bigquery/generated/google.cloud.bigquery.job.QueryJob.html#google.cloud.bigquery.job.QueryJob.query_plan"""
+        if job_id is not None and bq_location:
+            self.job_id = job_id
+            job = self.get_bq_job(job_id, bq_location)
+            self.execution_timestamp = int((job.started - datetime.datetime(1970,1,1, tzinfo=pytz.UTC)).total_seconds())
+            self.data_source_uri = job.self_link
+            self.query = job.query
+            #TODO: extract the query template
+            self.query_template = job.query
+            self.query_parameters = []
+            shape = job.to_dataframe().shape
+            self.num_records = shape[0]
+        else:
+            if not query:
+                raise ValueError("query not found")
+            self.query = query
+            self.execution_timestamp = execution_timestamp
+            self.data_source_uri = data_source_uri
+            self.query_template = query_template
+            self.query_parameters = query_parameters
+            self.num_records = num_records
+
+    @staticmethod
+    def get_bq_job(job_id, location):
+        client = bigquery.Client()
+        return client.get_job(job_id, location = location)
+
 _DATASET_TYPE_MAP = {
     'RAW' :  _DatasetService.DatasetTypeEnum.DatasetType.RAW,
     'PATH' : _DatasetService.DatasetTypeEnum.DatasetType.PATH,
@@ -664,11 +695,17 @@ class DatasetVersion:
                 attributes=attrs, version=version,
                 path_based_dataset_info=converted_dataset_version_info)
         elif dataset_type == _DatasetService.DatasetTypeEnum.DatasetType.QUERY:
+            version_msg =  _DatasetVersionService.QueryDatasetInfo
+            converted_dataset_version_info = version_msg(
+                query=dataset_version_info.query, query_template=dataset_version_info.query_template,
+                query_parameters=dataset_version_info.query_parameters, data_source_uri=dataset_version_info.data_source_uri,
+                execution_timestamp=dataset_version_info.execution_timestamp, num_records=dataset_version_info.num_records
+            )
             msg = Message(dataset_id=dataset_id, parent_id=parent_id,
                 description=desc, tags=tags, dataset_type=dataset_type,
                 attributes=attrs, version=version,
                 # different dataset versions
-                query_dataset_info=dataset_version_info)
+                query_dataset_info=converted_dataset_version_info)
         else:
             msg = Message(dataset_id=dataset_id, parent_id=parent_id,
                 description=desc, tags=tags, dataset_type=dataset_type,
