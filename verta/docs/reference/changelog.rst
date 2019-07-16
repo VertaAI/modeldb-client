@@ -2,6 +2,15 @@ Release Notes
 =============
 
 
+v0.12.2 (2019-07-16)
+--------------------
+
+Bug Fixes
+^^^^^^^^^
+- `move Git repo check from Client init to log_code()
+  <https://github.com/VertaAI/modeldb-client/commit/1fe9532daa6ce71891a9f611cd99327718c932b7>`_
+
+
 v0.12.1 (2019-07-16)
 --------------------
 
