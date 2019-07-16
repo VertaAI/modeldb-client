@@ -434,6 +434,7 @@ class PathBasedDataset:
 
     @staticmethod
     def get_s3_object_info(object_info, key=None):
+        # S3 also provides version info that could be used: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/s3.html
         dataset_part_info = _DatasetVersionService.DatasetPartInfo()
         dataset_part_info.path = object_info['Key'] if key is None else key
         dataset_part_info.size = object_info['Size'] if key is None else object_info['ContentLength']
