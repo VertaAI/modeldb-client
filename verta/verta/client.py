@@ -3,8 +3,10 @@ import six.moves.cPickle as pickle
 from six.moves.urllib.parse import urlparse
 
 import ast
+import datetime
 import hashlib
 import os
+import pytz
 import re
 import time
 import warnings
@@ -25,6 +27,7 @@ from . import _utils
 from . import _artifact_utils
 from . import utils
 from google.cloud import bigquery
+from boto3 import client as BotoClient
 
 class Client:
     """
@@ -341,9 +344,9 @@ class Client:
     def get_dataset_version(self, dataset_version_id):
         return DatasetVersion._get(self._conn, _dataset_version_id=dataset_version_id)
 
-    def get_all_versions_for_dataset(self, dataset_id):
+    def get_all_versions_for_dataset(self, dataset):
         Message = _DatasetVersionService.GetAllDatasetVersionsByDatasetId
-        msg = Message(dataset_id=dataset_id)
+        msg = Message(dataset_id=dataset.id)
         data = _utils.proto_to_json(msg)
         response = _utils.make_request("GET",
                                         "{}://{}/v1/dataset-version/getAllDatasetVersionsByDatasetId".format(self._conn.scheme, self._conn.socket),
@@ -355,9 +358,9 @@ class Client:
                 for dataset_version in response_msg.dataset_versions]
 
     # TODO: sorting seems to be incorrect
-    def get_latest_version_for_dataset(self, dataset_id, ascending=None, sort_key=None):
+    def get_latest_version_for_dataset(self, dataset, ascending=None, sort_key=None):
         Message = _DatasetVersionService.GetLatestDatasetVersionByDatasetId
-        msg = Message(dataset_id=dataset_id, ascending=ascending, sort_key=sort_key)
+        msg = Message(dataset_id=dataset.id, ascending=ascending, sort_key=sort_key)
         data = _utils.proto_to_json(msg)
         response = _utils.make_request("GET",
                                         "{}://{}/v1/dataset-version/getLatestDatasetVersionByDatasetId".format(self._conn.scheme, self._conn.socket),
@@ -369,26 +372,58 @@ class Client:
 
 class PathBasedDataset:
     def __init__(self, path):
-        self.base_path = path
         self.location_type = self.get_path_type(path)
+        if self.location_type == _DatasetVersionService.PathLocationTypeEnum.PathLocationType.LOCAL_FILE_SYSTEM:
+            path = os.path.abspath(path)
+        self.base_path = path
         self.dataset_part_infos = self.get_dataset_part_infos()
-        self.size = 0 # TODO: sum up all dataset part sizes
+        self.compute_dataset_size()
+
+    def compute_dataset_size(self):
+        self.size = 0
+        for dataset_part_info in self.dataset_part_infos:
+            self.size += dataset_part_info.size
 
     @staticmethod
     def get_path_type(path):
-        # TODO: only default right now
+        if path.startswith("s3://"):
+            return _DatasetVersionService.PathLocationTypeEnum.PathLocationType.S3_FILE_SYSTEM
         return _DatasetVersionService.PathLocationTypeEnum.PathLocationType.LOCAL_FILE_SYSTEM
+
+    @staticmethod
+    def parse_s3_path(path):
+        prefix_stripped = path[5:]
+        idx = prefix_stripped.find("/")
+        if idx < 0:
+            return prefix_stripped, None
+        bucket_name = prefix_stripped[:idx]
+        object_name = prefix_stripped[idx+1:]
+        if len(object_name) == 0:
+            return bucket_name, None
+        return bucket_name, object_name
 
     def get_dataset_part_infos(self):
         dataset_part_infos = []
         if self.location_type == _DatasetVersionService.PathLocationTypeEnum.PathLocationType.LOCAL_FILE_SYSTEM:
             # find all files there and create dataset_part_infos
             if os.path.isdir(self.base_path):
-                raise NotImplementedError('Directories not supported')
+                dir_infos = os.walk(self.base_path)
+                for root, _, filenames in dir_infos:
+                    for filename in filenames:
+                        dataset_part_infos.append(self.get_file_info(root + "/" + filename))
             else:
                 dataset_part_infos.append(self.get_file_info(self.base_path))
+        elif self.location_type == _DatasetVersionService.PathLocationTypeEnum.PathLocationType.S3_FILE_SYSTEM:
+            conn = BotoClient('s3')  # again assumes boto.cfg setup, assume AWS S3
+            bucket_name, object_name = self.parse_s3_path(self.base_path)
+            if object_name is None:
+                for obj in conn.list_objects(Bucket=bucket_name)['Contents']:
+                    dataset_part_infos.append(self.get_s3_object_info(obj))
+            else:
+                obj = conn.head_object(Bucket=bucket_name, Key=object_name)
+                dataset_part_infos.append(self.get_s3_object_info(obj, object_name))
         else:
-            raise NotImplementedError('Only local files supported not supported')
+            raise NotImplementedError('Only local files or S3 supported')
         return dataset_part_infos
 
     @staticmethod
@@ -398,6 +433,16 @@ class PathBasedDataset:
         dataset_part_info.size = os.path.getsize(path)
         dataset_part_info.checksum = PathBasedDataset.compute_file_hash(path)
         dataset_part_info.last_modified_at_source = int(os.path.getmtime(path))
+        return dataset_part_info
+
+    @staticmethod
+    def get_s3_object_info(object_info, key=None):
+        dataset_part_info = _DatasetVersionService.DatasetPartInfo()
+        dataset_part_info.path = object_info['Key'] if key is None else key
+        dataset_part_info.size = object_info['Size'] if key is None else object_info['ContentLength']
+        dataset_part_info.checksum = object_info['ETag']
+        dataset_part_info.last_modified_at_source = int((object_info['LastModified'] - \
+            datetime.datetime(1970,1,1, tzinfo=pytz.UTC)).total_seconds())
         return dataset_part_info
 
     @staticmethod
