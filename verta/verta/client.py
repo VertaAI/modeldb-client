@@ -9,6 +9,8 @@ import re
 import time
 import warnings
 import zipfile
+import datetime
+import pytz
 
 import PIL
 import requests
@@ -22,7 +24,7 @@ from ._protos.public.modeldb import DatasetVersionService_pb2 as _DatasetVersion
 from . import _utils
 from . import _artifact_utils
 from . import utils
-
+from google.cloud import bigquery
 
 class Client:
     """
@@ -409,6 +411,39 @@ class PathBasedDataset:
                 buf = afile.read(BLOCKSIZE)
         return hasher.hexdigest()
 
+class BigQueryDataset:
+    def __init__(self, job_id=None, query="", execution_timestamp="", bq_location="",
+    data_source_uri="",query_template="",query_parameters=[],num_records=0):
+        print("job_id : "+ job_id)
+        print("location : "+ bq_location)
+        if job_id is not None and bq_location:
+            self.job_id = job_id
+            job = self.get_bq_job(job_id, bq_location)
+            print("job : "+ str(job))
+            self.execution_timestamp = int((job.started - datetime.datetime(1970,1,1, tzinfo=pytz.UTC)).total_seconds())
+            self.data_source_uri = job.self_link
+            self.query = job.query
+            job.query_parameters
+            #TODO: extract the query template
+            self.query_template = job.query
+            self.query_parameters = []
+            shape = job.to_dataframe().shape
+            self.num_records = shape[0]
+        else:
+            if not query:
+                raise ValueError("query not found")
+            self.query = query
+            self.execution_timestamp = execution_timestamp
+            self.data_source_uri=data_source_uri
+            self.query_template = query_template
+            self.query_parameters = query_parameters
+            self.num_records = num_records
+
+    @staticmethod
+    def get_bq_job(job_id, location):
+        client = bigquery.Client()
+        return client.get_job(job_id, location = location)
+
 _DATASET_TYPE_MAP = {
     'RAW' :  _DatasetService.DatasetTypeEnum.DatasetType.RAW,
     'PATH' : _DatasetService.DatasetTypeEnum.DatasetType.PATH,
@@ -619,11 +654,17 @@ class DatasetVersion:
                 attributes=attrs, version=version,
                 path_based_dataset_info=converted_dataset_version_info)
         elif dataset_type == _DatasetService.DatasetTypeEnum.DatasetType.QUERY:
+            version_msg =  _DatasetVersionService.QueryDatasetInfo
+            converted_dataset_version_info = version_msg(
+                query=dataset_version_info.query, query_template=dataset_version_info.query_template,
+                query_parameters=dataset_version_info.query_parameters, data_source_uri=dataset_version_info.data_source_uri,
+                execution_timestamp=dataset_version_info.execution_timestamp, num_records=dataset_version_info.num_records
+            )
             msg = Message(dataset_id=dataset_id, parent_id=parent_id,
                 description=desc, tags=tags, dataset_type=dataset_type,
                 attributes=attrs, version=version,
                 # different dataset versions
-                query_dataset_info=dataset_version_info)
+                query_dataset_info=converted_dataset_version_info)
         else:
             msg = Message(dataset_id=dataset_id, parent_id=parent_id,
                 description=desc, tags=tags, dataset_type=dataset_type,
@@ -2595,7 +2636,7 @@ class ExperimentRun:
          'commit_hash': 'f99abcfae6c3ce6d22597f95ad6ef260d31527a6',
          'is_dirty': False}
 
-        Log Git snapshot information—overwriting the commit hash—plus the location of the
+        Log Git snapshot information-overwriting the commit hash-plus the location of the
         currently executing notebook/script relative to the repository root:
 
         >>> run.log_code(use_git=True, commit_hash="bd16ba622d8a21ba5ede6cb021193f66efec4654")
@@ -2709,8 +2750,8 @@ class ExperimentRun:
             Either:
                 - a dictionary containing Git snapshot information with at most the following items:
                     - **filepaths** (*list of str*)
-                    - **repo** (*str*) – Remote repository URL
-                    - **hash** (*str*) – Commit hash
+                    - **repo** (*str*) - Remote repository URL
+                    - **hash** (*str*) - Commit hash
                     - **is_dirty** (*bool*)
                 - a `ZipFile <https://docs.python.org/3/library/zipfile.html#zipfile.ZipFile>`_
                   containing Python source code files
