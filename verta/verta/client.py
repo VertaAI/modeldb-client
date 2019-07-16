@@ -50,8 +50,8 @@ class Client:
         on HTTP codes {403, 503, 504} which commonly occur during back end connection lapses.
     ignore_conn_err : bool, default False
         Whether to ignore connection errors and instead return successes with empty contents.
-    use_git : bool, default False
-        Whether to use a local Git repository for certain operations.
+    use_git : bool, default True
+        Whether to use a local Git repository for certain operations such as Code Versioning.
 
     Attributes
     ----------
@@ -75,7 +75,7 @@ class Client:
     _GRPC_PREFIX = "Grpc-Metadata-"
 
     def __init__(self, host, port=None, email=None, dev_key=None,
-                 max_retries=5, ignore_conn_err=False, use_git=False):
+                 max_retries=5, ignore_conn_err=False, use_git=True):
         if email is None and 'VERTA_EMAIL' in os.environ:
             email = os.environ['VERTA_EMAIL']
             print("set email from environment")
@@ -723,7 +723,260 @@ class DatasetVersion:
         else:
             response.raise_for_status()
 
-class Project:
+class _ModelDBEntity:
+    def __init__(self, conn, conf, service_module, service_url_component, id):
+        self._conn = conn
+        self._conf = conf
+
+        self._service = service_module
+        self._request_url = "{}://{}/v1/{}/{}".format(self._conn.scheme,
+                                                      self._conn.socket,
+                                                      service_url_component,
+                                                      '{}')  # endpoint placeholder
+
+        self.id = id
+
+    def _get_url_for_artifact(self, key, method, artifact_type=0):
+        """
+        Obtains a URL to use for accessing stored artifacts.
+
+        Parameters
+        ----------
+        key : str
+            Name of the artifact.
+        method : {'GET', 'PUT'}
+            HTTP method to request for the generated URL.
+        artifact_type : int, optional
+            Variant of `_CommonService.ArtifactTypeEnum`. This informs the backend what slot to check
+            for the artifact, if necessary.
+
+        Returns
+        -------
+        str
+            Generated URL.
+
+        """
+        if method.upper() not in ("GET", "PUT"):
+            raise ValueError("`method` must be one of {'GET', 'PUT'}")
+
+        Message = _CommonService.GetUrlForArtifact
+        msg = Message(id=self.id, key=key, method=method.upper(), artifact_type=artifact_type)
+        data = _utils.proto_to_json(msg)
+        response = _utils.make_request("POST",
+                                       self._request_url.format("getUrlForArtifact"),
+                                       self._conn, json=data)
+        response.raise_for_status()
+
+        response_msg = _utils.json_to_proto(response.json(), Message.Response)
+        return response_msg.url
+
+    def log_code(self, exec_path=None, repo_url=None, commit_hash=None):
+        """
+        Logs the code version.
+
+        A code version is either information about a Git snapshot or a bundle of Python source code files.
+
+        `repo_url` and `commit_hash` can only be set if `use_git` was set to ``True`` in the Client.
+
+        Parameters
+        ----------
+        exec_path : str, optional
+            Filepath to the executable Python script or Jupyter notebook. If no filepath is provided,
+            the Client will make its best effort to find the currently running script/notebook file.
+        repo_url : str, optional
+            URL for a remote Git repository containing `commit_hash`. If no URL is provided, the Client
+            will make its best effort to find it.
+        commit_hash : str, optional
+            Git commit hash associated with this code version. If no hash is provided, the Client will
+            make its best effort to find it.
+
+        Examples
+        --------
+        With ``Client(use_git=True)`` (default):
+
+            Log Git snapshot information, plus the location of the currently executing notebook/script
+            relative to the repository root:
+
+            >>> proj.log_code()
+            >>> proj.get_code()
+            {'exec_path': 'comparison/outcomes/classification.ipynb',
+            'repo_url': 'git@github.com:VertaAI/experiments.git',
+            'commit_hash': 'f99abcfae6c3ce6d22597f95ad6ef260d31527a6',
+            'is_dirty': False}
+
+            Log Git snapshot information, plus the location of a specific source code file relative
+            to the repository root:
+
+            >>> proj.log_code("../trainer/training_pipeline.py")
+            >>> proj.get_code()
+            {'exec_path': 'comparison/trainer/training_pipeline.py',
+            'repo_url': 'git@github.com:VertaAI/experiments.git',
+            'commit_hash': 'f99abcfae6c3ce6d22597f95ad6ef260d31527a6',
+            'is_dirty': False}
+
+        With ``Client(use_git=False)``:
+
+            Find and upload the currently executing notebook/script:
+
+            >>> proj.log_code()
+            >>> zip_file = proj.get_code()
+            >>> zip_file.printdir()
+            File Name                          Modified             Size
+            classification.ipynb        2019-07-10 17:18:24        10287
+
+            Upload a specific source code file:
+
+            >>> proj.log_code("../trainer/training_pipeline.py")
+            >>> zip_file = proj.get_code()
+            >>> zip_file.printdir()
+            File Name                          Modified             Size
+            training_pipeline.py        2019-05-31 10:34:44          964
+
+        """
+        if not self._conf.use_git and (repo_url is not None or commit_hash is not None):
+            raise ValueError("`repo_url` and `commit_hash` can only be set if `use_git` was set to True in the Client")
+
+        if exec_path is None:
+            # find dynamically
+            try:
+                exec_path = _utils.get_notebook_filepath()
+            except OSError:  # notebook not found
+                try:
+                    exec_path = _utils.get_script_filepath()
+                except OSError:  # script not found
+                    print("unable to find code file; skipping")
+        else:
+            if not os.path.isfile(exec_path):
+                raise ValueError("`exec_path` \"{}\" must be a valid filepath".format(exec_path))
+
+        if isinstance(self, Project):  # TODO: not this
+            Message = self._service.LogProjectCodeVersion
+            endpoint = "logProjectCodeVersion"
+        elif isinstance(self, Experiment):
+            Message = self._service.LogExperimentCodeVersion
+            endpoint = "logExperimentCodeVersion"
+        elif isinstance(self, ExperimentRun):
+            Message = self._service.LogExperimentRunCodeVersion
+            endpoint = "logExperimentRunCodeVersion"
+        msg = Message(id=self.id)
+        if self._conf.use_git:
+            try:
+                # adjust `exec_path` to be relative to repo root
+                exec_path = os.path.relpath(exec_path, _utils.get_git_repo_root_dir())
+            except OSError as e:
+                print("{}; logging absolute path to file instead")
+                exec_path = os.path.abspath(exec_path)
+            msg.code_version.git_snapshot.filepaths.append(exec_path)
+
+            try:
+                msg.code_version.git_snapshot.repo = repo_url or _utils.get_git_remote_url()
+            except OSError as e:
+                print("{}; skipping".format(e))
+
+            try:
+                msg.code_version.git_snapshot.hash = commit_hash or _utils.get_git_commit_hash()
+            except OSError as e:
+                print("{}; skipping".format(e))
+
+            try:
+                is_dirty = _utils.get_git_commit_dirtiness(commit_hash)
+            except OSError as e:
+                print("{}; skipping".format(e))
+            else:
+                msg.code_version.git_snapshot.is_dirty = _CommonService.TernaryEnum.TRUE if is_dirty else _CommonService.TernaryEnum.FALSE
+        else:  # log code as Artifact
+            # write ZIP archive
+            zipstream = six.BytesIO()
+            with zipfile.ZipFile(zipstream, 'w') as zipf:
+                # TODO: save notebook
+                zipf.write(exec_path, os.path.basename(exec_path))  # write as base filename
+            zipstream.seek(0)
+
+            msg.code_version.code_archive.path = hashlib.sha256(zipstream.read()).hexdigest()
+            zipstream.seek(0)
+            msg.code_version.code_archive.path_only = False
+            msg.code_version.code_archive.artifact_type = _CommonService.ArtifactTypeEnum.CODE
+            msg.code_version.code_archive.filename_extension = 'zip'
+        # TODO: check if we actually have any loggable information
+        msg.code_version.date_logged = _utils.now()
+
+        data = _utils.proto_to_json(msg)
+        response = _utils.make_request("POST",
+                                        self._request_url.format(endpoint),
+                                        self._conn, json=data)
+        if not response.ok:
+            if response.status_code == 409:
+                raise ValueError("a code version has already been logged")
+            else:
+                response.raise_for_status()
+
+        if msg.code_version.WhichOneof("code") == 'code_archive':
+            # upload artifact to artifact store
+            url = self._get_url_for_artifact("verta_code_archive", "PUT", msg.code_version.code_archive.artifact_type)
+            response = _utils.make_request("PUT", url, self._conn, data=zipstream)
+            response.raise_for_status()
+
+    def get_code(self):
+        """
+        Gets the code version.
+
+        Returns
+        -------
+        dict or zipfile.ZipFile
+            Either:
+                - a dictionary containing Git snapshot information with at most the following items:
+                    - **filepaths** (*list of str*)
+                    - **repo** (*str*) – Remote repository URL
+                    - **hash** (*str*) – Commit hash
+                    - **is_dirty** (*bool*)
+                - a `ZipFile <https://docs.python.org/3/library/zipfile.html#zipfile.ZipFile>`_
+                  containing Python source code files
+
+        """
+        if isinstance(self, Project):  # TODO: not this
+            Message = self._service.GetProjectCodeVersion
+            endpoint = "getProjectCodeVersion"
+        elif isinstance(self, Experiment):
+            Message = self._service.GetExperimentCodeVersion
+            endpoint = "getExperimentCodeVersion"
+        elif isinstance(self, ExperimentRun):
+            Message = self._service.GetExperimentRunCodeVersion
+            endpoint = "getExperimentRunCodeVersion"
+        msg = Message(id=self.id)
+        data = _utils.proto_to_json(msg)
+        response = _utils.make_request("GET",
+                                        self._request_url.format(endpoint),
+                                        self._conn, params=data)
+        response.raise_for_status()
+
+        response_msg = _utils.json_to_proto(response.json(), Message.Response)
+        code_ver_msg = response_msg.code_version
+        which_code = code_ver_msg.WhichOneof('code')
+        if which_code == 'git_snapshot':
+            git_snapshot_msg = code_ver_msg.git_snapshot
+            git_snapshot = {}
+            if git_snapshot_msg.filepaths:
+                git_snapshot['filepaths'] = git_snapshot_msg.filepaths
+            if git_snapshot_msg.repo:
+                git_snapshot['repo_url'] = git_snapshot_msg.repo
+            if git_snapshot_msg.hash:
+                git_snapshot['commit_hash'] = git_snapshot_msg.hash
+                if git_snapshot_msg.is_dirty != _CommonService.TernaryEnum.UNKNOWN:
+                    git_snapshot['is_dirty'] = git_snapshot_msg.is_dirty == _CommonService.TernaryEnum.TRUE
+            return git_snapshot
+        elif which_code == 'code_archive':
+            # download artifact from artifact store
+            url = self._get_url_for_artifact("verta_code_archive", "GET", code_ver_msg.code_archive.artifact_type)
+            response = _utils.make_request("GET", url, self._conn)
+            response.raise_for_status()
+
+            code_archive = six.BytesIO(response.content)
+            return zipfile.ZipFile(code_archive, 'r')  # TODO: return a util class instead, maybe
+        else:
+            raise RuntimeError("unable find code in response")
+
+
+class Project(_ModelDBEntity):
     """
     Object representing a machine learning Project.
 
@@ -773,9 +1026,7 @@ class Project:
             else:
                 print("created new Project: {}".format(proj.name))
 
-        self._conn = conn
-        self._conf = conf
-        self.id = proj.id
+        super(Project, self).__init__(conn, conf, _ProjectService, "project", proj.id)
 
     def __repr__(self):
         return "<Project \"{}\">".format(self.name)
@@ -870,7 +1121,7 @@ class Project:
             response.raise_for_status()
 
 
-class Experiment:
+class Experiment(_ModelDBEntity):
     """
     Object representing a machine learning Experiment.
 
@@ -922,9 +1173,7 @@ class Experiment:
         else:
             raise ValueError("insufficient arguments")
 
-        self._conn = conn
-        self._conf = conf
-        self.id = expt.id
+        super(Experiment, self).__init__(conn, conf, _ExperimentService, "experiment", expt.id)
 
     def __repr__(self):
         return "<Experiment \"{}\">".format(self.name)
@@ -1329,7 +1578,7 @@ class ExperimentRuns:
             return self.__class__(self._conn, self._conf, [expt_run.id for expt_run in response_msg.experiment_runs])
 
 
-class ExperimentRun:
+class ExperimentRun(_ModelDBEntity):
     """
     Object representing a machine learning Experiment Run.
 
@@ -1378,9 +1627,7 @@ class ExperimentRun:
         else:
             raise ValueError("insufficient arguments")
 
-        self._conn = conn
-        self._conf = conf
-        self.id = expt_run.id
+        super(ExperimentRun, self).__init__(conn, conf, _ExperimentRunService, "experiment-run", expt_run.id)
 
     def __repr__(self):
         Message = _ExperimentRunService.GetExperimentRunById
@@ -1473,40 +1720,6 @@ class ExperimentRun:
             return response_msg.experiment_run
         else:
             response.raise_for_status()
-
-    def _get_url_for_artifact(self, key, method, artifact_type=0):
-        """
-        Obtains a URL to use for accessing stored artifacts.
-
-        Parameters
-        ----------
-        key : str
-            Name of the artifact.
-        method : {'GET', 'PUT'}
-            HTTP method to request for the generated URL.
-        artifact_type : int, optional
-            Variant of `_CommonService.ArtifactTypeEnum`. This informs the backend what slot to check
-            for the artifact, if necessary.
-
-        Returns
-        -------
-        str
-            Generated URL.
-
-        """
-        if method.upper() not in ("GET", "PUT"):
-            raise ValueError("`method` must be one of {'GET', 'PUT'}")
-
-        Message = _ExperimentRunService.GetUrlForArtifact
-        msg = Message(id=self.id, key=key, method=method.upper(), artifact_type=artifact_type)
-        data = _utils.proto_to_json(msg)
-        response = _utils.make_request("POST",
-                                       "{}://{}/v1/experiment-run/getUrlForArtifact".format(self._conn.scheme, self._conn.socket),
-                                       self._conn, json=data)
-        response.raise_for_status()
-
-        response_msg = _utils.json_to_proto(response.json(), Message.Response)
-        return response_msg.url
 
     def _log_artifact(self, key, artifact, artifact_type, extension=None):
         """
