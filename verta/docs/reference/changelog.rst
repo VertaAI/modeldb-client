@@ -2,6 +2,24 @@ Release Notes
 =============
 
 
+v0.12.3 (2019-07-17)
+--------------------
+
+Bug Fixes
+^^^^^^^^^
+- `ensure ModelAPI value names are cast to str
+  <https://github.com/VertaAI/modeldb-client/commit/7cfb28e7191f32e958fbf23a73ac3c5157ede12d>`_
+
+Internal Changes
+^^^^^^^^^^^^^^^^
+- `identify model types by superclass
+  <https://github.com/VertaAI/modeldb-client/commit/e3cc177b33caa5de9f753715fff33e513fab9e0a>`_
+- `update example notebooks with proper ModelAPI instantiation
+  <https://github.com/VertaAI/modeldb-client/commit/fa868a1079a0823b358ccf93a31fce6b0e8030c1>`_
+- `update demo notebook with log_code()
+  <https://github.com/VertaAI/modeldb-client/commit/277f045eaceaefd1bc7e7475667d16a84e27f799>`_
+
+
 v0.12.2 (2019-07-16)
 --------------------
 
