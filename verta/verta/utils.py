@@ -94,22 +94,22 @@ class ModelAPI:
         """
         if data is None:
             return {'type': "VertaNull",
-                    'name': name}
+                    'name': str(name)}
         elif isinstance(data, bool):  # did you know that `bool` is a subclass of `int`?
             return {'type': "VertaBool",
-                    'name': name}
+                    'name': str(name)}
         elif isinstance(data, numbers.Integral):
             return {'type': "VertaFloat", # float to be safe; the input might have been a one-off int
-                    'name': name}
+                    'name': str(name)}
         elif isinstance(data, numbers.Real):
             return {'type': "VertaFloat",
-                    'name': name}
+                    'name': str(name)}
         elif isinstance(data, six.string_types):
             return {'type': "VertaString",
-                    'name': name}
+                    'name': str(name)}
         elif isinstance(data, collections.Mapping):
             return {'type': "VertaJson",
-                    'name': name,
+                    'name': str(name),
                     'value': [ModelAPI._single_data_to_api(value, str(name)) for name, value in six.iteritems(data)]}
         else:
             try:

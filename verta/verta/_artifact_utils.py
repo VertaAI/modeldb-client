@@ -187,7 +187,7 @@ def serialize_model(model):
         Buffered bytestream of the serialized model.
     method : {"joblib", "cloudpickle", "pickle", "keras", None}
         Serialization method used to produce the bytestream.
-    model_type : {"sklearn", "xgboost", "tensorflow", "custom"}
+    model_type : {"torch", "sklearn", "xgboost", "tensorflow", "custom"}
         Framework with which the model was built.
 
     """
@@ -202,25 +202,32 @@ def serialize_model(model):
         finally:
             reset_stream(model)  # reset cursor to beginning as a courtesy
 
-    module_name = model.__class__.__module__ or "custom"
-    model_type = module_name.split('.')[0]
-
-    if model_type == 'sklearn':
-        bytestream, method = ensure_bytestream(model)
-    elif model_type == 'tensorflow':
-        if "keras" in module_name.split('.'):  # Keras provides a model.save() method
+    for class_obj in model.__class__.__mro__:
+        module_name = class_obj.__module__
+        if not module_name:
+            continue
+        elif module_name.startswith("torch"):
+            model_type = "torch"
+            bytestream, method = ensure_bytestream(model)
+            break
+        elif module_name.startswith("sklearn"):
+            model_type = "sklearn"
+            bytestream, method = ensure_bytestream(model)
+            break
+        elif module_name.startswith("xgboost"):
+            model_type = "xgboost"
+            bytestream, method = ensure_bytestream(model)
+            break
+        elif module_name.startswith("tensorflow.python.keras"):
+            model_type = "tensorflow"
             bytestream = six.BytesIO()
-            model.save(bytestream)
+            model.save(bytestream)  # Keras provides this fn
             bytestream.seek(0)
             method = "keras"
-        else:
-            bytestream, method = ensure_bytestream(model)
-    elif model_type == 'xgboost':
-        bytestream, method = ensure_bytestream(model)
+            break
     else:
         model_type = "custom"
         bytestream, method = ensure_bytestream(model)
-
     return bytestream, method, model_type
 
 
