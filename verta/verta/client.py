@@ -303,44 +303,42 @@ class Client:
                              self.proj.id, self.expt.id, name,
                              desc, tags, attrs)
 
-    # TODO: dataset visibility cannot be set via a client
-    def create_dataset(self, name=None, desc=None, tags=None, attrs=None, 
-        dataset_type=None, id=None):
+    # NOTE: dataset visibility cannot be set via a client
+    def create_dataset(self, name=None, dataset_type=None, desc=None, tags=None,
+    attrs=None, id=None):
         return Dataset(self._conn, self._conf, name=name, dataset_type=dataset_type,  
             desc=desc, tags=tags, attrs=attrs, _dataset_id=id)
 
-    def get_dataset(self, dataset_id):
-        return Dataset._get(self._conn, _dataset_id=dataset_id)
+    # TODO: needs a by name after backend implements
+    def get_dataset(self, id):
+        return Dataset._get(self._conn, _dataset_id=id)
 
     # TODO: needs to be paginated, maybe sorted and filtered
     def get_all_datasets(self):
-        if self.expt is None:
-            return None
-        else:
-            Message = _DatasetService.GetAllDatasets
-            msg = Message()
-            data = _utils.proto_to_json(msg)
-            response = _utils.make_request("GET",
-                                           "{}://{}/v1/dataset/getAllDatasets".format(self._conn.scheme, self._conn.socket),
-                                           self._conn, params=data)
-            response.raise_for_status()
+        Message = _DatasetService.GetAllDatasets
+        msg = Message()
+        data = _utils.proto_to_json(msg)
+        response = _utils.make_request("GET",
+                                        "{}://{}/v1/dataset/getAllDatasets".format(self._conn.scheme, self._conn.socket),
+                                        self._conn, params=data)
+        response.raise_for_status()
 
-            response_msg = _utils.json_to_proto(response.json(), Message.Response)
-            return [Dataset(self._conn, self._conf, _dataset_id = dataset.id) 
-                    for dataset in response_msg.datasets]
+        response_msg = _utils.json_to_proto(response.json(), Message.Response)
+        return [Dataset(self._conn, self._conf, _dataset_id = dataset.id) 
+                for dataset in response_msg.datasets]
 
     def create_dataset_version(self, dataset, dataset_version_info,
         parent_id=None, desc=None, tags=None, dataset_type=None, attrs=None,
-        version=None):
+        version=None, id=None):
         return DatasetVersion(self._conn, self._conf, dataset_id=dataset.id, 
             dataset_type=dataset.dataset_type, 
             dataset_version_info=dataset_version_info, parent_id=parent_id,
-            desc=desc, tags=tags, attrs=attrs, version=version)
+            desc=desc, tags=tags, attrs=attrs, version=version, _dataset_version_id=id)
 
     # TODO: this should also allow gets based on dataset_id and version, but
     # not supported by backend yet
-    def get_dataset_version(self, dataset_version_id):
-        return DatasetVersion._get(self._conn, _dataset_version_id=dataset_version_id)
+    def get_dataset_version(self, id):
+        return DatasetVersion._get(self._conn, _dataset_version_id=id)
 
     def get_all_versions_for_dataset(self, dataset):
         Message = _DatasetVersionService.GetAllDatasetVersionsByDatasetId
@@ -368,30 +366,34 @@ class Client:
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
         return response_msg.dataset_version
 
-    def create_s3_dataset(self, name, bucket, key=None, url_stub=None,
-        desc=None, tags=None, attrs=None):
-        # create a dataset
-        dataset = S3Dataset(self._conn, self._conf, name, bucket, key=key,
-            url_stub=url_stub, desc=desc, tags=tags, attrs=attrs)
+    def create_s3_dataset(self, name):
+        return self.create_dataset(name, dataset_type=_DatasetService.DatasetTypeEnum.DatasetType.PATH)
 
-        # create a dataset version by default
-        version = S3DatasetVersion(bucket, key=key, url_stub=url_stub)
-        self.create_dataset_version(dataset, version)
+    def create_s3_dataset_version(self, dataset, bucket_name, key=None,
+        url_stub=None, parent_id=None, desc=None, tags=None, attrs=None):
+        s3_dataset_version_info = S3DatasetVersionInfo(bucket_name, key=key, 
+            url_stub=url_stub)
+        return PathDatasetVersion(self._conn, self._conf, dataset_id=dataset.id, 
+            dataset_type=dataset.dataset_type, 
+            dataset_version_info=s3_dataset_version_info, parent_id=parent_id,
+            desc=desc, tags=tags, attrs=attrs)
 
-        return dataset
+    def create_local_dataset(self, name):
+        return self.create_dataset(name, dataset_type=_DatasetService.DatasetTypeEnum.DatasetType.PATH)
 
-_DATASET_TYPE_MAP = {
-    'RAW' :  _DatasetService.DatasetTypeEnum.DatasetType.RAW,
-    'PATH' : _DatasetService.DatasetTypeEnum.DatasetType.PATH,
-    'QUERY' : _DatasetService.DatasetTypeEnum.DatasetType.QUERY
-}
+    def create_local_dataset_version(self, dataset, path, 
+        parent_id=None, desc=None, tags=None, attrs=None):
+        filesystem_dataset_version_info = FilesystemDatasetVersionInfo(path)
+        return PathDatasetVersion(self._conn, self._conf, dataset_id=dataset.id, 
+            dataset_type=dataset.dataset_type, 
+            dataset_version_info=filesystem_dataset_version_info, parent_id=parent_id,
+            desc=desc, tags=tags, attrs=attrs)
 
-_PATH_DATASET_TYPE_MAP = {
-    'LOCAL_FILE_SYSTEM' :  _DatasetVersionService.PathLocationTypeEnum.PathLocationType.LOCAL_FILE_SYSTEM,
-    'NETWORK_FILE_SYSTEM' : _DatasetVersionService.PathLocationTypeEnum.PathLocationType.NETWORK_FILE_SYSTEM,
-    'HADOOP_FILE_SYSTEM' : _DatasetVersionService.PathLocationTypeEnum.PathLocationType.HADOOP_FILE_SYSTEM,
-    'S3_FILE_SYSTEM' : _DatasetVersionService.PathLocationTypeEnum.PathLocationType.S3_FILE_SYSTEM
-}
+    def create_big_query_dataset(self, name):
+        return self.create_dataset(name, dataset_type=_DatasetService.DatasetTypeEnum.DatasetType.QUERY)
+
+    def create_big_query_dataset_version(self, dataset, something):
+        pass
 
 class Dataset:
     # TODO: delete is not supported on the API yet
@@ -454,7 +456,6 @@ class Dataset:
 
             if response.ok:
                 dataset = _utils.json_to_proto(response.json(), Message.Response).dataset
-                # dataset.dataset_type = _DATASET_TYPE_MAP[dataset.dataset_type]
                 return dataset
             else:
                 if response.status_code == 404 and response.json()['code'] == 5:
@@ -484,25 +485,12 @@ class Dataset:
         else:
             response.raise_for_status()
 
-# class S3Dataset(Dataset):
-#     def __init__(self, conn, conf, name, bucket, key=None, url_stub=None, 
-#         desc=None, tags=None, attrs=None):
-#         # create a dataset structure
-#         super.__init__(conn, conf, name, dataset_type=_DatasetService.DatasetTypeEnum.DatasetType.PATH, 
-#             desc=desc, tags=tags, attrs=attrs)
-#         self.bucket = bucket
-#         self.key = key
-#         self.url_stub = url_stub
-
-#     def download_dataset(self, path):
-#         pass
-    
 
 # TODO: visibility not done
 # TODO: delete version not implemented
 
-from verta._protos.public.modeldb.DatasetVersionService_pb2 import \
-    DatasetVersion as DatasetVersionProtoCls
+# from verta._protos.public.modeldb.DatasetVersionService_pb2 import \
+#     DatasetVersion as DatasetVersionProtoCls
 
 class DatasetVersion:
     def __init__(self, conn, conf, dataset_id=None, dataset_type=None, 
@@ -550,6 +538,8 @@ class DatasetVersion:
         self.id = dataset_version.id
         self.version = dataset_version.version
         self.dataset_type = dataset_version.dataset_type
+        self.dataset_version = dataset_version
+        self.dataset_version_info = None
 
     def __repr__(self):
         return "<DatasetVersion \"{}\">".format(self.id)
@@ -567,7 +557,6 @@ class DatasetVersion:
 
             if response.ok:
                 dataset_version = _utils.json_to_proto(response.json(), Message.Response).dataset_version
-                # dataset_version.dataset_type = _DATASET_TYPE_MAP[dataset_version.dataset_type]
                 return dataset_version
                 
             else:
@@ -586,7 +575,7 @@ class DatasetVersion:
                      for key, value in six.viewitems(attrs)]
 
         if dataset_type == _DatasetService.DatasetTypeEnum.DatasetType.PATH:
-            msg = PathBasedDatasetVersion.make_create_message(dataset_id,
+            msg = PathDatasetVersion.make_create_message(dataset_id,
                 dataset_type, dataset_version_info, parent_id=parent_id, 
                 desc=desc, tags=tags, attrs=attrs, version=version)
         elif dataset_type == _DatasetService.DatasetTypeEnum.DatasetType.QUERY:
@@ -605,7 +594,6 @@ class DatasetVersion:
 
         if response.ok:
             dataset_version = _utils.json_to_proto(response.json(), _DatasetVersionService.CreateDatasetVersion.Response).dataset_version
-            # dataset_version.dataset_type = _DATASET_TYPE_MAP[dataset_version.dataset_type]
             return dataset_version
         else:
             response.raise_for_status()
@@ -616,14 +604,17 @@ class DatasetVersion:
         raise NotImplementedError('Must be implemented by subclasses')
 
 class RawDatasetVersion(DatasetVersion):
-    def __init__(self):
-        super(RawDatasetVersion, self).__init__()
+    def __init__(self, args, kwargs):
+        super(RawDatasetVersion, self).__init__(*args, **kwargs)
+        self.dataset_version_info = self.dataset_version.raw_dataset_version_info
+        # TODO: this is hacky, we should store dataset_version
+        self.dataset_version = None
 
     @staticmethod
     def make_create_message(dataset_id, dataset_type, dataset_version_info,
         parent_id=None, desc=None, tags=None, attrs=None, version=None):
         Message = _DatasetVersionService.CreateDatasetVersion
-        version_msg =  _DatasetVersionService.RawDatasetInfo
+        version_msg =  _DatasetVersionService.RawDatasetVersionInfo
         converted_dataset_version_info = version_msg(
             size=dataset_version_info.size, features=dataset_version_info.features,
             num_records=dataset_version_info.num_records, object_path=dataset_version_info.object_path,
@@ -631,18 +622,21 @@ class RawDatasetVersion(DatasetVersion):
         msg = Message(dataset_id=dataset_id, parent_id=parent_id,
             description=desc, tags=tags, dataset_type=dataset_type,
             attributes=attrs, version=version,
-            raw_dataset_info=converted_dataset_version_info)
+            raw_dataset_version_info=converted_dataset_version_info)
         return msg
 
 class QueryDatasetVersion(DatasetVersion):
-    def __init__(self):
-        super(QueryDatasetVersion, self).__init__()
+    def __init__(self, args, kwargs):
+        super(QueryDatasetVersion, self).__init__(*args, **kwargs)
+        self.dataset_version_info = self.dataset_version.path_dataset_version_info
+        # TODO: this is hacky, we should store dataset_version
+        self.dataset_version = None
 
     @staticmethod
     def make_create_message(dataset_id, dataset_type, dataset_version_info,
         parent_id=None, desc=None, tags=None, attrs=None, version=None):
         Message = _DatasetVersionService.CreateDatasetVersion
-        version_msg =  _DatasetVersionService.QueryDatasetInfo
+        version_msg =  _DatasetVersionService.QueryDatasetVersionInfo
         converted_dataset_version_info = version_msg(
             query=dataset_version_info.query, query_template=dataset_version_info.query_template,
             query_parameters=dataset_version_info.query_parameters, data_source_uri=dataset_version_info.data_source_uri,
@@ -652,19 +646,22 @@ class QueryDatasetVersion(DatasetVersion):
             description=desc, tags=tags, dataset_type=dataset_type,
             attributes=attrs, version=version,
             # different dataset versions
-            query_dataset_info=converted_dataset_version_info)
+            query_dataset_version_info=converted_dataset_version_info)
         return msg
 
-class PathBasedDatasetVersion(DatasetVersion):
-    def __init__(self):
-        super(PathBasedDatasetVersion, self).__init__()
+class PathDatasetVersion(DatasetVersion):
+    def __init__(self, *args, **kwargs):
+        super(PathDatasetVersion, self).__init__(*args, **kwargs)
+        self.dataset_version_info = self.dataset_version.path_dataset_version_info
+        # TODO: this is hacky, we should store dataset_version
+        self.dataset_version = None
 
     @staticmethod
     def make_create_message(dataset_id, dataset_type, dataset_version_info,
         parent_id=None, desc=None, tags=None, attrs=None, version=None):
         Message = _DatasetVersionService.CreateDatasetVersion
         # turn dataset_version_info into proto format
-        version_msg = _DatasetVersionService.PathBasedDatasetInfo
+        version_msg = _DatasetVersionService.PathDatasetVersionInfo
         converted_dataset_version_info = version_msg(
             location_type=dataset_version_info.location_type,
             size=dataset_version_info.size,
@@ -674,10 +671,10 @@ class PathBasedDatasetVersion(DatasetVersion):
         msg = Message(dataset_id=dataset_id, parent_id=parent_id,
             description=desc, tags=tags, dataset_type=dataset_type,
             attributes=attrs, version=version,
-            path_based_dataset_info=converted_dataset_version_info)
+            path_dataset_version_info=converted_dataset_version_info)
         return msg
 
-class PathBasedDatasetVersionInfo:
+class PathDatasetVersionInfo:
     def __init__(self):
         pass
 
@@ -689,7 +686,7 @@ class PathBasedDatasetVersionInfo:
     def get_dataset_part_infos(self):
         raise NotImplementedError('Implemented only in subclasses')
 
-class FilesystemDatasetVersionInfo(PathBasedDatasetVersionInfo):
+class FilesystemDatasetVersionInfo(PathDatasetVersionInfo):
     def __init__(self, path):
         self.base_path = os.path.abspath(path)
         super(FilesystemDatasetVersionInfo, self).__init__()
@@ -728,13 +725,15 @@ class FilesystemDatasetVersionInfo(PathBasedDatasetVersionInfo):
                 buf = afile.read(BLOCKSIZE)
         return hasher.hexdigest()
 
-class S3DatasetVersionInfo(PathBasedDatasetVersionInfo):
+class S3DatasetVersionInfo(PathDatasetVersionInfo):
     def __init__(self, bucket_name, key=None, url_stub=None):
         super(S3DatasetVersionInfo, self).__init__()
         self.location_type = _DatasetVersionService.PathLocationTypeEnum.PathLocationType.S3_FILE_SYSTEM
         self.bucket_name = bucket_name
         self.key = key
         self.url_stub = url_stub
+        self.base_path = ("" if url_stub is None else url_stub) + bucket_name \
+            + (("/" + key) if key is not None else "")
         self.dataset_part_infos = self.get_dataset_part_infos()
         self.compute_dataset_size()
 
@@ -1192,7 +1191,6 @@ class Project(_ModelDBEntity):
         else:
             response.raise_for_status()
 
-
 class Experiment(_ModelDBEntity):
     """
     Object representing a machine learning Experiment.
@@ -1330,7 +1328,6 @@ class Experiment(_ModelDBEntity):
             return response_msg.experiment
         else:
             response.raise_for_status()
-
 
 class ExperimentRuns:
     """
@@ -1648,7 +1645,6 @@ class ExperimentRuns:
             return response_msg.experiment_runs
         else:
             return self.__class__(self._conn, self._conf, [expt_run.id for expt_run in response_msg.experiment_runs])
-
 
 class ExperimentRun(_ModelDBEntity):
     """
