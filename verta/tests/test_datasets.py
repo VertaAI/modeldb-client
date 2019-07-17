@@ -352,6 +352,16 @@ class TestFilesystemClientFunctions:
             file_names.append(file_name)
         return dir_name, file_names
 
-class TestQueryDatasetVersionInfo:
-    def test_big_query_dataset(self):
-        pass
+class TestBigQueryDatasetVersionInfo:
+    def test_big_query_dataset(self, client):
+        name = utils.gen_str()
+        dataset = client.create_big_query_dataset("bq-" + name)
+        assert dataset.dataset_type == _DatasetService.DatasetTypeEnum.DatasetType.QUERY
+
+    def test_big_query_dataset_version_creation(self, client, big_query_job):
+        name = utils.gen_str()
+        dataset = client.create_big_query_dataset("bq-" + name)
+        dataset_version = client.create_big_query_dataset_version(dataset, 
+            job_id=big_query_job[0], location=big_query_job[1])
+
+        assert dataset_version.dataset_version_info.query == big_query_job[2]

@@ -5,7 +5,7 @@ from verta import Client
 
 import pytest
 import utils
-
+from google.cloud import bigquery
 
 DEFAULT_HOST = None
 DEFAULT_PORT = None
@@ -13,6 +13,7 @@ DEFAULT_EMAIL = None
 DEFAULT_DEV_KEY = None
 DEFAULT_S3_TEST_BUCKET = None
 DEFAULT_S3_TEST_OBJECT = None
+DEFAULT_GOOGLE_APPLICATION_CREDENTIALS = None
 
 
 @pytest.fixture(scope='session')
@@ -75,3 +76,34 @@ def path_dataset_dir():
         dirpath += '_'
     yield os.path.join(dirpath, "{}")
     shutil.rmtree(dirpath)
+
+@pytest.fixture(scope="session")
+def big_query_job():
+    # needs to be set
+    #_ = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", DEFAULT_GOOGLE_APPLICATION_CREDENTIALS)
+    query = (
+        """SELECT
+        id,
+        `by`,
+        score,
+        time,
+        time_ts,
+        title,
+        url,
+        text,
+        deleted,
+        dead,
+        descendants,
+        author
+        FROM
+        `bigquery-public-data.hacker_news.stories`
+        LIMIT
+        1000"""
+    )
+    query_job = bigquery.Client().query(
+        query,
+        # Location must match that of the dataset(s) referenced in the query.
+        location="US",
+    )
+    job_id = query_job.job_id
+    return (job_id, "US", query)
