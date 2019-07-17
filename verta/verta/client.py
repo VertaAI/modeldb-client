@@ -367,7 +367,7 @@ class Client:
         return response_msg.dataset_version
 
     def create_s3_dataset(self, name):
-        return self.create_dataset(name, dataset_type=_DatasetService.DatasetTypeEnum.DatasetType.PATH)
+        return self.create_dataset(name, dataset_type=_DatasetService.DatasetTypeEnum.PATH)
 
     def create_s3_dataset_version(self, dataset, bucket_name, key=None,
         url_stub=None, parent_id=None, desc=None, tags=None, attrs=None):
@@ -379,7 +379,7 @@ class Client:
             desc=desc, tags=tags, attrs=attrs)
 
     def create_local_dataset(self, name):
-        return self.create_dataset(name, dataset_type=_DatasetService.DatasetTypeEnum.DatasetType.PATH)
+        return self.create_dataset(name, dataset_type=_DatasetService.DatasetTypeEnum.PATH)
 
     def create_local_dataset_version(self, dataset, path, 
         parent_id=None, desc=None, tags=None, attrs=None):
@@ -390,7 +390,7 @@ class Client:
             desc=desc, tags=tags, attrs=attrs)
 
     def create_big_query_dataset(self, name):
-        return self.create_dataset(name, dataset_type=_DatasetService.DatasetTypeEnum.DatasetType.QUERY)
+        return self.create_dataset(name, dataset_type=_DatasetService.DatasetTypeEnum.QUERY)
 
     def create_big_query_dataset_version(self, dataset, job_id, location,
         parent_id=None, desc=None, tags=None, attrs=None):
@@ -580,11 +580,11 @@ class DatasetVersion:
             attrs = [_CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value, allow_collection=True))
                      for key, value in six.viewitems(attrs)]
 
-        if dataset_type == _DatasetService.DatasetTypeEnum.DatasetType.PATH:
+        if dataset_type == _DatasetService.DatasetTypeEnum.PATH:
             msg = PathDatasetVersion.make_create_message(dataset_id,
                 dataset_type, dataset_version_info, parent_id=parent_id, 
                 desc=desc, tags=tags, attrs=attrs, version=version)
-        elif dataset_type == _DatasetService.DatasetTypeEnum.DatasetType.QUERY:
+        elif dataset_type == _DatasetService.DatasetTypeEnum.QUERY:
             msg = QueryDatasetVersion.make_create_message(dataset_id,
                 dataset_type, dataset_version_info, parent_id=parent_id, 
                 desc=desc, tags=tags, attrs=attrs, version=version)
@@ -1912,7 +1912,7 @@ class ExperimentRun(_ModelDBEntity):
                                                path_only=True,
                                                artifact_type=_CommonService.ArtifactTypeEnum.DATA,
                                                linked_artifact_id=linked_artifact_id)
-        msg = Message(id=self.id, artifact=artifact_msg)
+        msg = Message(id=self.id, dataset=artifact_msg)
         data = _utils.proto_to_json(msg)
         response = _utils.make_request("POST",
                                        "{}://{}/v1/experiment-run/logDataset".format(self._conn.scheme, self._conn.socket),
@@ -1990,7 +1990,7 @@ class ExperimentRun(_ModelDBEntity):
         """
         # get key-path from ModelDB
         Message = _ExperimentRunService.GetDatasets
-        msg = Message(id=self.id, key=key)
+        msg = Message(id=self.id)
         data = _utils.proto_to_json(msg)
         response = _utils.make_request("GET",
                                        "{}://{}/v1/experiment-run/getDatasets".format(self._conn.scheme, self._conn.socket),
@@ -2002,14 +2002,15 @@ class ExperimentRun(_ModelDBEntity):
         if dataset is None:
             raise KeyError("no dataset found with key {}".format(key))
         if dataset.path_only:
-            return dataset.path, dataset.path_only
+            return dataset.path, dataset.path_only, dataset.linked_artifact_id
         else:
-            # download dataset from artifact store
-            url = self._get_url_for_dataset(key, "GET")
-            response = _utils.make_request("GET", url, self._conn)
-            response.raise_for_status()
+            raise NotImplementedError("Temporary hack")
+            # # download dataset from artifact store
+            # url = self._get_url_for_dataset(key, "GET")
+            # response = _utils.make_request("GET", url, self._conn)
+            # response.raise_for_status()
 
-            return response.content, dataset.path_only
+            # return response.content, dataset.path_only, None
 
     def log_tag(self, tag):
         """
@@ -2452,12 +2453,11 @@ class ExperimentRun(_ModelDBEntity):
 
     def log_dataset_version(self, key, dataset_version):
         # TODO: hack because path_only artifact needs a placeholder path
-        if type(dataset_version) is not DatasetVersion:
+        if not isinstance(dataset_version, DatasetVersion):
             raise ValueError('dataset_version should be of type DatasetVersion')
-        self._log_artifact_path(key, "See attached dataset version", _CommonService.ArtifactTypeEnum.DATA, 
-            dataset_version.id)
+        self.log_dataset_path(key, "See attached dataset version", dataset_version.id)
     
-    def log_dataset_path(self, key, dataset_path):
+    def log_dataset_path(self, key, path, linked_dataset_id=None):
         """
         Logs the filesystem path of an dataset to this Experiment Run.
 
@@ -2474,7 +2474,7 @@ class ExperimentRun(_ModelDBEntity):
         """
         _utils.validate_flat_key(key)
 
-        self._log_dataset_path(key, dataset_path)
+        self._log_dataset_path(key, path, linked_artifact_id=linked_dataset_id)
 
     def get_dataset(self, key):
         """
@@ -2492,14 +2492,16 @@ class ExperimentRun(_ModelDBEntity):
         Returns
         -------
         str or object or file-like
+            If of dataset type, then return a version_id
             Filesystem path of the dataset, the dataset object, or a bytestream representing the
             dataset.
 
         """
-        dataset, path_only = self._get_artifact(key)
+        dataset, path_only, linked_id = self._get_dataset(key)
         if path_only:
-            return dataset
+            return dataset, linked_id
         else:
+            # TODO: may need to be updated for raw
             try:
                 return pickle.loads(dataset)
             except pickle.UnpicklingError:

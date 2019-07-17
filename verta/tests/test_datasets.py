@@ -18,15 +18,15 @@ class TestBaseDatasets:
     def test_creation_from_scratch(self, client):
         name = utils.gen_str()
         dataset = Dataset(client._conn, client._conf, name=name, 
-            dataset_type=_DatasetService.DatasetTypeEnum.DatasetType.PATH)
-        assert dataset.dataset_type == _DatasetService.DatasetTypeEnum.DatasetType.PATH
+            dataset_type=_DatasetService.DatasetTypeEnum.PATH)
+        assert dataset.dataset_type == _DatasetService.DatasetTypeEnum.PATH
         assert dataset.id
 
     def test_creation_by_id(self, client):
         name = utils.gen_str()
         dataset = Dataset(client._conn, client._conf, name=name, 
-            dataset_type=_DatasetService.DatasetTypeEnum.DatasetType.PATH)
-        assert dataset.dataset_type == _DatasetService.DatasetTypeEnum.DatasetType.PATH
+            dataset_type=_DatasetService.DatasetTypeEnum.PATH)
+        assert dataset.dataset_type == _DatasetService.DatasetTypeEnum.PATH
         assert dataset.id
 
         same_dataset = Dataset(client._conn, client._conf, 
@@ -37,23 +37,23 @@ class TestBaseDatasetVersions:
     def test_creation_from_scratch(self, client):
         name = utils.gen_str()
         dataset = Dataset(client._conn, client._conf, name=name, 
-            dataset_type=_DatasetService.DatasetTypeEnum.DatasetType.PATH)
+            dataset_type=_DatasetService.DatasetTypeEnum.PATH)
         
         version = DatasetVersion(client._conn, client._conf, dataset_id=dataset.id,
             dataset_version_info = _DatasetVersionService.PathDatasetVersionInfo(),
-            dataset_type=_DatasetService.DatasetTypeEnum.DatasetType.PATH)
-        assert version.dataset_type == _DatasetService.DatasetTypeEnum.DatasetType.PATH
+            dataset_type=_DatasetService.DatasetTypeEnum.PATH)
+        assert version.dataset_type == _DatasetService.DatasetTypeEnum.PATH
         assert version.id
 
     def test_creation_by_id(self, client):
         name = utils.gen_str()
         dataset = Dataset(client._conn, client._conf, name=name, 
-            dataset_type=_DatasetService.DatasetTypeEnum.DatasetType.PATH)
+            dataset_type=_DatasetService.DatasetTypeEnum.PATH)
         
         version = DatasetVersion(client._conn, client._conf, dataset_id=dataset.id, 
             dataset_version_info = _DatasetVersionService.PathDatasetVersionInfo(),
-            dataset_type=_DatasetService.DatasetTypeEnum.DatasetType.PATH)
-        assert version.dataset_type == _DatasetService.DatasetTypeEnum.DatasetType.PATH
+            dataset_type=_DatasetService.DatasetTypeEnum.PATH)
+        assert version.dataset_type == _DatasetService.DatasetTypeEnum.PATH
         assert version.id
 
         same_version = DatasetVersion(client._conn, client._conf, 
@@ -72,15 +72,15 @@ class TestPathDatasets:
     def test_creation_from_scratch(self, client):
         name = utils.gen_str()
         dataset = Dataset(client._conn, client._conf, name=name, 
-            dataset_type=_DatasetService.DatasetTypeEnum.DatasetType.PATH)
-        assert dataset.dataset_type == _DatasetService.DatasetTypeEnum.DatasetType.PATH
+            dataset_type=_DatasetService.DatasetTypeEnum.PATH)
+        assert dataset.dataset_type == _DatasetService.DatasetTypeEnum.PATH
         assert dataset.id
 
     def test_creation_by_id(self, client):
         name = utils.gen_str()
         dataset = Dataset(client._conn, client._conf, name=name, 
-            dataset_type=_DatasetService.DatasetTypeEnum.DatasetType.PATH)
-        assert dataset.dataset_type == _DatasetService.DatasetTypeEnum.DatasetType.PATH
+            dataset_type=_DatasetService.DatasetTypeEnum.PATH)
+        assert dataset.dataset_type == _DatasetService.DatasetTypeEnum.PATH
         assert dataset.id
 
         same_dataset = Dataset(client._conn, client._conf, 
@@ -91,15 +91,15 @@ class TestClientDatasetFunctions:
     def test_creation_from_scratch_client_api(self, client):
         name = utils.gen_str()
         dataset = client.create_dataset(name=name, 
-            dataset_type=_DatasetService.DatasetTypeEnum.DatasetType.PATH)
-        assert dataset.dataset_type == _DatasetService.DatasetTypeEnum.DatasetType.PATH
+            dataset_type=_DatasetService.DatasetTypeEnum.PATH)
+        assert dataset.dataset_type == _DatasetService.DatasetTypeEnum.PATH
         assert dataset.id
 
     def test_creation_by_id_client_api(self, client):
         name = utils.gen_str()
         dataset = client.create_dataset(name=name, 
-            dataset_type=_DatasetService.DatasetTypeEnum.DatasetType.PATH)
-        assert dataset.dataset_type == _DatasetService.DatasetTypeEnum.DatasetType.PATH
+            dataset_type=_DatasetService.DatasetTypeEnum.PATH)
+        assert dataset.dataset_type == _DatasetService.DatasetTypeEnum.PATH
         assert dataset.id
 
         same_dataset = client.create_dataset(id=dataset.id)
@@ -109,8 +109,8 @@ class TestClientDatasetFunctions:
     def test_get_dataset_client_api(self, client):
         name = utils.gen_str()
         dataset = client.create_dataset(name=name, 
-            dataset_type=_DatasetService.DatasetTypeEnum.DatasetType.PATH)
-        assert dataset.dataset_type == _DatasetService.DatasetTypeEnum.DatasetType.PATH
+            dataset_type=_DatasetService.DatasetTypeEnum.PATH)
+        assert dataset.dataset_type == _DatasetService.DatasetTypeEnum.PATH
         assert dataset.id
 
         same_dataset = client.get_dataset(id=dataset.id)
@@ -125,20 +125,20 @@ class TestClientDatasetFunctions:
     def test_get_all_datasets_client_api(self, client):
         name = utils.gen_str()
         dataset1 = client.create_dataset(name=name, 
-            dataset_type=_DatasetService.DatasetTypeEnum.DatasetType.QUERY)
-        assert dataset1.dataset_type == _DatasetService.DatasetTypeEnum.DatasetType.QUERY
+            dataset_type=_DatasetService.DatasetTypeEnum.QUERY)
+        assert dataset1.dataset_type == _DatasetService.DatasetTypeEnum.QUERY
         assert dataset1.id
 
         name = utils.gen_str()
         dataset2 = client.create_dataset(name=name, 
-            dataset_type=_DatasetService.DatasetTypeEnum.DatasetType.PATH)
-        assert dataset2.dataset_type == _DatasetService.DatasetTypeEnum.DatasetType.PATH
+            dataset_type=_DatasetService.DatasetTypeEnum.PATH)
+        assert dataset2.dataset_type == _DatasetService.DatasetTypeEnum.PATH
         assert dataset2.id
 
         name = utils.gen_str()
         dataset3 = client.create_dataset(name=name, 
-            dataset_type=_DatasetService.DatasetTypeEnum.DatasetType.RAW)
-        assert dataset3.dataset_type == _DatasetService.DatasetTypeEnum.DatasetType.RAW
+            dataset_type=_DatasetService.DatasetTypeEnum.RAW)
+        assert dataset3.dataset_type == _DatasetService.DatasetTypeEnum.RAW
         assert dataset3.id
 
         # datasets = client.get_all_datasets()
@@ -156,23 +156,23 @@ class TestClientDatasetVersionFunctions:
     def test_creation_from_scratch(self, client):
         name = utils.gen_str()
         dataset = client.create_dataset(name=name, 
-            dataset_type=_DatasetService.DatasetTypeEnum.DatasetType.PATH)
+            dataset_type=_DatasetService.DatasetTypeEnum.PATH)
 
         version = client.create_dataset_version(dataset=dataset,
             dataset_version_info = _DatasetVersionService.PathDatasetVersionInfo(),
-            dataset_type=_DatasetService.DatasetTypeEnum.DatasetType.PATH)
-        assert version.dataset_type == _DatasetService.DatasetTypeEnum.DatasetType.PATH
+            dataset_type=_DatasetService.DatasetTypeEnum.PATH)
+        assert version.dataset_type == _DatasetService.DatasetTypeEnum.PATH
         assert version.id
 
     def test_creation_by_id(self, client):
         name = utils.gen_str()
         dataset = client.create_dataset(name=name, 
-            dataset_type=_DatasetService.DatasetTypeEnum.DatasetType.PATH)
+            dataset_type=_DatasetService.DatasetTypeEnum.PATH)
 
         version = client.create_dataset_version(dataset=dataset,
             dataset_version_info = _DatasetVersionService.PathDatasetVersionInfo(),
-            dataset_type=_DatasetService.DatasetTypeEnum.DatasetType.PATH)
-        assert version.dataset_type == _DatasetService.DatasetTypeEnum.DatasetType.PATH
+            dataset_type=_DatasetService.DatasetTypeEnum.PATH)
+        assert version.dataset_type == _DatasetService.DatasetTypeEnum.PATH
         assert version.id
 
         same_version = client.get_dataset_version(id=version.id)
@@ -181,18 +181,18 @@ class TestClientDatasetVersionFunctions:
     def test_get_versions(self, client):
         name = utils.gen_str()
         dataset = client.create_dataset(name=name, 
-            dataset_type=_DatasetService.DatasetTypeEnum.DatasetType.PATH)
+            dataset_type=_DatasetService.DatasetTypeEnum.PATH)
 
         version1 = client.create_dataset_version(dataset=dataset,
             dataset_version_info = _DatasetVersionService.PathDatasetVersionInfo(),
-            dataset_type=_DatasetService.DatasetTypeEnum.DatasetType.PATH)
-        assert version1.dataset_type == _DatasetService.DatasetTypeEnum.DatasetType.PATH
+            dataset_type=_DatasetService.DatasetTypeEnum.PATH)
+        assert version1.dataset_type == _DatasetService.DatasetTypeEnum.PATH
         assert version1.id
 
         version2 = client.create_dataset_version(dataset=dataset,
             dataset_version_info = _DatasetVersionService.PathDatasetVersionInfo(),
-            dataset_type=_DatasetService.DatasetTypeEnum.DatasetType.PATH)
-        assert version2.dataset_type == _DatasetService.DatasetTypeEnum.DatasetType.PATH
+            dataset_type=_DatasetService.DatasetTypeEnum.PATH)
+        assert version2.dataset_type == _DatasetService.DatasetTypeEnum.PATH
         assert version2.id
 
         versions = client.get_all_versions_for_dataset(dataset)
@@ -205,23 +205,23 @@ class TestPathBasedDatasetVersions:
     def test_creation_from_scratch(self, client):
         name = utils.gen_str()
         dataset = Dataset(client._conn, client._conf, name=name, 
-            dataset_type=_DatasetService.DatasetTypeEnum.DatasetType.PATH)
+            dataset_type=_DatasetService.DatasetTypeEnum.PATH)
 
         version = DatasetVersion(client._conn, client._conf, dataset_id=dataset.id,
             dataset_version_info = _DatasetVersionService.PathDatasetVersionInfo(),
-            dataset_type=_DatasetService.DatasetTypeEnum.DatasetType.PATH)
-        assert version.dataset_type == _DatasetService.DatasetTypeEnum.DatasetType.PATH
+            dataset_type=_DatasetService.DatasetTypeEnum.PATH)
+        assert version.dataset_type == _DatasetService.DatasetTypeEnum.PATH
         assert version.id
 
     def test_creation_by_id(self, client):
         name = utils.gen_str()
         dataset = Dataset(client._conn, client._conf, name=name, 
-            dataset_type=_DatasetService.DatasetTypeEnum.DatasetType.PATH)
+            dataset_type=_DatasetService.DatasetTypeEnum.PATH)
 
         version = DatasetVersion(client._conn, client._conf, dataset_id=dataset.id,
             dataset_version_info = _DatasetVersionService.PathDatasetVersionInfo(),
-            dataset_type=_DatasetService.DatasetTypeEnum.DatasetType.PATH)
-        assert version.dataset_type == _DatasetService.DatasetTypeEnum.DatasetType.PATH
+            dataset_type=_DatasetService.DatasetTypeEnum.PATH)
+        assert version.dataset_type == _DatasetService.DatasetTypeEnum.PATH
         assert version.id
 
         same_version = DatasetVersion(client._conn, client._conf, 
@@ -255,19 +255,19 @@ class TestQueryDatasetVersions:
 
         version = DatasetVersion(client._conn, client._conf, dataset_id=dataset.id,
             dataset_version_info = _DatasetVersionService.QueryDatasetVersionInfo(),
-            dataset_type=_DatasetService.DatasetTypeEnum.DatasetType.QUERY)
-        assert version.dataset_type == _DatasetService.DatasetTypeEnum.DatasetType.QUERY
+            dataset_type=_DatasetService.DatasetTypeEnum.QUERY)
+        assert version.dataset_type == _DatasetService.DatasetTypeEnum.QUERY
         assert version.id
 
     def test_creation_by_id(self, client):
         name = utils.gen_str()
         dataset = Dataset(client._conn, client._conf, name=name, 
-            dataset_type=_DatasetService.DatasetTypeEnum.DatasetType.QUERY)
+            dataset_type=_DatasetService.DatasetTypeEnum.QUERY)
 
         version = DatasetVersion(client._conn, client._conf, dataset_id=dataset.id,
             dataset_version_info = _DatasetVersionService.QueryDatasetVersionInfo(),
-            dataset_type=_DatasetService.DatasetTypeEnum.DatasetType.QUERY)
-        assert version.dataset_type == _DatasetService.DatasetTypeEnum.DatasetType.QUERY
+            dataset_type=_DatasetService.DatasetTypeEnum.QUERY)
+        assert version.dataset_type == _DatasetService.DatasetTypeEnum.QUERY
         assert version.id
 
         same_version = DatasetVersion(client._conn, client._conf, 
@@ -315,7 +315,7 @@ class TestS3ClientFunctions:
     def test_s3_dataset_creation(self, client):
         name = utils.gen_str()
         dataset = client.create_s3_dataset("s3-" + name)
-        assert dataset.dataset_type == _DatasetService.DatasetTypeEnum.DatasetType.PATH
+        assert dataset.dataset_type == _DatasetService.DatasetTypeEnum.PATH
 
     def test_s3_dataset_version_creation(self, client, s3_bucket):
         name = utils.gen_str()
@@ -329,7 +329,7 @@ class TestFilesystemClientFunctions:
     def test_filesystem_dataset_creation(self, client):
         name = utils.gen_str()
         dataset = client.create_local_dataset("fs-" + name)
-        assert dataset.dataset_type == _DatasetService.DatasetTypeEnum.DatasetType.PATH
+        assert dataset.dataset_type == _DatasetService.DatasetTypeEnum.PATH
 
     def test_filesystem_dataset_version_creation(self, client):
         dir_name, _ = self.create_dir_with_files(num_files=3)
@@ -356,7 +356,7 @@ class TestBigQueryDatasetVersionInfo:
     def test_big_query_dataset(self, client):
         name = utils.gen_str()
         dataset = client.create_big_query_dataset("bq-" + name)
-        assert dataset.dataset_type == _DatasetService.DatasetTypeEnum.DatasetType.QUERY
+        assert dataset.dataset_type == _DatasetService.DatasetTypeEnum.QUERY
 
     def test_big_query_dataset_version_creation(self, client, big_query_job):
         name = utils.gen_str()
@@ -365,3 +365,15 @@ class TestBigQueryDatasetVersionInfo:
             job_id=big_query_job[0], location=big_query_job[1])
 
         assert dataset_version.dataset_version_info.query == big_query_job[2]
+
+class TestLogDatasetVersion:
+    def test_log_dataset_version(self, client, experiment_run, s3_bucket):
+        name = utils.gen_str()
+        dataset = client.create_s3_dataset("s3-" + name)
+        assert dataset.dataset_type == _DatasetService.DatasetTypeEnum.PATH
+
+        dataset_version = client.create_s3_dataset_version(dataset, s3_bucket)
+        experiment_run.log_dataset_version('train', dataset_version)
+
+        _, linked_id = experiment_run.get_dataset('train')
+        assert linked_id == dataset_version.id
