@@ -3,10 +3,8 @@ import six.moves.cPickle as pickle
 from six.moves.urllib.parse import urlparse
 
 import ast
-import datetime
 import hashlib
 import os
-import pytz
 import re
 import time
 import warnings
@@ -14,6 +12,23 @@ import zipfile
 
 import PIL
 import requests
+
+try:
+    from google.cloud import bigquery
+except ImportError:  # BigQuery not installed
+    pass
+else:
+    import datetime  # TODO: remove this
+    import pytz
+
+try:
+    from boto3 import client as BotoClient
+except ImportError:  # Boto 3 not installed
+    pass
+else:
+    import datetime  # TODO: remove this
+    import pytz  # TODO: remove this
+    import dateutil
 
 from ._protos.public.modeldb import CommonService_pb2 as _CommonService
 from ._protos.public.modeldb import ProjectService_pb2 as _ProjectService
@@ -24,8 +39,7 @@ from ._protos.public.modeldb import DatasetVersionService_pb2 as _DatasetVersion
 from . import _utils
 from . import _artifact_utils
 from . import utils
-from google.cloud import bigquery
-from boto3 import client as BotoClient
+
 
 class Client:
     """
@@ -401,6 +415,7 @@ class Client:
             dataset_version_info=filesystem_dataset_version_info, parent_id=parent_id,
             desc=desc, tags=tags, attrs=attrs)
 
+
 class Dataset:
     # TODO: delete is not supported on the API yet
     def __init__(self, conn, conf,
@@ -497,6 +512,7 @@ class Dataset:
 
 # from verta._protos.public.modeldb.DatasetVersionService_pb2 import \
 #     DatasetVersion as DatasetVersionProtoCls
+
 
 class DatasetVersion:
     def __init__(self, conn, conf, dataset_id=None, dataset_type=None,
@@ -609,6 +625,7 @@ class DatasetVersion:
         parent_id=None, desc=None, tags=None, attrs=None, version=None):
         raise NotImplementedError('Must be implemented by subclasses')
 
+
 class RawDatasetVersion(DatasetVersion):
     def __init__(self, args, kwargs):
         super(RawDatasetVersion, self).__init__(*args, **kwargs)
@@ -630,6 +647,7 @@ class RawDatasetVersion(DatasetVersion):
             attributes=attrs, version=version,
             raw_dataset_version_info=converted_dataset_version_info)
         return msg
+
 
 class QueryDatasetVersion(DatasetVersion):
     def __init__(self, *args, **kwargs):
@@ -654,6 +672,7 @@ class QueryDatasetVersion(DatasetVersion):
             # different dataset versions
             query_dataset_version_info=converted_dataset_version_info)
         return msg
+
 
 class PathDatasetVersion(DatasetVersion):
     def __init__(self, *args, **kwargs):
@@ -680,6 +699,7 @@ class PathDatasetVersion(DatasetVersion):
             path_dataset_version_info=converted_dataset_version_info)
         return msg
 
+
 class PathDatasetVersionInfo:
     def __init__(self):
         pass
@@ -691,6 +711,7 @@ class PathDatasetVersionInfo:
 
     def get_dataset_part_infos(self):
         raise NotImplementedError('Implemented only in subclasses')
+
 
 class FilesystemDatasetVersionInfo(PathDatasetVersionInfo):
     def __init__(self, path):
@@ -731,6 +752,7 @@ class FilesystemDatasetVersionInfo(PathDatasetVersionInfo):
                 buf = afile.read(BLOCKSIZE)
         return hasher.hexdigest()
 
+
 class S3DatasetVersionInfo(PathDatasetVersionInfo):
     def __init__(self, bucket_name, key=None, url_stub=None):
         super(S3DatasetVersionInfo, self).__init__()
@@ -765,6 +787,7 @@ class S3DatasetVersionInfo(PathDatasetVersionInfo):
             datetime.datetime(1970,1,1, tzinfo=pytz.UTC)).total_seconds())
         return dataset_part_info
 
+
 class QueryDatasetVersionInfo:
     def __init__(self, job_id=None, query="", execution_timestamp="",
         data_source_uri="", query_template="", query_parameters=[],
@@ -777,6 +800,7 @@ class QueryDatasetVersionInfo:
         self.query_template = query_template
         self.query_parameters = query_parameters
         self.num_records = num_records
+
 
 class BigQueryDatasetVersionInfo(QueryDatasetVersionInfo):
     def __init__(self, job_id=None, query="", location="", execution_timestamp="",
@@ -800,6 +824,7 @@ class BigQueryDatasetVersionInfo(QueryDatasetVersionInfo):
     def get_bq_job(job_id, location):
         client = bigquery.Client()
         return client.get_job(job_id, location = location)
+
 
 class _ModelDBEntity:
     def __init__(self, conn, conf, service_module, service_url_component, id):
@@ -1053,6 +1078,7 @@ class _ModelDBEntity:
         else:
             raise RuntimeError("unable find code in response")
 
+
 class Project(_ModelDBEntity):
     """
     Object representing a machine learning Project.
@@ -1197,6 +1223,7 @@ class Project(_ModelDBEntity):
         else:
             response.raise_for_status()
 
+
 class Experiment(_ModelDBEntity):
     """
     Object representing a machine learning Experiment.
@@ -1334,6 +1361,7 @@ class Experiment(_ModelDBEntity):
             return response_msg.experiment
         else:
             response.raise_for_status()
+
 
 class ExperimentRuns:
     """
@@ -1651,6 +1679,7 @@ class ExperimentRuns:
             return response_msg.experiment_runs
         else:
             return self.__class__(self._conn, self._conf, [expt_run.id for expt_run in response_msg.experiment_runs])
+
 
 class ExperimentRun(_ModelDBEntity):
     """
