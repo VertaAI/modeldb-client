@@ -392,8 +392,14 @@ class Client:
     def create_big_query_dataset(self, name):
         return self.create_dataset(name, dataset_type=_DatasetService.DatasetTypeEnum.DatasetType.QUERY)
 
-    def create_big_query_dataset_version(self, dataset, something):
-        pass
+    def create_big_query_dataset_version(self, dataset, job_id, location,
+        parent_id=None, desc=None, tags=None, attrs=None):
+        filesystem_dataset_version_info = BigQueryDatasetVersionInfo(
+            job_id=job_id, location=location)
+        return QueryDatasetVersion(self._conn, self._conf, dataset_id=dataset.id, 
+            dataset_type=dataset.dataset_type, 
+            dataset_version_info=filesystem_dataset_version_info, parent_id=parent_id,
+            desc=desc, tags=tags, attrs=attrs)
 
 class Dataset:
     # TODO: delete is not supported on the API yet
@@ -626,9 +632,9 @@ class RawDatasetVersion(DatasetVersion):
         return msg
 
 class QueryDatasetVersion(DatasetVersion):
-    def __init__(self, args, kwargs):
+    def __init__(self, *args, **kwargs):
         super(QueryDatasetVersion, self).__init__(*args, **kwargs)
-        self.dataset_version_info = self.dataset_version.path_dataset_version_info
+        self.dataset_version_info = self.dataset_version.query_dataset_version_info
         # TODO: this is hacky, we should store dataset_version
         self.dataset_version = None
 
@@ -773,12 +779,12 @@ class QueryDatasetVersionInfo:
         self.num_records = num_records
 
 class BigQueryDatasetVersionInfo(QueryDatasetVersionInfo):
-    def __init__(self, job_id=None, query="", execution_timestamp="", bq_location="",
+    def __init__(self, job_id=None, query="", location="", execution_timestamp="",
         data_source_uri="",query_template="",query_parameters=[],num_records=0):
         """https://googleapis.github.io/google-cloud-python/latest/bigquery/generated/google.cloud.bigquery.job.QueryJob.html#google.cloud.bigquery.job.QueryJob.query_plan"""
-        if job_id is not None and bq_location:
+        if job_id is not None and location:
             self.job_id = job_id
-            job = self.get_bq_job(job_id, bq_location)
+            job = self.get_bq_job(job_id, location)
             self.execution_timestamp = int((job.started - datetime.datetime(1970,1,1, tzinfo=pytz.UTC)).total_seconds())
             self.data_source_uri = job.self_link
             self.query = job.query
