@@ -1,16 +1,19 @@
 import os
 import shutil
 
+from google.cloud import bigquery
+
 from verta import Client
 
 import pytest
 import utils
-from google.cloud import bigquery
+
 
 DEFAULT_HOST = None
 DEFAULT_PORT = None
 DEFAULT_EMAIL = None
 DEFAULT_DEV_KEY = None
+
 DEFAULT_S3_TEST_BUCKET = None
 DEFAULT_S3_TEST_OBJECT = None
 DEFAULT_GOOGLE_APPLICATION_CREDENTIALS = None
@@ -61,13 +64,16 @@ def experiment_run(client):
     client.set_experiment()
     return client.set_experiment_run()
 
+
 @pytest.fixture(scope='session')
 def s3_bucket():
     return os.environ.get("S3_TEST_BUCKET", DEFAULT_S3_TEST_BUCKET)
 
+
 @pytest.fixture(scope='session')
 def s3_object():
     return os.environ.get("S3_TEST_OBJECT", DEFAULT_S3_TEST_OBJECT)
+
 
 @pytest.fixture(scope='session')
 def path_dataset_dir():
@@ -76,6 +82,7 @@ def path_dataset_dir():
         dirpath += '_'
     yield os.path.join(dirpath, "{}")
     shutil.rmtree(dirpath)
+
 
 @pytest.fixture(scope="session")
 def big_query_job():
