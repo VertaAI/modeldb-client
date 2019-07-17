@@ -734,7 +734,7 @@ class FilesystemDatasetVersionInfo(PathDatasetVersionInfo):
 class S3DatasetVersionInfo(PathDatasetVersionInfo):
     def __init__(self, bucket_name, key=None, url_stub=None):
         super(S3DatasetVersionInfo, self).__init__()
-        self.location_type = _DatasetVersionService.PathLocationTypeEnum.PathLocationType.S3_FILE_SYSTEM
+        self.location_type = _DatasetVersionService.PathLocationTypeEnum.S3_FILE_SYSTEM
         self.bucket_name = bucket_name
         self.key = key
         self.url_stub = url_stub
