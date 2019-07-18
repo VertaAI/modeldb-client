@@ -1841,9 +1841,7 @@ class ExperimentRun(_ModelDBEntity):
             Filename extension associated with the artifact.
 
         """
-        basename = key
         if isinstance(artifact, six.string_types):
-            basename = os.path.basename(artifact)
             artifact = open(artifact, 'rb')
 
         artifact_stream, method = _artifact_utils.ensure_bytestream(artifact)
@@ -1856,7 +1854,7 @@ class ExperimentRun(_ModelDBEntity):
         artifact_stream.seek(0)
 
         # build upload path from checksum, key, and extension
-        artifact_path = os.path.join(artifact_hash, basename + os.extsep + extension)
+        artifact_path = os.path.join(artifact_hash, key + os.extsep + extension)
 
         # log key to ModelDB
         Message = _ExperimentRunService.LogArtifact
