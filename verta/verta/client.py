@@ -1851,10 +1851,12 @@ class ExperimentRun(_ModelDBEntity):
         if extension is None:
             extension = _artifact_utils.ext_from_method(method)
 
-        # obtain checksum for upload bucket
+        # calculate checksum
         artifact_hash = hashlib.sha256(artifact_stream.read()).hexdigest()
         artifact_stream.seek(0)
-        artifact_path = os.path.join(artifact_hash, basename)
+
+        # build upload path from checksum, key, and extension
+        artifact_path = os.path.join(artifact_hash, basename + os.extsep + extension)
 
         # log key to ModelDB
         Message = _ExperimentRunService.LogArtifact
