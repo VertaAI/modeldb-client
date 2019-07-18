@@ -912,8 +912,8 @@ class ExperimentRuns(object):
 
     Warnings
     --------
-    After an ``ExperimentRuns`` instance is assigned to a variable, it will be detached from the
-    method that created it, and *will never automatically update itself*.
+    After an :class:`ExperimentRuns` instance is assigned to a variable, it will be detached from
+    the method that created it, and *will never automatically update itself*.
 
     This is to allow filtering and sorting without modifying the Experiment Runs' parent and vice
     versa.
@@ -929,7 +929,8 @@ class ExperimentRuns(object):
     >>> runs  # still 10
     <ExperimentRuns containing 10 runs>
 
-    The individual ``ExperimentRun``\ s themselves, however, are still synchronized with the backend.
+    The individual :class:`ExperimentRun`\ s themselves, however, are still synchronized with the
+    backend.
 
     Examples
     --------
