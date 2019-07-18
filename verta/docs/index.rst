@@ -11,7 +11,7 @@ For information about the complete **Verta** platform, you can find that
 
 .. toctree::
     :hidden:
-    :maxdepth: 3
+    :titlesonly:
 
     Guides <guides/guides>
     Reference <reference/reference>
