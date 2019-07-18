@@ -29,6 +29,6 @@ Guides
 .. toctree::
     :hidden:
 
-    Runthrough <runthrough>
-    Package Installation <installation>
-    Workflow Logging <workflow>
+    Runthrough <guides/runthrough>
+    Package Installation <guides/installation>
+    Workflow Logging <guides/workflow>

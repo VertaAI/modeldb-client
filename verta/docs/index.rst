@@ -13,5 +13,5 @@ For information about the complete **Verta** platform, you can find that
     :hidden:
     :titlesonly:
 
-    Guides <guides/guides>
-    Reference <reference/reference>
+    Guides <guides>
+    Reference <reference>

@@ -9,6 +9,6 @@ power comes great documentation.
 .. toctree::
     :hidden:
 
-    Glossary <glossary>
-    API <api>
-    Release Notes <changelog>
+    Glossary <reference/glossary>
+    API <reference/api>
+    Release Notes <reference/changelog>
