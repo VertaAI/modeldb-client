@@ -1853,8 +1853,16 @@ class ExperimentRun(_ModelDBEntity):
         artifact_hash = hashlib.sha256(artifact_stream.read()).hexdigest()
         artifact_stream.seek(0)
 
-        # build upload path from checksum, key, and extension
-        artifact_path = os.path.join(artifact_hash, key + os.extsep + extension)
+        # determine basename
+        #     The key might already contain the file extension, thanks to our hard-coded deployment
+        #     keys e.g. "model.pkl" and "model_api.json".
+        if key.endswith(os.extsep + extension):
+            basename = key
+        else:
+            basename = key + os.extsep + extension
+
+        # build upload path from checksum and basename
+        artifact_path = os.path.join(artifact_hash, basename)
 
         # log key to ModelDB
         Message = _ExperimentRunService.LogArtifact
