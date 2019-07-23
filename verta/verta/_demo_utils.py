@@ -42,8 +42,8 @@ class DeployedModel:
                       self._GRPC_PREFIX+'source': "PythonClient"}
         self._id = model_id
 
-        self._prediction_token = None
-        self._input_headers = None
+        self._token = None
+        self._headers = None
 
         self._status_url = "https://{}/api/v1/deployment/status/{}".format(socket, model_id)
         self._get_url_url = "https://{}/v1/experiment-run/getUrlForArtifact".format(socket) # url to obtain artifact GET url
@@ -52,16 +52,16 @@ class DeployedModel:
     def __repr__(self):
         return "<Model {}>".format(self._id)
 
-    def _set_prediction_token(self):
+    def _set_token(self):
         response = requests.get(self._status_url)
         response.raise_for_status()
         status = response.json()
         try:
-            self._prediction_token = status['token']
+            self._token = status['token']
         except KeyError:
             six.raise_from(RuntimeError("deployment is not ready"), None)
 
-    def _set_input_headers(self, key="model_api.json"):
+    def _set_headers(self, key="model_api.json"):
         # get url to get model_api.json from artifact store
         params = {'id': self._id, 'key': key, 'method': "GET"}
         response = requests.post(self._get_url_url, json=params, headers=self._auth)
@@ -76,20 +76,20 @@ class DeployedModel:
         model_api_input = model_api['input']
 
         if 'fields' not in model_api_input:
-            self._input_headers = model_api_input['name']
+            self._headers = model_api_input['name']
         else:
-            self._input_headers = [field['name'] for field in model_api_input['fields']]
+            self._headers = [field['name'] for field in model_api_input['fields']]
 
     def _predict(self, x, return_input_body=False):
         """This is like ``DeployedModel.predict()``, but returns the raw ``Response`` for debugging."""
-        if self._prediction_token is None:
-            self._set_prediction_token()
-        if self._input_headers is None:
-            self._set_input_headers()
+        if self._token is None:
+            self._set_token()
+        if self._headers is None:
+            self._set_headers()
 
         result = requests.post(self._prediction_url,
                                headers={
-                                   'Access-token': self._prediction_token,
+                                   'Access-token': self._token,
                                    'Content-length': str(len(json.dumps(x).encode('utf-8'))),
                                },
                                json=x)
@@ -126,10 +126,10 @@ class DeployedModel:
         response = self._predict(x)
 
         if not response.ok:
-            self._prediction_token = None  # try refetching token
+            self._token = None  # try refetching token
             response = self._predict(x)
             if not response.ok:
-                self._input_headers = None  # try refetching input headers
+                self._headers = None  # try refetching input headers
                 response = self._predict(x)
                 if not response.ok:
                     return "model is warming up; please wait"
