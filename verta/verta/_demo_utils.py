@@ -42,29 +42,30 @@ class DeployedModel:
                       self._GRPC_PREFIX+'source': "PythonClient"}
         self._id = model_id
 
-        self._token = None
-        self._headers = None
-
         self._status_url = "https://{}/api/v1/deployment/status/{}".format(socket, model_id)
-        self._get_url_url = "https://{}/v1/experiment-run/getUrlForArtifact".format(socket) # url to obtain artifact GET url
-        self._prediction_url = "https://{}/api/v1/predict/{}".format(socket, model_id)
+
+        self._token = None
+        self._url = None
+        self._headers = None
 
     def __repr__(self):
         return "<Model {}>".format(self._id)
 
-    def _set_token(self):
+    def _set_token_and_url(self):
         response = requests.get(self._status_url)
         response.raise_for_status()
         status = response.json()
-        try:
+        if 'token' in status and 'api' in status:
             self._token = status['token']
-        except KeyError:
-            six.raise_from(RuntimeError("deployment is not ready"), None)
+            self._url = "https://{}{}".format(self._socket, status['api'])
+        else:
+            raise RuntimeError("deployment is not ready")
 
     def _set_headers(self, key="model_api.json"):
         # get url to get model_api.json from artifact store
         params = {'id': self._id, 'key': key, 'method': "GET"}
-        response = requests.post(self._get_url_url, json=params, headers=self._auth)
+        response = requests.post("https://{}/v1/experiment-run/getUrlForArtifact".format(self._socket),
+                                 json=params, headers=self._auth)
         response.raise_for_status()
 
         # get model_api.json
@@ -82,12 +83,12 @@ class DeployedModel:
 
     def _predict(self, x, return_input_body=False):
         """This is like ``DeployedModel.predict()``, but returns the raw ``Response`` for debugging."""
-        if self._token is None:
-            self._set_token()
+        if self._token is None or self._url is None:
+            self._set_token_and_url()
         if self._headers is None:
             self._set_headers()
 
-        result = requests.post(self._prediction_url,
+        result = requests.post(self._url,
                                headers={
                                    'Access-token': self._token,
                                    'Content-length': str(len(json.dumps(x).encode('utf-8'))),
@@ -126,10 +127,10 @@ class DeployedModel:
         response = self._predict(x)
 
         if not response.ok:
-            self._token = None  # try refetching token
+            self._set_token_and_url()  # try refetching prediction token and URL
             response = self._predict(x)
             if not response.ok:
-                self._headers = None  # try refetching input headers
+                self._set_headers()  # try refetching input headers
                 response = self._predict(x)
                 if not response.ok:
                     return "model is warming up; please wait"
