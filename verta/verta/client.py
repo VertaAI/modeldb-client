@@ -42,7 +42,7 @@ from . import _artifact_utils
 from . import utils
 
 
-class Client:
+class Client(object):
     """
     Object for interfacing with the ModelDB backend.
 
@@ -406,7 +406,7 @@ class Client:
             desc=desc, tags=tags, attrs=attrs)
 
 
-class Dataset:
+class Dataset(object):
     # TODO: delete is not supported on the API yet
     def __init__(self, conn, conf,
         name=None, dataset_type=None, desc=None, tags=None, attrs=None, _dataset_id=None):
@@ -504,7 +504,7 @@ class Dataset:
 #     DatasetVersion as DatasetVersionProtoCls
 
 
-class DatasetVersion:
+class DatasetVersion(object):
     def __init__(self, conn, conf, dataset_id=None, dataset_type=None,
         dataset_version_info=None, parent_id=None, desc=None, tags=None,
         attrs=None, version=None, _dataset_version_id=None):
@@ -690,7 +690,7 @@ class PathDatasetVersion(DatasetVersion):
         return msg
 
 
-class PathDatasetVersionInfo:
+class PathDatasetVersionInfo(object):
     def __init__(self):
         pass
 
@@ -778,7 +778,7 @@ class S3DatasetVersionInfo(PathDatasetVersionInfo):
         return dataset_part_info
 
 
-class QueryDatasetVersionInfo:
+class QueryDatasetVersionInfo(object):
     def __init__(self, job_id=None, query="", execution_timestamp="",
         data_source_uri="", query_template="", query_parameters=[],
         num_records=0):
@@ -816,7 +816,7 @@ class BigQueryDatasetVersionInfo(QueryDatasetVersionInfo):
         return client.get_job(job_id, location = location)
 
 
-class _ModelDBEntity:
+class _ModelDBEntity(object):
     def __init__(self, conn, conf, service_module, service_url_component, id):
         self._conn = conn
         self._conf = conf
@@ -1361,7 +1361,7 @@ class Experiment(_ModelDBEntity):
             response.raise_for_status()
 
 
-class ExperimentRuns:
+class ExperimentRuns(object):
     """
     ``list``-like object representing a collection of machine learning Experiment Runs.
 
