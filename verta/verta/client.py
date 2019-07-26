@@ -2374,12 +2374,14 @@ class ExperimentRun(_ModelDBEntity):
         filepaths = _utils.find_filepaths(paths)
 
         # get search paths to modify Deployment's sys.path
+        # convert into absolute paths
+        search_paths = list(map(os.path.abspath, sys.path))
         # only consider search paths inside common directory
-        search_paths = filter(lambda path: path.startswith(common_dir), sys.path)
+        search_paths = list(filter(lambda path: path.startswith(common_dir), search_paths))
         # strip common directory
-        search_paths = map(lambda path: os.path.relpath(path, common_dir), search_paths)
+        search_paths = list(map(lambda path: os.path.relpath(path, common_dir), search_paths))
         # append to Deployment's custom modules directory
-        search_paths = map(lambda path: os.path.join("/app/custom_modules/", path), search_paths)
+        search_paths = list(map(lambda path: os.path.join("/app/custom_modules/", path), search_paths))
 
         bytestream = six.BytesIO()
         with zipfile.ZipFile(bytestream, 'w') as zipf:
