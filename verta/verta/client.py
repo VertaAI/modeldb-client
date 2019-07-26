@@ -2343,18 +2343,18 @@ class ExperimentRun(_ModelDBEntity):
 
     def log_modules(self, paths, search_path=None):
         """
-        Logs local Python modules to this Experiment Run.
+        Logs local files that are dependencies for a deployed model to this Experiment Run.
 
         Parameters
         ----------
         paths : str or list of str
-            File and directory paths to include. If a directory is provided, all files within will
-            be included.
+            Paths to local Python modules and other files that the deployed model depends on. If a
+            directory is provided, all files within will be included.
 
         """
         if search_path is not None:
             warnings.warn("`search_path` is no longer used and will removed in a later version;"
-                          " consider removing it from the function call as soon as possible",
+                          " consider removing it from the function call",
                           category=DeprecationWarning, stacklevel=2)
         if isinstance(paths, six.string_types):
             paths = [paths]
