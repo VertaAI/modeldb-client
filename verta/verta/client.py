@@ -140,6 +140,14 @@ class Client:
         self._conn.ignore_conn_err = value
 
     @property
+    def debug(self):
+        return self._conf.debug
+
+    @debug.setter
+    def debug(self, value):
+        self._conf.debug = value
+
+    @property
     def expt_runs(self):
         if self.expt is None:
             return None
