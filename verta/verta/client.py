@@ -6,6 +6,7 @@ import ast
 import hashlib
 import os
 import re
+import sys
 import time
 import warnings
 import zipfile
@@ -2372,10 +2373,26 @@ class ExperimentRun(_ModelDBEntity):
 
         filepaths = _utils.find_filepaths(paths)
 
-        # bytestream = six.BytesIO()
-        # with zipfile.ZipFile(bytestream, 'w') as zipf:
-        #     for filepath in filepaths:
-        #         zipf.write(filepath, os.path.relpath(filepath, search_path))
-        # bytestream.seek(0)
+        # get search paths to modify Deployment's sys.path
+        # only consider search paths inside common directory
+        search_paths = filter(lambda path: path.startswith(common_dir), sys.path)
+        # strip common directory
+        search_paths = map(lambda path: os.path.relpath(path, common_dir), search_paths)
+        # append to Deployment's custom modules directory
+        search_paths = map(lambda path: os.path.join("/app/custom_modules/", path), search_paths)
 
-        # self._log_artifact("custom_modules", bytestream, _CommonService.ArtifactTypeEnum.BLOB, 'zip')
+        bytestream = six.BytesIO()
+        with zipfile.ZipFile(bytestream, 'w') as zipf:
+            for filepath in filepaths:
+                zipf.write(filepath, os.path.relpath(filepath, common_dir))
+            zipf.writestr(
+                "_verta_config.py",
+                six.ensure_binary('\n'.join([
+                    "import sys",
+                    "",
+                    "sys.path = sys.path[:1] + {} + sys.path[1:]".format(list(search_paths)),
+                ]))
+            )
+        bytestream.seek(0)
+
+        self._log_artifact("custom_modules", bytestream, _CommonService.ArtifactTypeEnum.BLOB, 'zip')
