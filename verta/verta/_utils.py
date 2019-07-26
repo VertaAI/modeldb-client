@@ -81,7 +81,7 @@ class Connection:
 
 
 class Configuration:
-    def __init__(self, use_git=True):
+    def __init__(self, use_git=True, debug=False):
         """
         Client behavior configuration utility struct.
 
@@ -92,6 +92,7 @@ class Configuration:
 
         """
         self.use_git = use_git
+        self.debug = debug
 
 
 def make_request(method, url, conn, **kwargs):

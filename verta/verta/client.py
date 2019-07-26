@@ -48,6 +48,8 @@ class Client:
         Whether to ignore connection errors and instead return successes with empty contents.
     use_git : bool, default True
         Whether to use a local Git repository for certain operations such as Code Versioning.
+    debug : bool, default False
+        Whether to print extra verbose information to aid in debugging.
 
     Attributes
     ----------
@@ -68,7 +70,7 @@ class Client:
     _GRPC_PREFIX = "Grpc-Metadata-"
 
     def __init__(self, host, port=None, email=None, dev_key=None,
-                 max_retries=5, ignore_conn_err=False, use_git=True):
+                 max_retries=5, ignore_conn_err=False, use_git=True, debug=False):
         if email is None and 'VERTA_EMAIL' in os.environ:
             email = os.environ['VERTA_EMAIL']
             print("set email from environment")
@@ -110,7 +112,7 @@ class Client:
         print("connection successfully established")
 
         self._conn = conn
-        self._conf = _utils.Configuration(use_git)
+        self._conf = _utils.Configuration(use_git, debug)
 
         self.proj = None
         self.expt = None
