@@ -2370,7 +2370,7 @@ class ExperimentRun(_ModelDBEntity):
         common_prefix = os.path.commonprefix(paths_plus)
         common_dir = os.path.dirname(common_prefix)
 
-        # filepaths = _utils.find_filepaths(paths, (".py", ".pyc", ".pyo"))
+        filepaths = _utils.find_filepaths(paths)
 
         # bytestream = six.BytesIO()
         # with zipfile.ZipFile(bytestream, 'w') as zipf:
