@@ -2348,8 +2348,8 @@ class ExperimentRun(_ModelDBEntity):
         Parameters
         ----------
         paths : str or list of str
-            File and directory paths to include. If a directory is provided, it will be recursively
-            searched for Python files.
+            File and directory paths to include. If a directory is provided, all files within will
+            be included.
 
         """
         if search_path is not None:
@@ -2371,7 +2371,7 @@ class ExperimentRun(_ModelDBEntity):
         common_prefix = os.path.commonprefix(paths_plus)
         common_dir = os.path.dirname(common_prefix)
 
-        filepaths = _utils.find_filepaths(paths)
+        filepaths = _utils.find_filepaths(paths, include_hidden=True)
 
         # get search paths to modify Deployment's sys.path
         # convert into absolute paths
