@@ -2349,12 +2349,12 @@ class ExperimentRun(_ModelDBEntity):
         paths : str or list of str
             File and directory paths to include. If a directory is provided, it will be recursively
             searched for Python files.
-        search_path : str, optional
-            The path at which Deployment Service will start searching for module files. For example,
-            this is what one would append to ``$PYTHONPATH`` or ``sys.path``. If not provided, it will
-            default to the deepest common directory between `paths` and the current directory.
 
         """
+        if search_path is not None:
+            warnings.warn("`search_path` is no longer used and will removed in a later version;"
+                          " consider removing it from the function call as soon as possible",
+                          category=DeprecationWarning, stacklevel=2)
         if isinstance(paths, six.string_types):
             paths = [paths]
 
@@ -2364,22 +2364,18 @@ class ExperimentRun(_ModelDBEntity):
         paths = [os.path.join(path, "") if os.path.isdir(path) else path
                  for path in paths]
 
-        if search_path is None:
-            # obtain deepest common directory
-            curr_dir = os.path.join(os.path.abspath(os.curdir), "")
-            paths_plus = paths + [curr_dir]
-            common_prefix = os.path.commonprefix(paths_plus)
-            search_path = os.path.dirname(common_prefix)
-        else:
-            # convert into absolute path
-            search_path = os.path.abspath(search_path)
+        # obtain deepest common directory
+        curr_dir = os.path.join(os.path.abspath(os.curdir), "")
+        paths_plus = paths + [curr_dir]
+        common_prefix = os.path.commonprefix(paths_plus)
+        common_dir = os.path.dirname(common_prefix)
 
-        filepaths = _utils.find_filepaths(paths, (".py", ".pyc", ".pyo"))
+        # filepaths = _utils.find_filepaths(paths, (".py", ".pyc", ".pyo"))
 
-        bytestream = six.BytesIO()
-        with zipfile.ZipFile(bytestream, 'w') as zipf:
-            for filepath in filepaths:
-                zipf.write(filepath, os.path.relpath(filepath, search_path))
-        bytestream.seek(0)
+        # bytestream = six.BytesIO()
+        # with zipfile.ZipFile(bytestream, 'w') as zipf:
+        #     for filepath in filepaths:
+        #         zipf.write(filepath, os.path.relpath(filepath, search_path))
+        # bytestream.seek(0)
 
-        self._log_artifact("custom_modules", bytestream, _CommonService.ArtifactTypeEnum.BLOB, 'zip')
+        # self._log_artifact("custom_modules", bytestream, _CommonService.ArtifactTypeEnum.BLOB, 'zip')
