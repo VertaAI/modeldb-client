@@ -416,11 +416,10 @@ class Client:
             guid=guid, atlas_url=atlas_url, atlas_user_name=atlas_user_name, atlas_password=atlas_password,
             atlas_entity_endpoint=atlas_entity_endpoint
             )
-        print(dataset.dataset_type)
         return QueryDatasetVersion(self._conn, self._conf, dataset_id=dataset.id,
             dataset_type=dataset.dataset_type,
             dataset_version_info=filesystem_dataset_version_info, parent_id=parent_id,
-            desc=desc)
+            desc=desc, tags=filesystem_dataset_version_info.tags, attrs=filesystem_dataset_version_info.attributes)
 
 class Dataset:
     # TODO: delete is not supported on the API yet
@@ -536,7 +535,6 @@ class DatasetVersion:
 
             # create a new dataset version
             try:
-                print(dataset_type)
                 dataset_version = DatasetVersion._create(conn, dataset_id,
                     dataset_type, dataset_version_info, parent_id=parent_id,
                     desc=desc, tags=tags, attrs=attrs, version=version)
@@ -836,9 +834,10 @@ class AtlasHiveDatasetVersionInfo(QueryDatasetVersionInfo):
     @staticmethod
     def get_tags(table_obj):
         verta_tags = []
-        atlas_classifcations = table_obj['classifications']
-        for atlas_classifcation in atlas_classifcations:
-            verta_tags.append(atlas_classifcation['typeName'])
+        if 'classifications' in table_obj:
+            atlas_classifcations = table_obj['classifications']
+            for atlas_classifcation in atlas_classifcations:
+                verta_tags.append(atlas_classifcation['typeName'])
         return verta_tags
 
     @staticmethod
@@ -852,19 +851,23 @@ class AtlasHiveDatasetVersionInfo(QueryDatasetVersionInfo):
     def generate_query(table_obj):
         table_name = table_obj['attributes']['name'] # store as attribute
         database_name = table_obj['relationshipAttributes']['db']['displayText'] #store as atrribute
-        query = "select * from " + database_name + "." + table_name
+        query = "select * from " + database_name + "." + table_name 
         return query
 
     @staticmethod
     def get_attributes(table_obj):
-        attributes = []
-        attributes.append({'key':'type','value':table_obj['typeName'] })
-        attributes.append({'key':'table_name','value': table_obj['attributes']['name']}) # store as attribute
-        attributes.append({'key':'database_name','value': table_obj['relationshipAttributes']['db']['displayText']}) #store as atrribute
-        attributes.append({'key':'col_names','value':  AtlasHiveDatasetVersionInfo.get_columns(table_obj)})
-        attributes.append({'key':'created_time','value':  table_obj['createTime']})
-        attributes.append({'key':'update_time','value':  table_obj['updateTime']})
-        attributes.append({'key':'load queries','value': AtlasHiveDatasetVersionInfo.get_inbound_queries(table_obj)})
+        attribute_keyvals=[]
+        attributes = {}
+        attributes['type'] = table_obj['typeName'] 
+        attributes['table_name'] = table_obj['attributes']['name'] # store as attribute
+        attributes['database_name'] = table_obj['relationshipAttributes']['db']['displayText'] #store as atrribute
+        attributes['col_names'] =  AtlasHiveDatasetVersionInfo.get_columns(table_obj)
+        attributes['created_time'] =  table_obj['createTime']
+        attributes['update_time'] =  table_obj['updateTime']
+        attributes['load queries'] = AtlasHiveDatasetVersionInfo.get_inbound_queries(table_obj)
+        #for key, value in six.viewitems(attributes):
+        #    attribute_keyvals.append(_CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value, allow_collection=True)))
+        #return attribute_keyvals
         return attributes
 
     @staticmethod
