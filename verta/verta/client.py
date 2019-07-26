@@ -405,6 +405,23 @@ class Client:
             desc=desc, tags=tags, attrs=attrs)
 
 
+    def create_atlas_hive_dataset(self, name):
+        return self.create_dataset(name, dataset_type=_DatasetService.DatasetTypeEnum.QUERY)
+
+    def create_atlas_hive_dataset_version(self, dataset, guid, atlas_url, 
+        atlas_user_name, atlas_password, atlas_entity_endpoint="/api/atlas/v2/entity/bulk",
+        parent_id=None, desc=None, tags=None, attrs=None):
+        #TODO: use the input tagas and attrs
+        filesystem_dataset_version_info = AtlasHiveDatasetVersionInfo(
+            guid=guid, atlas_url=atlas_url, atlas_user_name=atlas_user_name, atlas_password=atlas_password,
+            atlas_entity_endpoint=atlas_entity_endpoint
+            )
+        print(dataset.dataset_type)
+        return QueryDatasetVersion(self._conn, self._conf, dataset_id=dataset.id,
+            dataset_type=dataset.dataset_type,
+            dataset_version_info=filesystem_dataset_version_info, parent_id=parent_id,
+            desc=desc)
+
 class Dataset:
     # TODO: delete is not supported on the API yet
     def __init__(self, conn, conf,
@@ -519,6 +536,7 @@ class DatasetVersion:
 
             # create a new dataset version
             try:
+                print(dataset_type)
                 dataset_version = DatasetVersion._create(conn, dataset_id,
                     dataset_type, dataset_version_info, parent_id=parent_id,
                     desc=desc, tags=tags, attrs=attrs, version=version)
@@ -790,6 +808,80 @@ class QueryDatasetVersionInfo:
         self.query_parameters = query_parameters
         self.num_records = num_records
 
+class AtlasHiveDatasetVersionInfo(QueryDatasetVersionInfo):
+    def __init__(self, guid="", atlas_url="", 
+        atlas_user_name="", atlas_password="", atlas_entity_endpoint="/api/atlas/v2/entity/bulk",
+        parent_id=None, desc=None, tags=None, attrs=None):
+        if guid and atlas_url:
+            self.guid = guid
+            atlas_entity_details = self.get_entity_details(guid, atlas_url, atlas_user_name, atlas_password, atlas_entity_endpoint)
+            if len(atlas_entity_details['entities']) != 1:
+                raise ValueError ("Error fetching details of entity from Atlas")
+            table_obj = atlas_entity_details['entities'][0]
+            if table_obj['typeName'] != 'hive_table':
+                raise NotImplementedError("Atlas dataset currently supported only for Hive tables")
+            #TODO: what is the execution timestamp? Should the user log this later
+            self.execution_timestamp = int(time.time())
+            self.data_source_uri = atlas_url + "/index.html#!/detailPage/" + guid
+            self.query = self.generate_query(table_obj)
+            #TODO: extract the query template
+            self.query_template = self.query
+            self.query_parameters = []
+            self.num_records = int(table_obj['attributes']['parameters']['numRows'])
+            self.attributes = self.get_attributes(table_obj)
+            self.tags = self.get_tags(table_obj)
+        else:
+            super(AtlasHiveDatasetVersionInfo, self).__init__()
+
+    @staticmethod
+    def get_tags(table_obj):
+        verta_tags = []
+        atlas_classifcations = table_obj['classifications']
+        for atlas_classifcation in atlas_classifcations:
+            verta_tags.append(atlas_classifcation['typeName'])
+        return verta_tags
+
+    @staticmethod
+    def get_entity_details(guid, atlas_url, atlas_user_name, atlas_password, atlas_entity_endpoint):
+        response = requests.get(atlas_url + atlas_entity_endpoint,
+                        auth=(atlas_user_name, atlas_password),
+                        params={'guid': guid})
+        return response.json()
+
+    @staticmethod
+    def generate_query(table_obj):
+        table_name = table_obj['attributes']['name'] # store as attribute
+        database_name = table_obj['relationshipAttributes']['db']['displayText'] #store as atrribute
+        query = "select * from " + database_name + "." + table_name
+        return query
+
+    @staticmethod
+    def get_attributes(table_obj):
+        attributes = []
+        attributes.append({'key':'type','value':table_obj['typeName'] })
+        attributes.append({'key':'table_name','value': table_obj['attributes']['name']}) # store as attribute
+        attributes.append({'key':'database_name','value': table_obj['relationshipAttributes']['db']['displayText']}) #store as atrribute
+        attributes.append({'key':'col_names','value':  AtlasHiveDatasetVersionInfo.get_columns(table_obj)})
+        attributes.append({'key':'created_time','value':  table_obj['createTime']})
+        attributes.append({'key':'update_time','value':  table_obj['updateTime']})
+        attributes.append({'key':'load queries','value': AtlasHiveDatasetVersionInfo.get_inbound_queries(table_obj)})
+        return attributes
+
+    @staticmethod
+    def get_columns(table_obj):
+        column_objs = table_obj['relationshipAttributes']['columns']
+        col_names = []
+        for column_obj in column_objs:
+            col_names.append(column_obj['displayText'])
+        return col_names
+
+    @staticmethod
+    def get_inbound_queries(table_obj):
+        verta_input_processes = []
+        atlas_input_processes = table_obj['relationshipAttributes']['outputFromProcesses']
+        for atlas_input_process in atlas_input_processes:
+            verta_input_processes.append(atlas_input_process['displayText'])
+        return verta_input_processes
 
 class BigQueryDatasetVersionInfo(QueryDatasetVersionInfo):
     def __init__(self, job_id=None, query="", location="", execution_timestamp="",
