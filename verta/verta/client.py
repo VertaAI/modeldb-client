@@ -6,6 +6,7 @@ import ast
 import hashlib
 import os
 import re
+import sys
 import time
 import warnings
 import zipfile
@@ -2983,19 +2984,19 @@ class ExperimentRun(_ModelDBEntity):
 
     def log_modules(self, paths, search_path=None):
         """
-        Logs local Python modules to this Experiment Run.
+        Logs local files that are dependencies for a deployed model to this Experiment Run.
 
         Parameters
         ----------
         paths : str or list of str
-            File and directory paths to include. If a directory is provided, it will be recursively
-            searched for Python files.
-        search_path : str, optional
-            The path at which Deployment Service will start searching for module files. For example,
-            this is what one would append to ``$PYTHONPATH`` or ``sys.path``. If not provided, it will
-            default to the deepest common directory between `paths` and the current directory.
+            Paths to local Python modules and other files that the deployed model depends on. If a
+            directory is provided, all files within will be included.
 
         """
+        if search_path is not None:
+            warnings.warn("`search_path` is no longer used and will removed in a later version;"
+                          " consider removing it from the function call",
+                          category=DeprecationWarning, stacklevel=2)
         if isinstance(paths, six.string_types):
             paths = [paths]
 
@@ -3005,22 +3006,36 @@ class ExperimentRun(_ModelDBEntity):
         paths = [os.path.join(path, "") if os.path.isdir(path) else path
                  for path in paths]
 
-        if search_path is None:
-            # obtain deepest common directory
-            curr_dir = os.path.join(os.path.abspath(os.curdir), "")
-            paths_plus = paths + [curr_dir]
-            common_prefix = os.path.commonprefix(paths_plus)
-            search_path = os.path.dirname(common_prefix)
-        else:
-            # convert into absolute path
-            search_path = os.path.abspath(search_path)
+        # obtain deepest common directory
+        curr_dir = os.path.join(os.path.abspath(os.curdir), "")
+        paths_plus = paths + [curr_dir]
+        common_prefix = os.path.commonprefix(paths_plus)
+        common_dir = os.path.dirname(common_prefix)
 
-        filepaths = _utils.find_filepaths(paths, (".py", ".pyc", ".pyo"))
+        filepaths = _utils.find_filepaths(paths, include_hidden=True)
+
+        # get search paths to modify Deployment's sys.path
+        # convert into absolute paths
+        search_paths = list(map(os.path.abspath, sys.path))
+        # only consider search paths inside common directory
+        search_paths = list(filter(lambda path: path.startswith(common_dir), search_paths))
+        # strip common directory
+        search_paths = list(map(lambda path: os.path.relpath(path, common_dir), search_paths))
+        # append to Deployment's custom modules directory
+        search_paths = list(map(lambda path: os.path.join("/app/custom_modules/", path), search_paths))
 
         bytestream = six.BytesIO()
         with zipfile.ZipFile(bytestream, 'w') as zipf:
             for filepath in filepaths:
-                zipf.write(filepath, os.path.relpath(filepath, search_path))
+                zipf.write(filepath, os.path.relpath(filepath, common_dir))
+            zipf.writestr(
+                "_verta_config.py",
+                six.ensure_binary('\n'.join([
+                    "import sys",
+                    "",
+                    "sys.path = sys.path[:1] + {} + sys.path[1:]".format(list(search_paths)),
+                ]))
+            )
         bytestream.seek(0)
 
         self._log_artifact("custom_modules", bytestream, _CommonService.ArtifactTypeEnum.BLOB, 'zip')

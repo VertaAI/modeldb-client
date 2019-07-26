@@ -2,6 +2,15 @@ Release Notes
 =============
 
 
+v0.12.4 (2019-07-25)
+--------------------
+
+New Features
+^^^^^^^^^^^^
+- `remove the need for log_modules()'s second argument (search_path)
+  <https://github.com/VertaAI/modeldb-client/pull/148>`_
+
+
 v0.12.3 (2019-07-17)
 --------------------
 
