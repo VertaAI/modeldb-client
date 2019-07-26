@@ -1841,9 +1841,7 @@ class ExperimentRun(_ModelDBEntity):
             Filename extension associated with the artifact.
 
         """
-        basename = key
         if isinstance(artifact, six.string_types):
-            basename = os.path.basename(artifact)
             artifact = open(artifact, 'rb')
 
         artifact_stream, method = _artifact_utils.ensure_bytestream(artifact)
@@ -1851,9 +1849,19 @@ class ExperimentRun(_ModelDBEntity):
         if extension is None:
             extension = _artifact_utils.ext_from_method(method)
 
-        # obtain checksum for upload bucket
+        # calculate checksum
         artifact_hash = hashlib.sha256(artifact_stream.read()).hexdigest()
         artifact_stream.seek(0)
+
+        # determine basename
+        #     The key might already contain the file extension, thanks to our hard-coded deployment
+        #     keys e.g. "model.pkl" and "model_api.json".
+        if key.endswith(os.extsep + extension):
+            basename = key
+        else:
+            basename = key + os.extsep + extension
+
+        # build upload path from checksum and basename
         artifact_path = os.path.join(artifact_hash, basename)
 
         # log key to ModelDB
