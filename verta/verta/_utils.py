@@ -169,7 +169,7 @@ def find_filepaths(paths, extensions=None, include_hidden=False):
         extensions = map(lambda ext: ext if ext.startswith('.') else ('.' + ext), extensions)
         extensions = set(extensions)
 
-    filepaths = []
+    filepaths = set()
     for path in paths:
         if os.path.isdir(path):
             for root, _, subpaths in os.walk(path):
@@ -179,9 +179,9 @@ def find_filepaths(paths, extensions=None, include_hidden=False):
                     if is_hidden(subpath) and not include_hidden:
                         continue  # skip hidden files
                     if extensions is None or os.path.splitext(subpath)[1] in extensions:
-                        filepaths.append(os.path.join(root, subpath))
+                        filepaths.add(os.path.join(root, subpath))
         else:
-            filepaths.append(path)
+            filepaths.add(path)
     return filepaths
 
 
