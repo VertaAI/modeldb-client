@@ -5,6 +5,7 @@ from six.moves.urllib.parse import urlparse
 import ast
 import hashlib
 import os
+import pprint
 import re
 import sys
 import time
@@ -79,9 +80,14 @@ class Client:
             print("set developer key from environment")
 
         if email is None and dev_key is None:
+            if debug:
+                print("[DEBUG] email and developer key not found; auth disabled")
             auth = None
             scheme = "http"
         elif email is not None and dev_key is not None:
+            if debug:
+                print("[DEBUG] using email: {}".format(email))
+                print("[DEBUG] using developer key: {}".format(dev_key[:8] + re.sub(r"[^-]", '*', dev_key[8:])))
             auth = {self._GRPC_PREFIX+'email': email,
                     self._GRPC_PREFIX+'developer_key': dev_key,
                     self._GRPC_PREFIX+'source': "PythonClient"}
@@ -1343,8 +1349,12 @@ class ExperimentRun(_ModelDBEntity):
         # upload artifact to artifact store
         url = self._get_url_for_artifact(key, "PUT")
         artifact_stream.seek(0)  # reuse stream that was created for checksum
+        if self._conf.debug:
+            print("[DEBUG] uploading {} bytes ({})".format(len(artifact_stream.read()), basename))
+            artifact_stream.seek(0)
         response = _utils.make_request("PUT", url, self._conn, data=artifact_stream)
         response.raise_for_status()
+        print("upload complete ({})".format(basename))
 
     def _log_artifact_path(self, key, artifact_path, artifact_type):
         """
@@ -1951,6 +1961,9 @@ class ExperimentRun(_ModelDBEntity):
             requirements = open(requirements, 'rb')
 
         # prehandle model
+        if self._conf.debug:
+            if not hasattr(model, 'read'):
+                print("[DEBUG] model is type: {}".format(model.__class__))
         _artifact_utils.reset_stream(model)  # reset cursor to beginning in case user forgot
         try:
             model_extension = _artifact_utils.get_file_ext(model)
@@ -1972,6 +1985,9 @@ class ExperimentRun(_ModelDBEntity):
                 'type': model_type,
                 'deserialization': method,
             }
+        if self._conf.debug:
+            print("[DEBUG] model API is:")
+            pprint.pprint(model_api.to_dict())
 
         # prehandle requirements
         _artifact_utils.reset_stream(requirements)  # reset cursor to beginning in case user forgot
@@ -1991,9 +2007,12 @@ class ExperimentRun(_ModelDBEntity):
                         break
             else:  # if not present, add
                 req_deps.append(cloudpickle_dep)
-
             # recreate stream
             requirements = six.BytesIO(six.ensure_binary('\n'.join(req_deps)))
+        if self._conf.debug:
+            print("[DEBUG] requirements are:")
+            print(six.ensure_str(requirements.read()))
+            requirements.seek(0)
 
         # prehandle train_features and train_targets
         if train_features is not None and train_targets is not None:
@@ -2376,6 +2395,9 @@ class ExperimentRun(_ModelDBEntity):
         filepaths = _utils.find_filepaths(paths, include_hidden=True)
 
         # get search paths to modify Deployment's sys.path
+        if self._conf.debug:
+            print("[DEBUG] sys.path is:")
+            pprint.pprint(sys.path)
         # convert into absolute paths
         search_paths = list(map(os.path.abspath, sys.path))
         # only consider search paths inside common directory
@@ -2384,6 +2406,9 @@ class ExperimentRun(_ModelDBEntity):
         search_paths = list(map(lambda path: os.path.relpath(path, common_dir), search_paths))
         # append to Deployment's custom modules directory
         search_paths = list(map(lambda path: os.path.join("/app/custom_modules/", path), search_paths))
+        if self._conf.debug:
+            print("[DEBUG] deployment search paths are:")
+            pprint.pprint(search_paths)
 
         bytestream = six.BytesIO()
         with zipfile.ZipFile(bytestream, 'w') as zipf:
@@ -2397,6 +2422,9 @@ class ExperimentRun(_ModelDBEntity):
                     "sys.path = sys.path[:1] + {} + sys.path[1:]".format(list(search_paths)),
                 ]))
             )
+            if self._conf.debug:
+                print("[DEBUG] archive contains:")
+                zipf.printdir()
         bytestream.seek(0)
 
         self._log_artifact("custom_modules", bytestream, _CommonService.ArtifactTypeEnum.BLOB, 'zip')
