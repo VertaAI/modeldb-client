@@ -5,7 +5,9 @@ from six.moves.urllib.parse import urlparse
 import ast
 import hashlib
 import os
+import pprint
 import re
+import sys
 import time
 import warnings
 import zipfile
@@ -41,7 +43,7 @@ from . import _artifact_utils
 from . import utils
 
 
-class Client:
+class Client(object):
     """
     Object for interfacing with the ModelDB backend.
 
@@ -66,6 +68,8 @@ class Client:
         Whether to ignore connection errors and instead return successes with empty contents.
     use_git : bool, default True
         Whether to use a local Git repository for certain operations such as Code Versioning.
+    debug : bool, default False
+        Whether to print extra verbose information to aid in debugging.
 
     Attributes
     ----------
@@ -89,7 +93,7 @@ class Client:
     _GRPC_PREFIX = "Grpc-Metadata-"
 
     def __init__(self, host, port=None, email=None, dev_key=None,
-                 max_retries=5, ignore_conn_err=False, use_git=True):
+                 max_retries=5, ignore_conn_err=False, use_git=True, debug=False):
         if email is None and 'VERTA_EMAIL' in os.environ:
             email = os.environ['VERTA_EMAIL']
             print("set email from environment")
@@ -98,9 +102,14 @@ class Client:
             print("set developer key from environment")
 
         if email is None and dev_key is None:
+            if debug:
+                print("[DEBUG] email and developer key not found; auth disabled")
             auth = None
             scheme = "http"
         elif email is not None and dev_key is not None:
+            if debug:
+                print("[DEBUG] using email: {}".format(email))
+                print("[DEBUG] using developer key: {}".format(dev_key[:8] + re.sub(r"[^-]", '*', dev_key[8:])))
             auth = {self._GRPC_PREFIX+'email': email,
                     self._GRPC_PREFIX+'developer_key': dev_key,
                     self._GRPC_PREFIX+'source': "PythonClient"}
@@ -131,7 +140,7 @@ class Client:
         print("connection successfully established")
 
         self._conn = conn
-        self._conf = _utils.Configuration(use_git)
+        self._conf = _utils.Configuration(use_git, debug)
 
         self.proj = None
         self.expt = None
@@ -153,12 +162,12 @@ class Client:
         self._conn.ignore_conn_err = value
 
     @property
-    def use_git(self):
-        return self._conf.use_git
+    def debug(self):
+        return self._conf.debug
 
-    @use_git.setter
-    def use_git(self, value):
-        self._conf.use_git = value
+    @debug.setter
+    def debug(self, value):
+        self._conf.debug = value
 
     @property
     def expt_runs(self):
@@ -421,7 +430,7 @@ class Client:
             dataset_version_info=filesystem_dataset_version_info, parent_id=parent_id,
             desc=desc, tags=filesystem_dataset_version_info.tags, attrs=filesystem_dataset_version_info.attributes)
 
-class Dataset:
+class Dataset(object):
     # TODO: delete is not supported on the API yet
     def __init__(self, conn, conf,
         name=None, dataset_type=None, desc=None, tags=None, attrs=None, _dataset_id=None):
@@ -519,7 +528,7 @@ class Dataset:
 #     DatasetVersion as DatasetVersionProtoCls
 
 
-class DatasetVersion:
+class DatasetVersion(object):
     def __init__(self, conn, conf, dataset_id=None, dataset_type=None,
         dataset_version_info=None, parent_id=None, desc=None, tags=None,
         attrs=None, version=None, _dataset_version_id=None):
@@ -705,7 +714,7 @@ class PathDatasetVersion(DatasetVersion):
         return msg
 
 
-class PathDatasetVersionInfo:
+class PathDatasetVersionInfo(object):
     def __init__(self):
         pass
 
@@ -793,7 +802,7 @@ class S3DatasetVersionInfo(PathDatasetVersionInfo):
         return dataset_part_info
 
 
-class QueryDatasetVersionInfo:
+class QueryDatasetVersionInfo(object):
     def __init__(self, job_id=None, query="", execution_timestamp="",
         data_source_uri="", query_template="", query_parameters=[],
         num_records=0):
@@ -910,7 +919,7 @@ class BigQueryDatasetVersionInfo(QueryDatasetVersionInfo):
         return client.get_job(job_id, location = location)
 
 
-class _ModelDBEntity:
+class _ModelDBEntity(object):
     def __init__(self, conn, conf, service_module, service_url_component, id):
         self._conn = conn
         self._conf = conf
@@ -1455,7 +1464,7 @@ class Experiment(_ModelDBEntity):
             response.raise_for_status()
 
 
-class ExperimentRuns:
+class ExperimentRuns(object):
     """
     ``list``-like object representing a collection of machine learning Experiment Runs.
 
@@ -1981,8 +1990,12 @@ class ExperimentRun(_ModelDBEntity):
         # upload artifact to artifact store
         url = self._get_url_for_artifact(key, "PUT")
         artifact_stream.seek(0)  # reuse stream that was created for checksum
+        if self._conf.debug:
+            print("[DEBUG] uploading {} bytes ({})".format(len(artifact_stream.read()), basename))
+            artifact_stream.seek(0)
         response = _utils.make_request("PUT", url, self._conn, data=artifact_stream)
         response.raise_for_status()
+        print("upload complete ({})".format(basename))
 
     def _log_artifact_path(self, key, artifact_path, artifact_type, linked_artifact_id=None):
         """
@@ -2685,6 +2698,9 @@ class ExperimentRun(_ModelDBEntity):
             requirements = open(requirements, 'rb')
 
         # prehandle model
+        if self._conf.debug:
+            if not hasattr(model, 'read'):
+                print("[DEBUG] model is type: {}".format(model.__class__))
         _artifact_utils.reset_stream(model)  # reset cursor to beginning in case user forgot
         try:
             model_extension = _artifact_utils.get_file_ext(model)
@@ -2706,6 +2722,9 @@ class ExperimentRun(_ModelDBEntity):
                 'type': model_type,
                 'deserialization': method,
             }
+        if self._conf.debug:
+            print("[DEBUG] model API is:")
+            pprint.pprint(model_api.to_dict())
 
         # prehandle requirements
         _artifact_utils.reset_stream(requirements)  # reset cursor to beginning in case user forgot
@@ -2725,9 +2744,12 @@ class ExperimentRun(_ModelDBEntity):
                         break
             else:  # if not present, add
                 req_deps.append(cloudpickle_dep)
-
             # recreate stream
             requirements = six.BytesIO(six.ensure_binary('\n'.join(req_deps)))
+        if self._conf.debug:
+            print("[DEBUG] requirements are:")
+            print(six.ensure_str(requirements.read()))
+            requirements.seek(0)
 
         # prehandle train_features and train_targets
         if train_features is not None and train_targets is not None:
@@ -3078,19 +3100,19 @@ class ExperimentRun(_ModelDBEntity):
 
     def log_modules(self, paths, search_path=None):
         """
-        Logs local Python modules to this Experiment Run.
+        Logs local files that are dependencies for a deployed model to this Experiment Run.
 
         Parameters
         ----------
         paths : str or list of str
-            File and directory paths to include. If a directory is provided, it will be recursively
-            searched for Python files.
-        search_path : str, optional
-            The path at which Deployment Service will start searching for module files. For example,
-            this is what one would append to ``$PYTHONPATH`` or ``sys.path``. If not provided, it will
-            default to the deepest common directory between `paths` and the current directory.
+            Paths to local Python modules and other files that the deployed model depends on. If a
+            directory is provided, all files within will be included.
 
         """
+        if search_path is not None:
+            warnings.warn("`search_path` is no longer used and will removed in a later version;"
+                          " consider removing it from the function call",
+                          category=DeprecationWarning, stacklevel=2)
         if isinstance(paths, six.string_types):
             paths = [paths]
 
@@ -3100,22 +3122,45 @@ class ExperimentRun(_ModelDBEntity):
         paths = [os.path.join(path, "") if os.path.isdir(path) else path
                  for path in paths]
 
-        if search_path is None:
-            # obtain deepest common directory
-            curr_dir = os.path.join(os.path.abspath(os.curdir), "")
-            paths_plus = paths + [curr_dir]
-            common_prefix = os.path.commonprefix(paths_plus)
-            search_path = os.path.dirname(common_prefix)
-        else:
-            # convert into absolute path
-            search_path = os.path.abspath(search_path)
+        # obtain deepest common directory
+        curr_dir = os.path.join(os.path.abspath(os.curdir), "")
+        paths_plus = paths + [curr_dir]
+        common_prefix = os.path.commonprefix(paths_plus)
+        common_dir = os.path.dirname(common_prefix)
 
-        filepaths = _utils.find_filepaths(paths, (".py", ".pyc", ".pyo"))
+        filepaths = _utils.find_filepaths(paths, include_hidden=True)
+
+        # get search paths to modify Deployment's sys.path
+        if self._conf.debug:
+            print("[DEBUG] sys.path is:")
+            pprint.pprint(sys.path)
+        # convert into absolute paths
+        search_paths = list(map(os.path.abspath, sys.path))
+        # only consider search paths inside common directory
+        search_paths = list(filter(lambda path: path.startswith(common_dir), search_paths))
+        # strip common directory
+        search_paths = list(map(lambda path: os.path.relpath(path, common_dir), search_paths))
+        # append to Deployment's custom modules directory
+        search_paths = list(map(lambda path: os.path.join("/app/custom_modules/", path), search_paths))
+        if self._conf.debug:
+            print("[DEBUG] deployment search paths are:")
+            pprint.pprint(search_paths)
 
         bytestream = six.BytesIO()
         with zipfile.ZipFile(bytestream, 'w') as zipf:
             for filepath in filepaths:
-                zipf.write(filepath, os.path.relpath(filepath, search_path))
+                zipf.write(filepath, os.path.relpath(filepath, common_dir))
+            zipf.writestr(
+                "_verta_config.py",
+                six.ensure_binary('\n'.join([
+                    "import sys",
+                    "",
+                    "sys.path = sys.path[:1] + {} + sys.path[1:]".format(list(search_paths)),
+                ]))
+            )
+            if self._conf.debug:
+                print("[DEBUG] archive contains:")
+                zipf.printdir()
         bytestream.seek(0)
 
         self._log_artifact("custom_modules", bytestream, _CommonService.ArtifactTypeEnum.BLOB, 'zip')

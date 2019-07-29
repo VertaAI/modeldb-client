@@ -2,6 +2,24 @@ Release Notes
 =============
 
 
+v0.12.5 (2019-07-26)
+--------------------
+
+New Features
+^^^^^^^^^^^^
+- `implement a debug parameter and attribute on Client to print verbose debugging information,
+  <https://github.com/VertaAI/modeldb-client/pull/149>`_
+
+
+v0.12.4 (2019-07-25)
+--------------------
+
+New Features
+^^^^^^^^^^^^
+- `remove the need for log_modules()'s second argument (search_path)
+  <https://github.com/VertaAI/modeldb-client/pull/148>`_
+
+
 v0.12.3 (2019-07-17)
 --------------------
 
