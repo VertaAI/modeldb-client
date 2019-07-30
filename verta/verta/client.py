@@ -15,10 +15,29 @@ import zipfile
 import PIL
 import requests
 
+try:
+    from google.cloud import bigquery
+except ImportError:  # BigQuery not installed
+    pass
+else:
+    import datetime  # TODO: remove this
+    import pytz
+
+try:
+    from boto3 import client as BotoClient
+except ImportError:  # Boto 3 not installed
+    pass
+else:
+    import datetime  # TODO: remove this
+    import pytz  # TODO: remove this
+    import dateutil
+
 from ._protos.public.modeldb import CommonService_pb2 as _CommonService
 from ._protos.public.modeldb import ProjectService_pb2 as _ProjectService
 from ._protos.public.modeldb import ExperimentService_pb2 as _ExperimentService
 from ._protos.public.modeldb import ExperimentRunService_pb2 as _ExperimentRunService
+from ._protos.public.modeldb import DatasetService_pb2 as _DatasetService
+from ._protos.public.modeldb import DatasetVersionService_pb2 as _DatasetVersionService
 from . import _utils
 from . import _artifact_utils
 from . import utils
@@ -60,6 +79,9 @@ class Client:
     ignore_conn_err : bool
         Whether to ignore connection errors and instead return successes with empty contents. Changes
         to this value propagate to any objects that are/were created from this Client.
+    use_git : bool
+        Whether to use a local Git repository for certain operations. Changes to this value propagate
+        to any objects that are/were created from this Client.
     proj : :class:`Project` or None
         Currently active Project.
     expt : :class:`Experiment` or None
@@ -292,6 +314,514 @@ class Client:
         return ExperimentRun(self._conn, self._conf,
                              self.proj.id, self.expt.id, name,
                              desc, tags, attrs)
+
+    # NOTE: dataset visibility cannot be set via a client
+    def create_dataset(self, name=None, dataset_type=None, desc=None, tags=None,
+    attrs=None, id=None):
+        return Dataset(self._conn, self._conf, name=name, dataset_type=dataset_type,
+            desc=desc, tags=tags, attrs=attrs, _dataset_id=id)
+
+    # TODO: needs a by name after backend implements
+    def get_dataset(self, id):
+        return Dataset._get(self._conn, _dataset_id=id)
+
+    # TODO: needs to be paginated, maybe sorted and filtered
+    def get_all_datasets(self):
+        Message = _DatasetService.GetAllDatasets
+        msg = Message()
+        data = _utils.proto_to_json(msg)
+        response = _utils.make_request("GET",
+                                        "{}://{}/v1/dataset/getAllDatasets".format(self._conn.scheme, self._conn.socket),
+                                        self._conn, params=data)
+        response.raise_for_status()
+
+        response_msg = _utils.json_to_proto(response.json(), Message.Response)
+        return [Dataset(self._conn, self._conf, _dataset_id = dataset.id)
+                for dataset in response_msg.datasets]
+
+    def create_dataset_version(self, dataset, dataset_version_info,
+        parent_id=None, desc=None, tags=None, dataset_type=None, attrs=None,
+        version=None, id=None):
+        return DatasetVersion(self._conn, self._conf, dataset_id=dataset.id,
+            dataset_type=dataset.dataset_type,
+            dataset_version_info=dataset_version_info, parent_id=parent_id,
+            desc=desc, tags=tags, attrs=attrs, version=version, _dataset_version_id=id)
+
+    # TODO: this should also allow gets based on dataset_id and version, but
+    # not supported by backend yet
+    def get_dataset_version(self, id):
+        return DatasetVersion._get(self._conn, _dataset_version_id=id)
+
+    def get_all_versions_for_dataset(self, dataset):
+        Message = _DatasetVersionService.GetAllDatasetVersionsByDatasetId
+        msg = Message(dataset_id=dataset.id)
+        data = _utils.proto_to_json(msg)
+        response = _utils.make_request("GET",
+                                        "{}://{}/v1/dataset-version/getAllDatasetVersionsByDatasetId".format(self._conn.scheme, self._conn.socket),
+                                        self._conn, params=data)
+        response.raise_for_status()
+
+        response_msg = _utils.json_to_proto(response.json(), Message.Response)
+        return [DatasetVersion(self._conn, self._conf, _dataset_version_id = dataset_version.id)
+                for dataset_version in response_msg.dataset_versions]
+
+    # TODO: sorting seems to be incorrect
+    def get_latest_version_for_dataset(self, dataset, ascending=None, sort_key=None):
+        Message = _DatasetVersionService.GetLatestDatasetVersionByDatasetId
+        msg = Message(dataset_id=dataset.id, ascending=ascending, sort_key=sort_key)
+        data = _utils.proto_to_json(msg)
+        response = _utils.make_request("GET",
+                                        "{}://{}/v1/dataset-version/getLatestDatasetVersionByDatasetId".format(self._conn.scheme, self._conn.socket),
+                                        self._conn, params=data)
+        response.raise_for_status()
+
+        response_msg = _utils.json_to_proto(response.json(), Message.Response)
+        return response_msg.dataset_version
+
+    def create_s3_dataset(self, name):
+        return self.create_dataset(name, dataset_type=_DatasetService.DatasetTypeEnum.PATH)
+
+    def create_s3_dataset_version(self, dataset, bucket_name, key=None,
+        url_stub=None, parent_id=None, desc=None, tags=None, attrs=None):
+        s3_dataset_version_info = S3DatasetVersionInfo(bucket_name, key=key,
+            url_stub=url_stub)
+        return PathDatasetVersion(self._conn, self._conf, dataset_id=dataset.id,
+            dataset_type=dataset.dataset_type,
+            dataset_version_info=s3_dataset_version_info, parent_id=parent_id,
+            desc=desc, tags=tags, attrs=attrs)
+
+    def create_local_dataset(self, name):
+        return self.create_dataset(name, dataset_type=_DatasetService.DatasetTypeEnum.PATH)
+
+    def create_local_dataset_version(self, dataset, path,
+        parent_id=None, desc=None, tags=None, attrs=None):
+        filesystem_dataset_version_info = FilesystemDatasetVersionInfo(path)
+        return PathDatasetVersion(self._conn, self._conf, dataset_id=dataset.id,
+            dataset_type=dataset.dataset_type,
+            dataset_version_info=filesystem_dataset_version_info, parent_id=parent_id,
+            desc=desc, tags=tags, attrs=attrs)
+
+    def create_big_query_dataset(self, name):
+        return self.create_dataset(name, dataset_type=_DatasetService.DatasetTypeEnum.QUERY)
+
+    def create_big_query_dataset_version(self, dataset, job_id, location,
+        parent_id=None, desc=None, tags=None, attrs=None):
+        filesystem_dataset_version_info = BigQueryDatasetVersionInfo(
+            job_id=job_id, location=location)
+        return QueryDatasetVersion(self._conn, self._conf, dataset_id=dataset.id,
+            dataset_type=dataset.dataset_type,
+            dataset_version_info=filesystem_dataset_version_info, parent_id=parent_id,
+            desc=desc, tags=tags, attrs=attrs)
+
+
+class Dataset:
+    # TODO: delete is not supported on the API yet
+    def __init__(self, conn, conf,
+        name=None, dataset_type=None, desc=None, tags=None, attrs=None, _dataset_id=None):
+        if name is not None and _dataset_id is not None:
+            raise ValueError("cannot specify both `name` and `_dataset_id`")
+
+        # retrieve dataset by id
+        if _dataset_id is not None:
+            dataset = Dataset._get(conn, _dataset_id=_dataset_id)
+            if dataset is None:
+                raise ValueError("Dataset with ID {} not found".format(_dataset_id))
+        else:
+            # create a new dataset
+            if name is None:
+                name = Dataset._generate_default_name()
+            try:
+                dataset = Dataset._create(conn, name, dataset_type, desc, tags, attrs)
+            except requests.HTTPError as e:
+                if e.response.status_code == 409:  # already exists
+                    if any(param is not None for param in (desc, tags, attrs)):
+                        warnings.warn("Dataset with name {} already exists;"
+                                        " cannot initialize `desc`, `tags`, or `attrs`".format(name))
+                    dataset = Dataset._get(conn, name)
+                else:
+                    raise e
+            else:
+                print("created new Dataset: {}".format(dataset.name))
+
+        # this is available to create versions
+        self._conn = conn
+        self._conf = conf
+
+        self.id = dataset.id
+
+        # these could be updated by separate calls
+        self.name = dataset.name
+        self.dataset_type = dataset.dataset_type
+        self.desc = dataset.description
+        self.attrs = dataset.attributes
+        self.tags = dataset.tags
+
+    def __repr__(self):
+        return "<Dataset \"{}\">".format(self.name)
+
+    @staticmethod
+    def _generate_default_name():
+        return "Dataset {}".format(_utils.generate_default_name())
+
+    @staticmethod
+    def _get(conn, dataset_name=None, _dataset_id=None):
+        if _dataset_id is not None:
+            Message = _DatasetService.GetDatasetById
+            msg = Message(id=_dataset_id)
+            data = _utils.proto_to_json(msg)
+            response = _utils.make_request("GET",
+                                           "{}://{}/v1/dataset/getDatasetById".format(conn.scheme, conn.socket),
+                                           conn, params=data)
+
+            if response.ok:
+                dataset = _utils.json_to_proto(response.json(), Message.Response).dataset
+                return dataset
+            else:
+                if response.status_code == 404 and response.json()['code'] == 5:
+                    return None
+                else:
+                    response.raise_for_status()
+        else:
+            raise ValueError("insufficient arguments")
+
+    @staticmethod
+    def _create(conn, dataset_name, dataset_type, desc=None, tags=None, attrs=None):
+        if attrs is not None:
+            attrs = [_CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value, allow_collection=True))
+                     for key, value in six.viewitems(attrs)]
+
+        Message = _DatasetService.CreateDataset
+        msg = Message(name=dataset_name, dataset_type=dataset_type,
+            description=desc, tags=tags, attributes=attrs)
+        data = _utils.proto_to_json(msg)
+        response = _utils.make_request("POST",
+                                       "{}://{}/v1/dataset/createDataset".format(conn.scheme, conn.socket),
+                                       conn, json=data)
+
+        if response.ok:
+            dataset = _utils.json_to_proto(response.json(), Message.Response).dataset
+            return dataset
+        else:
+            response.raise_for_status()
+
+
+# TODO: visibility not done
+# TODO: delete version not implemented
+
+# from verta._protos.public.modeldb.DatasetVersionService_pb2 import \
+#     DatasetVersion as DatasetVersionProtoCls
+
+
+class DatasetVersion:
+    def __init__(self, conn, conf, dataset_id=None, dataset_type=None,
+        dataset_version_info=None, parent_id=None, desc=None, tags=None,
+        attrs=None, version=None, _dataset_version_id=None):
+
+        # retrieve dataset by id
+        if _dataset_version_id is not None:
+            dataset_version = DatasetVersion._get(conn, _dataset_version_id)
+            if dataset_version is None:
+                raise ValueError("DatasetVersion with ID {} not found".format(_dataset_version_id))
+        else:
+            if dataset_id is None:
+                raise ValueError('dataset_id must be specified')
+
+            # create a new dataset version
+            try:
+                dataset_version = DatasetVersion._create(conn, dataset_id,
+                    dataset_type, dataset_version_info, parent_id=parent_id,
+                    desc=desc, tags=tags, attrs=attrs, version=version)
+
+            # TODO: handle dups
+            except requests.HTTPError as e:
+                # if e.response.status_code == 409:  # already exists
+                #     if any(param is not None for param in (desc, tags, attrs)):
+                #         warnings.warn("Dataset with name {} already exists;"
+                #                         " cannot initialize `desc`, `tags`, or `attrs`".format(dataset_name))
+                #     dataset_version = DatasetVersion._get(conn, dataset_id, version)
+                # else:
+                #     raise e
+                raise e
+            else:
+                print("created new DatasetVersion: {}".format(
+                    dataset_version.version))
+
+        self._conn = conn
+        self._conf = conf
+        self.dataset_id = dataset_version.dataset_id
+
+        # this info can be captured via a separate call too
+        self.parent_id = dataset_version.parent_id
+        self.desc = dataset_version.description
+        self.tags = dataset_version.tags
+        self.attrs = dataset_version.attributes
+        self.id = dataset_version.id
+        self.version = dataset_version.version
+        self.dataset_type = dataset_version.dataset_type
+        self.dataset_version = dataset_version
+        self.dataset_version_info = None
+
+    def __repr__(self):
+        return "<DatasetVersion \"{}\">".format(self.id)
+
+    # TODO: get by dataset_id and version is not supported on the backend
+    @staticmethod
+    def _get(conn, _dataset_version_id=None):
+        if _dataset_version_id is not None:
+            Message = _DatasetVersionService.GetDatasetVersionById
+            msg = Message(id=_dataset_version_id)
+            data = _utils.proto_to_json(msg)
+            response = _utils.make_request("GET",
+                                           "{}://{}/v1/dataset-version/getDatasetVersionById".format(conn.scheme, conn.socket),
+                                           conn, params=data)
+
+            if response.ok:
+                dataset_version = _utils.json_to_proto(response.json(), Message.Response).dataset_version
+                return dataset_version
+
+            else:
+                if response.status_code == 404 and response.json()['code'] == 5:
+                    return None
+                else:
+                    response.raise_for_status()
+        else:
+            raise ValueError("insufficient arguments")
+
+    @staticmethod
+    def _create(conn, dataset_id, dataset_type, dataset_version_info,
+        parent_id=None, desc=None, tags=None, attrs=None, version=None):
+        if attrs is not None:
+            attrs = [_CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value, allow_collection=True))
+                     for key, value in six.viewitems(attrs)]
+
+        if dataset_type == _DatasetService.DatasetTypeEnum.PATH:
+            msg = PathDatasetVersion.make_create_message(dataset_id,
+                dataset_type, dataset_version_info, parent_id=parent_id,
+                desc=desc, tags=tags, attrs=attrs, version=version)
+        elif dataset_type == _DatasetService.DatasetTypeEnum.QUERY:
+            msg = QueryDatasetVersion.make_create_message(dataset_id,
+                dataset_type, dataset_version_info, parent_id=parent_id,
+                desc=desc, tags=tags, attrs=attrs, version=version)
+        else:
+            msg = RawDatasetVersion.make_create_message(dataset_id,
+                dataset_type, dataset_version_info, parent_id=parent_id,
+                desc=desc, tags=tags, attrs=attrs, version=version)
+
+        data = _utils.proto_to_json(msg)
+        response = _utils.make_request("POST",
+                                       "{}://{}/v1/dataset-version/createDatasetVersion".format(conn.scheme, conn.socket),
+                                       conn, json=data)
+
+        if response.ok:
+            dataset_version = _utils.json_to_proto(response.json(), _DatasetVersionService.CreateDatasetVersion.Response).dataset_version
+            return dataset_version
+        else:
+            response.raise_for_status()
+
+    @staticmethod
+    def make_create_message(dataset_id, dataset_type, dataset_version_info,
+        parent_id=None, desc=None, tags=None, attrs=None, version=None):
+        raise NotImplementedError('Must be implemented by subclasses')
+
+
+class RawDatasetVersion(DatasetVersion):
+    def __init__(self, args, kwargs):
+        super(RawDatasetVersion, self).__init__(*args, **kwargs)
+        self.dataset_version_info = self.dataset_version.raw_dataset_version_info
+        # TODO: this is hacky, we should store dataset_version
+        self.dataset_version = None
+
+    @staticmethod
+    def make_create_message(dataset_id, dataset_type, dataset_version_info,
+        parent_id=None, desc=None, tags=None, attrs=None, version=None):
+        Message = _DatasetVersionService.CreateDatasetVersion
+        version_msg =  _DatasetVersionService.RawDatasetVersionInfo
+        converted_dataset_version_info = version_msg(
+            size=dataset_version_info.size, features=dataset_version_info.features,
+            num_records=dataset_version_info.num_records, object_path=dataset_version_info.object_path,
+            checksum=dataset_version_info.checksum)
+        msg = Message(dataset_id=dataset_id, parent_id=parent_id,
+            description=desc, tags=tags, dataset_type=dataset_type,
+            attributes=attrs, version=version,
+            raw_dataset_version_info=converted_dataset_version_info)
+        return msg
+
+
+class QueryDatasetVersion(DatasetVersion):
+    def __init__(self, *args, **kwargs):
+        super(QueryDatasetVersion, self).__init__(*args, **kwargs)
+        self.dataset_version_info = self.dataset_version.query_dataset_version_info
+        # TODO: this is hacky, we should store dataset_version
+        self.dataset_version = None
+
+    @staticmethod
+    def make_create_message(dataset_id, dataset_type, dataset_version_info,
+        parent_id=None, desc=None, tags=None, attrs=None, version=None):
+        Message = _DatasetVersionService.CreateDatasetVersion
+        version_msg =  _DatasetVersionService.QueryDatasetVersionInfo
+        converted_dataset_version_info = version_msg(
+            query=dataset_version_info.query, query_template=dataset_version_info.query_template,
+            query_parameters=dataset_version_info.query_parameters, data_source_uri=dataset_version_info.data_source_uri,
+            execution_timestamp=dataset_version_info.execution_timestamp, num_records=dataset_version_info.num_records
+        )
+        msg = Message(dataset_id=dataset_id, parent_id=parent_id,
+            description=desc, tags=tags, dataset_type=dataset_type,
+            attributes=attrs, version=version,
+            # different dataset versions
+            query_dataset_version_info=converted_dataset_version_info)
+        return msg
+
+
+class PathDatasetVersion(DatasetVersion):
+    def __init__(self, *args, **kwargs):
+        super(PathDatasetVersion, self).__init__(*args, **kwargs)
+        self.dataset_version_info = self.dataset_version.path_dataset_version_info
+        # TODO: this is hacky, we should store dataset_version
+        self.dataset_version = None
+
+    @staticmethod
+    def make_create_message(dataset_id, dataset_type, dataset_version_info,
+        parent_id=None, desc=None, tags=None, attrs=None, version=None):
+        Message = _DatasetVersionService.CreateDatasetVersion
+        # turn dataset_version_info into proto format
+        version_msg = _DatasetVersionService.PathDatasetVersionInfo
+        converted_dataset_version_info = version_msg(
+            location_type=dataset_version_info.location_type,
+            size=dataset_version_info.size,
+            dataset_part_infos=dataset_version_info.dataset_part_infos,
+            base_path=dataset_version_info.base_path
+        )
+        msg = Message(dataset_id=dataset_id, parent_id=parent_id,
+            description=desc, tags=tags, dataset_type=dataset_type,
+            attributes=attrs, version=version,
+            path_dataset_version_info=converted_dataset_version_info)
+        return msg
+
+
+class PathDatasetVersionInfo:
+    def __init__(self):
+        pass
+
+    def compute_dataset_size(self):
+        self.size = 0
+        for dataset_part_info in self.dataset_part_infos:
+            self.size += dataset_part_info.size
+
+    def get_dataset_part_infos(self):
+        raise NotImplementedError('Implemented only in subclasses')
+
+
+class FilesystemDatasetVersionInfo(PathDatasetVersionInfo):
+    def __init__(self, path):
+        self.base_path = os.path.abspath(path)
+        super(FilesystemDatasetVersionInfo, self).__init__()
+        self.location_type = _DatasetVersionService.PathLocationTypeEnum.LOCAL_FILE_SYSTEM
+        self.dataset_part_infos = self.get_dataset_part_infos()
+        self.compute_dataset_size()
+
+    def get_dataset_part_infos(self):
+        dataset_part_infos = []
+        # find all files there and create dataset_part_infos
+        if os.path.isdir(self.base_path):
+            dir_infos = os.walk(self.base_path)
+            for root, _, filenames in dir_infos:
+                for filename in filenames:
+                    dataset_part_infos.append(self.get_file_info(root + "/" + filename))
+        else:
+            dataset_part_infos.append(self.get_file_info(self.base_path))
+        # raise NotImplementedError('Only local files or S3 supported')
+        return dataset_part_infos
+
+    def get_file_info(self, path):
+        dataset_part_info = _DatasetVersionService.DatasetPartInfo()
+        dataset_part_info.path = path
+        dataset_part_info.size = os.path.getsize(path)
+        dataset_part_info.checksum = self.compute_file_hash(path)
+        dataset_part_info.last_modified_at_source = int(os.path.getmtime(path))
+        return dataset_part_info
+
+    def compute_file_hash(self, path):
+        BLOCKSIZE = 65536
+        hasher = hashlib.md5()
+        with open(path, 'rb') as afile:
+            buf = afile.read(BLOCKSIZE)
+            while len(buf) > 0:
+                hasher.update(buf)
+                buf = afile.read(BLOCKSIZE)
+        return hasher.hexdigest()
+
+
+class S3DatasetVersionInfo(PathDatasetVersionInfo):
+    def __init__(self, bucket_name, key=None, url_stub=None):
+        super(S3DatasetVersionInfo, self).__init__()
+        self.location_type = _DatasetVersionService.PathLocationTypeEnum.S3_FILE_SYSTEM
+        self.bucket_name = bucket_name
+        self.key = key
+        self.url_stub = url_stub
+        self.base_path = ("" if url_stub is None else url_stub) + bucket_name \
+            + (("/" + key) if key is not None else "")
+        self.dataset_part_infos = self.get_dataset_part_infos()
+        self.compute_dataset_size()
+
+    def get_dataset_part_infos(self):
+        dataset_part_infos = []
+        conn = BotoClient('s3')
+        if self.key is None:
+            for obj in conn.list_objects(Bucket=self.bucket_name)['Contents']:
+                dataset_part_infos.append(self.get_s3_object_info(obj))
+        else:
+            obj = conn.head_object(Bucket=self.bucket_name, Key=self.key)
+            dataset_part_infos.append(self.get_s3_object_info(obj, self.key))
+        return dataset_part_infos
+
+    @staticmethod
+    def get_s3_object_info(object_info, key=None):
+        # S3 also provides version info that could be used: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/s3.html
+        dataset_part_info = _DatasetVersionService.DatasetPartInfo()
+        dataset_part_info.path = object_info['Key'] if key is None else key
+        dataset_part_info.size = object_info['Size'] if key is None else object_info['ContentLength']
+        dataset_part_info.checksum = object_info['ETag']
+        dataset_part_info.last_modified_at_source = int((object_info['LastModified'] - \
+            datetime.datetime(1970,1,1, tzinfo=pytz.UTC)).total_seconds())
+        return dataset_part_info
+
+
+class QueryDatasetVersionInfo:
+    def __init__(self, job_id=None, query="", execution_timestamp="",
+        data_source_uri="", query_template="", query_parameters=[],
+        num_records=0):
+        if not query:
+            raise ValueError("query not found")
+        self.query = query
+        self.execution_timestamp = execution_timestamp
+        self.data_source_uri = data_source_uri
+        self.query_template = query_template
+        self.query_parameters = query_parameters
+        self.num_records = num_records
+
+
+class BigQueryDatasetVersionInfo(QueryDatasetVersionInfo):
+    def __init__(self, job_id=None, query="", location="", execution_timestamp="",
+        data_source_uri="",query_template="",query_parameters=[],num_records=0):
+        """https://googleapis.github.io/google-cloud-python/latest/bigquery/generated/google.cloud.bigquery.job.QueryJob.html#google.cloud.bigquery.job.QueryJob.query_plan"""
+        if job_id is not None and location:
+            self.job_id = job_id
+            job = self.get_bq_job(job_id, location)
+            self.execution_timestamp = int((job.started - datetime.datetime(1970,1,1, tzinfo=pytz.UTC)).total_seconds())
+            self.data_source_uri = job.self_link
+            self.query = job.query
+            #TODO: extract the query template
+            self.query_template = job.query
+            self.query_parameters = []
+            shape = job.to_dataframe().shape
+            self.num_records = shape[0]
+        else:
+            super(BigQueryDatasetVersionInfo, self).__init__()
+
+    @staticmethod
+    def get_bq_job(job_id, location):
+        client = bigquery.Client()
+        return client.get_job(job_id, location = location)
 
 
 class _ModelDBEntity:
@@ -1320,9 +1850,7 @@ class ExperimentRun(_ModelDBEntity):
             Filename extension associated with the artifact.
 
         """
-        basename = key
         if isinstance(artifact, six.string_types):
-            basename = os.path.basename(artifact)
             artifact = open(artifact, 'rb')
 
         artifact_stream, method = _artifact_utils.ensure_bytestream(artifact)
@@ -1330,9 +1858,19 @@ class ExperimentRun(_ModelDBEntity):
         if extension is None:
             extension = _artifact_utils.ext_from_method(method)
 
-        # obtain checksum for upload bucket
+        # calculate checksum
         artifact_hash = hashlib.sha256(artifact_stream.read()).hexdigest()
         artifact_stream.seek(0)
+
+        # determine basename
+        #     The key might already contain the file extension, thanks to our hard-coded deployment
+        #     keys e.g. "model.pkl" and "model_api.json".
+        if key.endswith(os.extsep + extension):
+            basename = key
+        else:
+            basename = key + os.extsep + extension
+
+        # build upload path from checksum and basename
         artifact_path = os.path.join(artifact_hash, basename)
 
         # log key to ModelDB
@@ -1364,7 +1902,7 @@ class ExperimentRun(_ModelDBEntity):
         response.raise_for_status()
         print("upload complete ({})".format(basename))
 
-    def _log_artifact_path(self, key, artifact_path, artifact_type):
+    def _log_artifact_path(self, key, artifact_path, artifact_type, linked_artifact_id=None):
         """
         Logs the filesystem path of an artifact to this Experiment Run.
 
@@ -1376,14 +1914,17 @@ class ExperimentRun(_ModelDBEntity):
             Filesystem path of the artifact.
         artifact_type : int
             Variant of `_CommonService.ArtifactTypeEnum`.
-
+        # TODO: this design might need to be revisited by @miliu
+        linked_artifact_id: string, optional
+            Id of linked artifact
         """
         # log key-path to ModelDB
         Message = _ExperimentRunService.LogArtifact
         artifact_msg = _CommonService.Artifact(key=key,
                                                path=artifact_path,
                                                path_only=True,
-                                               artifact_type=artifact_type)
+                                               artifact_type=artifact_type,
+                                               linked_artifact_id=linked_artifact_id)
         msg = Message(id=self.id, artifact=artifact_msg)
         data = _utils.proto_to_json(msg)
         response = _utils.make_request("POST",
@@ -1392,6 +1933,40 @@ class ExperimentRun(_ModelDBEntity):
         if not response.ok:
             if response.status_code == 409:
                 raise ValueError("artifact with key {} already exists;"
+                                 " consider using observations instead".format(key))
+            else:
+                response.raise_for_status()
+
+
+    def _log_dataset_path(self, key, dataset_path, linked_artifact_id=None):
+        """
+        Logs the filesystem path of an artifact to this Experiment Run.
+
+        Parameters
+        ----------
+        key : str
+            Name of the artifact.
+        artifact_path : str
+            Filesystem path of the artifact.
+        # TODO: this design might need to be revisited by @miliu
+        linked_artifact_id: string, optional
+            Id of linked artifact
+        """
+        # log key-path to ModelDB
+        Message = _ExperimentRunService.LogDataset
+        artifact_msg = _CommonService.Artifact(key=key,
+                                               path=dataset_path,
+                                               path_only=True,
+                                               artifact_type=_CommonService.ArtifactTypeEnum.DATA,
+                                               linked_artifact_id=linked_artifact_id)
+        msg = Message(id=self.id, dataset=artifact_msg)
+        data = _utils.proto_to_json(msg)
+        response = _utils.make_request("POST",
+                                       "{}://{}/v1/experiment-run/logDataset".format(self._conn.scheme, self._conn.socket),
+                                       self._conn, json=data)
+        if not response.ok:
+            if response.status_code == 409:
+                raise ValueError("dataset with key {} already exists;"
                                  " consider using observations instead".format(key))
             else:
                 response.raise_for_status()
@@ -1438,6 +2013,51 @@ class ExperimentRun(_ModelDBEntity):
             response.raise_for_status()
 
             return response.content, artifact.path_only
+
+    # TODO: fix up get dataset to handle the Dataset class
+    def _get_dataset(self, key):
+        """
+        Gets the dataset with name `key` from this Experiment Run.
+
+        If the dataset was originally logged as just a filesystem path, that path will be returned.
+        Otherwise, bytes representing the dataset object will be returned.
+
+        Parameters
+        ----------
+        key : str
+            Name of the artifact.
+
+        Returns
+        -------
+        str or bytes
+            Filesystem path or bytes representing the artifact.
+        bool
+            True if the artifact was only logged as its filesystem path.
+
+        """
+        # get key-path from ModelDB
+        Message = _ExperimentRunService.GetDatasets
+        msg = Message(id=self.id)
+        data = _utils.proto_to_json(msg)
+        response = _utils.make_request("GET",
+                                       "{}://{}/v1/experiment-run/getDatasets".format(self._conn.scheme, self._conn.socket),
+                                       self._conn, params=data)
+        response.raise_for_status()
+
+        response_msg = _utils.json_to_proto(response.json(), Message.Response)
+        dataset = {dataset.key: dataset for dataset in response_msg.datasets}.get(key)
+        if dataset is None:
+            raise KeyError("no dataset found with key {}".format(key))
+        if dataset.path_only:
+            return dataset.path, dataset.path_only, dataset.linked_artifact_id
+        else:
+            raise NotImplementedError("Temporary hack")
+            # # download dataset from artifact store
+            # url = self._get_url_for_dataset(key, "GET")
+            # response = _utils.make_request("GET", url, self._conn)
+            # response.raise_for_status()
+
+            # return response.content, dataset.path_only, None
 
     def log_tag(self, tag):
         """
@@ -1860,19 +2480,31 @@ class ExperimentRun(_ModelDBEntity):
                 - If str, then it will be interpreted as a filesystem path, its contents read as bytes,
                   and uploaded as an artifact.
                 - If file-like, then the contents will be read as bytes and uploaded as an artifact.
+                - If type is Dataset, then it will log a dataset version
                 - Otherwise, the object will be serialized and uploaded as an artifact.
 
         """
         _utils.validate_flat_key(key)
 
-        try:
-            extension = _artifact_utils.get_file_ext(dataset)
-        except (TypeError, ValueError):
-            extension = None
+        if isinstance(dataset, Dataset):
+            pass
+            # version = self.create_dataset_version()
+            # self._log_dataset(key, dataset, ...)
+        else:
+            try:
+                extension = _artifact_utils.get_file_ext(dataset)
+            except (TypeError, ValueError):
+                extension = None
 
-        self._log_artifact(key, dataset, _CommonService.ArtifactTypeEnum.DATA, extension)
+            self._log_artifact(key, dataset, _CommonService.ArtifactTypeEnum.DATA, extension)
 
-    def log_dataset_path(self, key, dataset_path):
+    def log_dataset_version(self, key, dataset_version):
+        # TODO: hack because path_only artifact needs a placeholder path
+        if not isinstance(dataset_version, DatasetVersion):
+            raise ValueError('dataset_version should be of type DatasetVersion')
+        self.log_dataset_path(key, "See attached dataset version", dataset_version.id)
+
+    def log_dataset_path(self, key, path, linked_dataset_id=None):
         """
         Logs the filesystem path of an dataset to this Experiment Run.
 
@@ -1889,7 +2521,7 @@ class ExperimentRun(_ModelDBEntity):
         """
         _utils.validate_flat_key(key)
 
-        self._log_artifact_path(key, dataset_path, _CommonService.ArtifactTypeEnum.DATA)
+        self._log_dataset_path(key, path, linked_artifact_id=linked_dataset_id)
 
     def get_dataset(self, key):
         """
@@ -1907,14 +2539,16 @@ class ExperimentRun(_ModelDBEntity):
         Returns
         -------
         str or object or file-like
+            If of dataset type, then return a version_id
             Filesystem path of the dataset, the dataset object, or a bytestream representing the
             dataset.
 
         """
-        dataset, path_only = self._get_artifact(key)
+        dataset, path_only, linked_id = self._get_dataset(key)
         if path_only:
-            return dataset
+            return dataset, linked_id
         else:
+            # TODO: may need to be updated for raw
             try:
                 return pickle.loads(dataset)
             except pickle.UnpicklingError:
@@ -2037,7 +2671,6 @@ class ExperimentRun(_ModelDBEntity):
         self._log_artifact("requirements.txt", requirements, _CommonService.ArtifactTypeEnum.BLOB, 'txt')
         if train_data is not None:
             self._log_artifact("train_data", train_data, _CommonService.ArtifactTypeEnum.DATA, 'csv')
-
 
     def log_model(self, key, model):
         """
