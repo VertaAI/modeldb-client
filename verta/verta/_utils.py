@@ -81,7 +81,7 @@ class Connection:
 
 
 class Configuration:
-    def __init__(self, use_git=True):
+    def __init__(self, use_git=True, debug=False):
         """
         Client behavior configuration utility struct.
 
@@ -92,6 +92,7 @@ class Configuration:
 
         """
         self.use_git = use_git
+        self.debug = debug
 
 
 def make_request(method, url, conn, **kwargs):
@@ -143,7 +144,7 @@ def is_hidden(path):  # to avoid "./".startswith('.')
     return os.path.basename(path.rstrip('/')).startswith('.') and path != "."
 
 
-def find_filepaths(paths, extensions, include_hidden=False):
+def find_filepaths(paths, extensions=None, include_hidden=False):
     """
     Unravels a list of file and directory paths into a list of only filepaths by walking through the
     directories.
@@ -152,8 +153,9 @@ def find_filepaths(paths, extensions, include_hidden=False):
     ----------
     paths : str or list of str
         File and directory paths.
-    extensions : str or list of str
-        What files to include while walking through directories.
+    extensions : str or list of str, optional
+        What files to include while walking through directories. If not provided, all files will be
+        included.
     include_hidden : bool, default False
         Whether to include hidden files and subdirectories found while walking through directories.
 
@@ -163,11 +165,12 @@ def find_filepaths(paths, extensions, include_hidden=False):
 
     if isinstance(extensions, six.string_types):
         extensions = [extensions]
-    # prepend period to file extensions where missing
-    extensions = map(lambda ext: ext if ext.startswith('.') else ('.' + ext), extensions)
-    extensions = set(extensions)
+    if extensions is not None:
+        # prepend period to file extensions where missing
+        extensions = map(lambda ext: ext if ext.startswith('.') else ('.' + ext), extensions)
+        extensions = set(extensions)
 
-    filepaths = []
+    filepaths = set()
     for path in paths:
         if os.path.isdir(path):
             for root, _, subpaths in os.walk(path):
@@ -176,10 +179,10 @@ def find_filepaths(paths, extensions, include_hidden=False):
                 for subpath in subpaths:
                     if is_hidden(subpath) and not include_hidden:
                         continue  # skip hidden files
-                    if os.path.splitext(subpath)[1] in extensions:
-                        filepaths.append(os.path.join(root, subpath))
+                    if extensions is None or os.path.splitext(subpath)[1] in extensions:
+                        filepaths.add(os.path.join(root, subpath))
         else:
-            filepaths.append(path)
+            filepaths.add(path)
     return filepaths
 
 
