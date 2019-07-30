@@ -844,9 +844,9 @@ class AtlasHiveDatasetVersionInfo(QueryDatasetVersionInfo):
     def get_tags(table_obj):
         verta_tags = []
         if 'classifications' in table_obj:
-            atlas_classifcations = table_obj['classifications']
-            for atlas_classifcation in atlas_classifcations:
-                verta_tags.append(atlas_classifcation['typeName'])
+            atlas_classifications = table_obj['classifications']
+            for atlas_classification in atlas_classifications:
+                verta_tags.append(atlas_classification['typeName'])
         return verta_tags
 
     @staticmethod
@@ -873,7 +873,7 @@ class AtlasHiveDatasetVersionInfo(QueryDatasetVersionInfo):
         attributes['col_names'] =  AtlasHiveDatasetVersionInfo.get_columns(table_obj)
         attributes['created_time'] =  table_obj['createTime']
         attributes['update_time'] =  table_obj['updateTime']
-        attributes['load queries'] = AtlasHiveDatasetVersionInfo.get_inbound_queries(table_obj)
+        attributes['load_queries'] = AtlasHiveDatasetVersionInfo.get_inbound_queries(table_obj)
         #for key, value in six.viewitems(attributes):
         #    attribute_keyvals.append(_CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value, allow_collection=True)))
         #return attribute_keyvals
