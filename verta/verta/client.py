@@ -1557,8 +1557,6 @@ class ExperimentRun(_ModelDBEntity):
         """
         Logs a tag to this Experiment Run.
 
-        Tags are short textual labels used to help identify a run, such as its purpose or its environment.
-
         Parameters
         ----------
         tag : str
@@ -1624,9 +1622,6 @@ class ExperimentRun(_ModelDBEntity):
     def log_attribute(self, key, value):
         """
         Logs an attribute to this Experiment Run.
-
-        Attributes are descriptive metadata, such as the team responsible for this model or the
-        expected training time.
 
         Parameters
         ----------
@@ -1737,8 +1732,6 @@ class ExperimentRun(_ModelDBEntity):
     def log_metric(self, key, value):
         """
         Logs a metric to this Experiment Run.
-
-        Metrics are unique performance metadata, such as accuracy or loss on the full training set.
 
         If the metadatum of interest might recur, :meth:`.log_observation` should be used instead.
 
@@ -1851,9 +1844,6 @@ class ExperimentRun(_ModelDBEntity):
     def log_hyperparameter(self, key, value):
         """
         Logs a hyperparameter to this Experiment Run.
-
-        Hyperparameters are model configuration metadata, such as the loss function or the
-        regularization penalty.
 
         Parameters
         ----------
@@ -2445,9 +2435,6 @@ class ExperimentRun(_ModelDBEntity):
     def log_observation(self, key, value, timestamp=None):
         """
         Logs an observation to this Experiment Run.
-
-        Observations are recurring metadata that are repeatedly measured over time, such as batch
-        losses over an epoch or memory usage.
 
         Parameters
         ----------
