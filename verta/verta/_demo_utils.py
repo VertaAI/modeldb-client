@@ -40,7 +40,6 @@ class DeployedModel:
 
         self._status_url = "https://{}/api/v1/deployment/status/{}".format(socket, model_id)
 
-        self._token = None
         self._url = None
 
         self._session = requests.Session()
@@ -53,19 +52,17 @@ class DeployedModel:
         response.raise_for_status()
         status = response.json()
         if 'token' in status and 'api' in status:
-            self._token = status['token']
+            self._session.headers['Access-token'] = status['token']
             self._url = "https://{}{}".format(self._socket, status['api'])
         else:
             raise RuntimeError("deployment is not ready")
 
     def _predict(self, x, return_input_body=False):
         """This is like ``DeployedModel.predict()``, but returns the raw ``Response`` for debugging."""
-        if self._token is None or self._url is None:
+        if 'Access-token' not in self._session.headers or self._url is None:
             self._set_token_and_url()
 
-        result = self._session.post(self._url,
-                                    headers={'Access-token': self._token},
-                                    json=x)
+        result = self._session.post(self._url, json=x)
 
         if return_input_body:
             return result, input_body
