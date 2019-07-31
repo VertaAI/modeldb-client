@@ -10,7 +10,7 @@ Basic Metadata
 
 Attributes
 ^^^^^^^^^^
-Attributes are descriptive metadata, such as the team responsible for this model or the expected training time.
+|attributes description|
 
 .. automethod:: ExperimentRun.log_attribute
 .. automethod:: ExperimentRun.log_attributes
@@ -19,7 +19,7 @@ Attributes are descriptive metadata, such as the team responsible for this model
 
 Hyperparameters
 ^^^^^^^^^^^^^^^
-Hyperparameters are model configuration metadata, such as the loss function or the regularization penalty.
+|hyperparameters description|
 
 .. automethod:: ExperimentRun.log_hyperparameter
 .. automethod:: ExperimentRun.log_hyperparameters
@@ -28,7 +28,7 @@ Hyperparameters are model configuration metadata, such as the loss function or t
 
 Metrics
 ^^^^^^^
-Metrics are unique performance metadata, such as accuracy or loss on the full training set.
+|metrics description|
 
 .. automethod:: ExperimentRun.log_metric
 .. automethod:: ExperimentRun.log_metrics
@@ -37,8 +37,7 @@ Metrics are unique performance metadata, such as accuracy or loss on the full tr
 
 Observations
 ^^^^^^^^^^^^
-Observations are recurring metadata that are repeatedly measured over time, such as batch losses over an epoch or memory
-usage.
+|observations description|
 
 .. automethod:: ExperimentRun.log_observation
 .. automethod:: ExperimentRun.get_observation
@@ -46,7 +45,7 @@ usage.
 
 Tags
 ^^^^
-Tags are short textual labels used to help identify a run, such as its purpose or its environment.
+|tags description|
 
 .. automethod:: ExperimentRun.log_tag
 .. automethod:: ExperimentRun.log_tags
