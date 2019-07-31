@@ -136,6 +136,13 @@ class Client(object):
         except requests.ConnectionError:
             six.raise_from(requests.ConnectionError("connection failed; please check `host` and `port`"),
                            None)
+
+        def is_unauthorized(response): return response.status_code == 401
+             
+        if is_unauthorized(response):
+            auth_error_msg = "authentication failed; please check `VERTA_EMAIL` and `VERTA_DEV_KEY`"
+            six.raise_from(requests.HTTPError(auth_error_msg), None)
+
         response.raise_for_status()
         print("connection successfully established")
 
