@@ -36,9 +36,6 @@ class DeployedModel:
         socket = socket.path if socket.netloc == '' else socket.netloc
 
         self._socket = socket
-        self._auth = {self._GRPC_PREFIX+'email': os.environ['VERTA_EMAIL'],
-                      self._GRPC_PREFIX+'developer_key': os.environ['VERTA_DEV_KEY'],
-                      self._GRPC_PREFIX+'source': "PythonClient"}
         self._id = model_id
 
         self._status_url = "https://{}/api/v1/deployment/status/{}".format(socket, model_id)
