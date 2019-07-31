@@ -43,11 +43,13 @@ class DeployedModel:
         self._token = None
         self._url = None
 
+        self._session = requests.Session()
+
     def __repr__(self):
         return "<Model {}>".format(self._id)
 
     def _set_token_and_url(self):
-        response = requests.get(self._status_url)
+        response = self._session.get(self._status_url)
         response.raise_for_status()
         status = response.json()
         if 'token' in status and 'api' in status:
@@ -61,9 +63,9 @@ class DeployedModel:
         if self._token is None or self._url is None:
             self._set_token_and_url()
 
-        result = requests.post(self._url,
-                               headers={'Access-token': self._token},
-                               json=x)
+        result = self._session.post(self._url,
+                                    headers={'Access-token': self._token},
+                                    json=x)
 
         if return_input_body:
             return result, input_body
@@ -72,7 +74,7 @@ class DeployedModel:
 
     @property
     def is_deployed(self):
-        response = requests.get(self._status_url)
+        response = self._session.get(self._status_url)
         return response.ok and 'token' in response.json()
 
     def predict(self, x):
