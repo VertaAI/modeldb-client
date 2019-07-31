@@ -57,17 +57,14 @@ class DeployedModel:
         else:
             raise RuntimeError("deployment is not ready")
 
-    def _predict(self, x, return_input_body=False):
+    def _predict(self, x):
         """This is like ``DeployedModel.predict()``, but returns the raw ``Response`` for debugging."""
         if 'Access-token' not in self._session.headers or self._url is None:
             self._set_token_and_url()
 
         result = self._session.post(self._url, json=x)
 
-        if return_input_body:
-            return result, input_body
-        else:
-            return result
+        return result
 
     @property
     def is_deployed(self):
@@ -94,6 +91,8 @@ class DeployedModel:
 
         """
         response = self._predict(x)
+
+
 
         if not response.ok:
             self._set_token_and_url()  # try refetching prediction token and URL
