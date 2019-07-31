@@ -1,7 +1,6 @@
 import six
 from six.moves.urllib.parse import urlparse
 
-import json
 import os
 
 import requests
@@ -88,10 +87,7 @@ class DeployedModel:
             self._set_input_headers()
 
         result = requests.post(self._prediction_url,
-                               headers={
-                                   'Access-token': self._prediction_token,
-                                   'Content-length': str(len(json.dumps(x).encode('utf-8'))),
-                               },
+                               headers={'Access-token': self._prediction_token},
                                json=x)
 
         if return_input_body:
