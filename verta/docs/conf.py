@@ -96,8 +96,7 @@ html_theme = 'alabaster'
 # documentation.
 #
 html_theme_options = {
-    # uncomment when you figure out how to collapse the Release Notes headers
-    # 'fixed_sidebar': True,
+    'fixed_sidebar': True,
     'sidebar_collapse': False,
     'show_relbar_bottom': True,
 }
