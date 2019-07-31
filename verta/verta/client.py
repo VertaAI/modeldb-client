@@ -138,7 +138,7 @@ class Client(object):
                            None)
 
         def is_unauthorized(response): return response.status_code == 401
-             
+
         if is_unauthorized(response):
             auth_error_msg = "authentication failed; please check `VERTA_EMAIL` and `VERTA_DEV_KEY`"
             six.raise_from(requests.HTTPError(auth_error_msg), None)
@@ -351,10 +351,10 @@ class Client(object):
 
     def create_dataset_version(self, dataset, dataset_version_info,
                                parent_id=None,
-                               desc=None, tags=None, dataset_type=None, attrs=None,
+                               desc=None, tags=None, dataset_type=0, attrs=None,
                                version=None, id=None):
         return DatasetVersion(self._conn, self._conf,
-                              dataset_id=dataset.id, dataset_type=dataset.dataset_type,
+                              dataset_id=dataset.id, dataset_type=dataset.dataset_type or dataset_type,
                               dataset_version_info=dataset_version_info,
                               parent_id=parent_id,
                               desc=desc, tags=tags, attrs=attrs,
@@ -694,7 +694,7 @@ class DatasetVersion(object):
 
 
 class RawDatasetVersion(DatasetVersion):
-    def __init__(self, args, kwargs):
+    def __init__(self, *args, **kwargs):
         super(RawDatasetVersion, self).__init__(*args, **kwargs)
         self.dataset_version_info = self.dataset_version.raw_dataset_version_info
         # TODO: this is hacky, we should store dataset_version
