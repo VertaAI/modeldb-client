@@ -323,10 +323,13 @@ class Client(object):
                              desc, tags, attrs)
 
     # NOTE: dataset visibility cannot be set via a client
-    def create_dataset(self, name=None, dataset_type=None, desc=None, tags=None,
-    attrs=None, id=None):
-        return Dataset(self._conn, self._conf, name=name, dataset_type=dataset_type,
-            desc=desc, tags=tags, attrs=attrs, _dataset_id=id)
+    def create_dataset(self, name=None, dataset_type=None,
+                       desc=None, tags=None, attrs=None,
+                       id=None):
+        return Dataset(self._conn, self._conf,
+                       name=name, dataset_type=dataset_type,
+                       desc=desc, tags=tags, attrs=attrs,
+                       _dataset_id=id)
 
     # TODO: needs a by name after backend implements
     def get_dataset(self, id):
@@ -347,12 +350,15 @@ class Client(object):
                 for dataset in response_msg.datasets]
 
     def create_dataset_version(self, dataset, dataset_version_info,
-        parent_id=None, desc=None, tags=None, dataset_type=None, attrs=None,
-        version=None, id=None):
-        return DatasetVersion(self._conn, self._conf, dataset_id=dataset.id,
-            dataset_type=dataset.dataset_type,
-            dataset_version_info=dataset_version_info, parent_id=parent_id,
-            desc=desc, tags=tags, attrs=attrs, version=version, _dataset_version_id=id)
+                               parent_id=None,
+                               desc=None, tags=None, dataset_type=None, attrs=None,
+                               version=None, id=None):
+        return DatasetVersion(self._conn, self._conf,
+                              dataset_id=dataset.id, dataset_type=dataset.dataset_type,
+                              dataset_version_info=dataset_version_info,
+                              parent_id=parent_id,
+                              desc=desc, tags=tags, attrs=attrs,
+                              version=version, _dataset_version_id=id)
 
     # TODO: this should also allow gets based on dataset_id and version, but
     # not supported by backend yet
@@ -388,59 +394,72 @@ class Client(object):
     def create_s3_dataset(self, name):
         return self.create_dataset(name, dataset_type=_DatasetService.DatasetTypeEnum.PATH)
 
-    def create_s3_dataset_version(self, dataset, bucket_name, key=None,
-        url_stub=None, parent_id=None, desc=None, tags=None, attrs=None):
-        s3_dataset_version_info = S3DatasetVersionInfo(bucket_name, key=key,
-            url_stub=url_stub)
-        return PathDatasetVersion(self._conn, self._conf, dataset_id=dataset.id,
-            dataset_type=dataset.dataset_type,
-            dataset_version_info=s3_dataset_version_info, parent_id=parent_id,
-            desc=desc, tags=tags, attrs=attrs)
+    def create_s3_dataset_version(self, dataset,
+                                  bucket_name, key=None, url_stub=None,
+                                  parent_id=None,
+                                  desc=None, tags=None, attrs=None):
+        s3_dataset_version_info = S3DatasetVersionInfo(bucket_name, key=key, url_stub=url_stub)
+        return PathDatasetVersion(self._conn, self._conf,
+                                  dataset_id=dataset.id, dataset_type=dataset.dataset_type,
+                                  dataset_version_info=s3_dataset_version_info,
+                                  parent_id=parent_id,
+                                  desc=desc, tags=tags, attrs=attrs)
 
     def create_local_dataset(self, name):
         return self.create_dataset(name, dataset_type=_DatasetService.DatasetTypeEnum.PATH)
 
-    def create_local_dataset_version(self, dataset, path,
-        parent_id=None, desc=None, tags=None, attrs=None):
+    def create_local_dataset_version(self, dataset,
+                                     path,
+                                     parent_id=None,
+                                     desc=None, tags=None, attrs=None):
         filesystem_dataset_version_info = FilesystemDatasetVersionInfo(path)
-        return PathDatasetVersion(self._conn, self._conf, dataset_id=dataset.id,
-            dataset_type=dataset.dataset_type,
-            dataset_version_info=filesystem_dataset_version_info, parent_id=parent_id,
-            desc=desc, tags=tags, attrs=attrs)
+        return PathDatasetVersion(self._conn, self._conf,
+                                  dataset_id=dataset.id, dataset_type=dataset.dataset_type,
+                                  dataset_version_info=filesystem_dataset_version_info,
+                                  parent_id=parent_id,
+                                  desc=desc, tags=tags, attrs=attrs)
 
     def create_big_query_dataset(self, name):
         return self.create_dataset(name, dataset_type=_DatasetService.DatasetTypeEnum.QUERY)
 
-    def create_big_query_dataset_version(self, dataset, job_id, location,
-        parent_id=None, desc=None, tags=None, attrs=None):
-        filesystem_dataset_version_info = BigQueryDatasetVersionInfo(
-            job_id=job_id, location=location)
-        return QueryDatasetVersion(self._conn, self._conf, dataset_id=dataset.id,
-            dataset_type=dataset.dataset_type,
-            dataset_version_info=filesystem_dataset_version_info, parent_id=parent_id,
-            desc=desc, tags=tags, attrs=attrs)
-
+    def create_big_query_dataset_version(self, dataset,
+                                         job_id, location,
+                                         parent_id=None,
+                                         desc=None, tags=None, attrs=None):
+        filesystem_dataset_version_info = BigQueryDatasetVersionInfo(job_id=job_id, location=location)
+        return QueryDatasetVersion(self._conn, self._conf,
+                                   dataset_id=dataset.id, dataset_type=dataset.dataset_type,
+                                   dataset_version_info=filesystem_dataset_version_info,
+                                   parent_id=parent_id,
+                                   desc=desc, tags=tags, attrs=attrs)
 
     def create_atlas_hive_dataset(self, name):
         return self.create_dataset(name, dataset_type=_DatasetService.DatasetTypeEnum.QUERY)
 
-    def create_atlas_hive_dataset_version(self, dataset, guid, atlas_url, 
-        atlas_user_name, atlas_password, atlas_entity_endpoint="/api/atlas/v2/entity/bulk",
-        parent_id=None, desc=None, tags=None, attrs=None):
+    def create_atlas_hive_dataset_version(self, dataset,
+                                          guid, atlas_url,
+                                          atlas_user_name, atlas_password,
+                                          atlas_entity_endpoint="/api/atlas/v2/entity/bulk",
+                                          parent_id=None,
+                                          desc=None, tags=None, attrs=None):
         #TODO: use the input tagas and attrs
         filesystem_dataset_version_info = AtlasHiveDatasetVersionInfo(
-            guid=guid, atlas_url=atlas_url, atlas_user_name=atlas_user_name, atlas_password=atlas_password,
+            guid=guid, atlas_url=atlas_url,
+            atlas_user_name=atlas_user_name, atlas_password=atlas_password,
             atlas_entity_endpoint=atlas_entity_endpoint
-            )
-        return QueryDatasetVersion(self._conn, self._conf, dataset_id=dataset.id,
-            dataset_type=dataset.dataset_type,
-            dataset_version_info=filesystem_dataset_version_info, parent_id=parent_id,
-            desc=desc, tags=filesystem_dataset_version_info.tags, attrs=filesystem_dataset_version_info.attributes)
+        )
+        return QueryDatasetVersion(self._conn, self._conf,
+                                   dataset_id=dataset.id, dataset_type=dataset.dataset_type,
+                                   dataset_version_info=filesystem_dataset_version_info, parent_id=parent_id,
+                                   desc=desc, tags=filesystem_dataset_version_info.tags, attrs=filesystem_dataset_version_info.attributes)
+
 
 class Dataset(object):
     # TODO: delete is not supported on the API yet
     def __init__(self, conn, conf,
-        name=None, dataset_type=None, desc=None, tags=None, attrs=None, _dataset_id=None):
+                 name=None, dataset_type=None,
+                 desc=None, tags=None, attrs=None,
+                 _dataset_id=None):
         if name is not None and _dataset_id is not None:
             raise ValueError("cannot specify both `name` and `_dataset_id`")
 
@@ -459,7 +478,7 @@ class Dataset(object):
                 if e.response.status_code == 409:  # already exists
                     if any(param is not None for param in (desc, tags, attrs)):
                         warnings.warn("Dataset with name {} already exists;"
-                                        " cannot initialize `desc`, `tags`, or `attrs`".format(name))
+                                      " cannot initialize `desc`, `tags`, or `attrs`".format(name))
                     dataset = Dataset._get(conn, name)
                 else:
                     raise e
@@ -536,10 +555,12 @@ class Dataset(object):
 
 
 class DatasetVersion(object):
-    def __init__(self, conn, conf, dataset_id=None, dataset_type=None,
-        dataset_version_info=None, parent_id=None, desc=None, tags=None,
-        attrs=None, version=None, _dataset_version_id=None):
-
+    def __init__(self, conn, conf,
+                 dataset_id=None, dataset_type=None,
+                 dataset_version_info=None,
+                 parent_id=None,
+                 desc=None, tags=None, attrs=None,
+                 version=None, _dataset_version_id=None):
         # retrieve dataset by id
         if _dataset_version_id is not None:
             dataset_version = DatasetVersion._get(conn, _dataset_version_id)
@@ -551,9 +572,14 @@ class DatasetVersion(object):
 
             # create a new dataset version
             try:
-                dataset_version = DatasetVersion._create(conn, dataset_id,
-                    dataset_type, dataset_version_info, parent_id=parent_id,
-                    desc=desc, tags=tags, attrs=attrs, version=version)
+                dataset_version = DatasetVersion._create(
+                    conn,
+                    dataset_id, dataset_type,
+                    dataset_version_info,
+                    parent_id=parent_id,
+                    desc=desc, tags=tags, attrs=attrs,
+                    version=version
+                )
 
             # TODO: handle dups
             except requests.HTTPError as e:
@@ -566,8 +592,8 @@ class DatasetVersion(object):
                 #     raise e
                 raise e
             else:
-                print("created new DatasetVersion: {}".format(
-                    dataset_version.version))
+                print("created new DatasetVersion: {}"
+                      .format(dataset_version.version))
 
         self._conn = conn
         self._conf = conf
@@ -594,14 +620,14 @@ class DatasetVersion(object):
             Message = _DatasetVersionService.GetDatasetVersionById
             msg = Message(id=_dataset_version_id)
             data = _utils.proto_to_json(msg)
-            response = _utils.make_request("GET",
-                                           "{}://{}/v1/dataset-version/getDatasetVersionById".format(conn.scheme, conn.socket),
-                                           conn, params=data)
-
+            response = _utils.make_request(
+                "GET",
+                "{}://{}/v1/dataset-version/getDatasetVersionById".format(conn.scheme, conn.socket),
+                conn, params=data
+            )
             if response.ok:
                 dataset_version = _utils.json_to_proto(response.json(), Message.Response).dataset_version
                 return dataset_version
-
             else:
                 if response.status_code == 404 and response.json()['code'] == 5:
                     return None
@@ -611,24 +637,40 @@ class DatasetVersion(object):
             raise ValueError("insufficient arguments")
 
     @staticmethod
-    def _create(conn, dataset_id, dataset_type, dataset_version_info,
-        parent_id=None, desc=None, tags=None, attrs=None, version=None):
+    def _create(conn,
+                dataset_id, dataset_type,
+                dataset_version_info,
+                parent_id=None,
+                desc=None, tags=None, attrs=None,
+                version=None):
         if attrs is not None:
             attrs = [_CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value, allow_collection=True))
                      for key, value in six.viewitems(attrs)]
 
         if dataset_type == _DatasetService.DatasetTypeEnum.PATH:
-            msg = PathDatasetVersion.make_create_message(dataset_id,
-                dataset_type, dataset_version_info, parent_id=parent_id,
-                desc=desc, tags=tags, attrs=attrs, version=version)
+            msg = PathDatasetVersion.make_create_message(
+                dataset_id, dataset_type,
+                dataset_version_info,
+                parent_id=parent_id,
+                desc=desc, tags=tags, attrs=attrs,
+                version=version
+            )
         elif dataset_type == _DatasetService.DatasetTypeEnum.QUERY:
-            msg = QueryDatasetVersion.make_create_message(dataset_id,
-                dataset_type, dataset_version_info, parent_id=parent_id,
-                desc=desc, tags=tags, attrs=attrs, version=version)
+            msg = QueryDatasetVersion.make_create_message(
+                dataset_id, dataset_type,
+                dataset_version_info,
+                parent_id=parent_id,
+                desc=desc, tags=tags, attrs=attrs,
+                version=version
+            )
         else:
-            msg = RawDatasetVersion.make_create_message(dataset_id,
-                dataset_type, dataset_version_info, parent_id=parent_id,
-                desc=desc, tags=tags, attrs=attrs, version=version)
+            msg = RawDatasetVersion.make_create_message(
+                dataset_id, dataset_type,
+                dataset_version_info,
+                parent_id=parent_id,
+                desc=desc, tags=tags, attrs=attrs,
+                version=version
+            )
 
         data = _utils.proto_to_json(msg)
         response = _utils.make_request("POST",
@@ -636,14 +678,18 @@ class DatasetVersion(object):
                                        conn, json=data)
 
         if response.ok:
-            dataset_version = _utils.json_to_proto(response.json(), _DatasetVersionService.CreateDatasetVersion.Response).dataset_version
+            dataset_version = _utils.json_to_proto(response.json(),
+                                                   _DatasetVersionService.CreateDatasetVersion.Response).dataset_version
             return dataset_version
         else:
             response.raise_for_status()
 
     @staticmethod
-    def make_create_message(dataset_id, dataset_type, dataset_version_info,
-        parent_id=None, desc=None, tags=None, attrs=None, version=None):
+    def make_create_message(dataset_id, dataset_type,
+                            dataset_version_info,
+                            parent_id=None,
+                            desc=None, tags=None, attrs=None,
+                            version=None):
         raise NotImplementedError('Must be implemented by subclasses')
 
 
@@ -655,18 +701,22 @@ class RawDatasetVersion(DatasetVersion):
         self.dataset_version = None
 
     @staticmethod
-    def make_create_message(dataset_id, dataset_type, dataset_version_info,
-        parent_id=None, desc=None, tags=None, attrs=None, version=None):
+    def make_create_message(dataset_id, dataset_type,
+                            dataset_version_info,
+                            parent_id=None,
+                            desc=None, tags=None, attrs=None,
+                            version=None):
         Message = _DatasetVersionService.CreateDatasetVersion
-        version_msg =  _DatasetVersionService.RawDatasetVersionInfo
+        version_msg = _DatasetVersionService.RawDatasetVersionInfo
         converted_dataset_version_info = version_msg(
             size=dataset_version_info.size, features=dataset_version_info.features,
-            num_records=dataset_version_info.num_records, object_path=dataset_version_info.object_path,
-            checksum=dataset_version_info.checksum)
+            num_records=dataset_version_info.num_records,
+            object_path=dataset_version_info.object_path, checksum=dataset_version_info.checksum
+        )
         msg = Message(dataset_id=dataset_id, parent_id=parent_id,
-            description=desc, tags=tags, dataset_type=dataset_type,
-            attributes=attrs, version=version,
-            raw_dataset_version_info=converted_dataset_version_info)
+                      description=desc, tags=tags, dataset_type=dataset_type,
+                      attributes=attrs, version=version,
+                      raw_dataset_version_info=converted_dataset_version_info)
         return msg
 
 
@@ -678,20 +728,24 @@ class QueryDatasetVersion(DatasetVersion):
         self.dataset_version = None
 
     @staticmethod
-    def make_create_message(dataset_id, dataset_type, dataset_version_info,
-        parent_id=None, desc=None, tags=None, attrs=None, version=None):
+    def make_create_message(dataset_id, dataset_type,
+                            dataset_version_info,
+                            parent_id=None,
+                            desc=None, tags=None, attrs=None,
+                            version=None):
         Message = _DatasetVersionService.CreateDatasetVersion
-        version_msg =  _DatasetVersionService.QueryDatasetVersionInfo
+        version_msg = _DatasetVersionService.QueryDatasetVersionInfo
         converted_dataset_version_info = version_msg(
-            query=dataset_version_info.query, query_template=dataset_version_info.query_template,
-            query_parameters=dataset_version_info.query_parameters, data_source_uri=dataset_version_info.data_source_uri,
+            query=dataset_version_info.query,
+            query_template=dataset_version_info.query_template, query_parameters=dataset_version_info.query_parameters,
+            data_source_uri=dataset_version_info.data_source_uri,
             execution_timestamp=dataset_version_info.execution_timestamp, num_records=dataset_version_info.num_records
         )
         msg = Message(dataset_id=dataset_id, parent_id=parent_id,
-            description=desc, tags=tags, dataset_type=dataset_type,
-            attributes=attrs, version=version,
-            # different dataset versions
-            query_dataset_version_info=converted_dataset_version_info)
+                      description=desc, tags=tags, dataset_type=dataset_type,
+                      attributes=attrs, version=version,
+                      # different dataset versions
+                      query_dataset_version_info=converted_dataset_version_info)
         return msg
 
 
@@ -703,8 +757,11 @@ class PathDatasetVersion(DatasetVersion):
         self.dataset_version = None
 
     @staticmethod
-    def make_create_message(dataset_id, dataset_type, dataset_version_info,
-        parent_id=None, desc=None, tags=None, attrs=None, version=None):
+    def make_create_message(dataset_id, dataset_type,
+                            dataset_version_info,
+                            parent_id=None,
+                            desc=None, tags=None, attrs=None,
+                            version=None):
         Message = _DatasetVersionService.CreateDatasetVersion
         # turn dataset_version_info into proto format
         version_msg = _DatasetVersionService.PathDatasetVersionInfo
@@ -715,9 +772,9 @@ class PathDatasetVersion(DatasetVersion):
             base_path=dataset_version_info.base_path
         )
         msg = Message(dataset_id=dataset_id, parent_id=parent_id,
-            description=desc, tags=tags, dataset_type=dataset_type,
-            attributes=attrs, version=version,
-            path_dataset_version_info=converted_dataset_version_info)
+                      description=desc, tags=tags, dataset_type=dataset_type,
+                      attributes=attrs, version=version,
+                      path_dataset_version_info=converted_dataset_version_info)
         return msg
 
 
@@ -799,20 +856,21 @@ class S3DatasetVersionInfo(PathDatasetVersionInfo):
 
     @staticmethod
     def get_s3_object_info(object_info, key=None):
-        # S3 also provides version info that could be used: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/s3.html
+        # S3 also provides version info that could be used:
+        #     https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/s3.html
         dataset_part_info = _DatasetVersionService.DatasetPartInfo()
         dataset_part_info.path = object_info['Key'] if key is None else key
         dataset_part_info.size = object_info['Size'] if key is None else object_info['ContentLength']
         dataset_part_info.checksum = object_info['ETag']
-        dataset_part_info.last_modified_at_source = int((object_info['LastModified'] - \
-            datetime.datetime(1970,1,1, tzinfo=pytz.UTC)).total_seconds())
+        dataset_part_info.last_modified_at_source = int((object_info['LastModified']
+                                                       - datetime.datetime(1970, 1, 1, tzinfo=pytz.UTC)).total_seconds())
         return dataset_part_info
 
 
 class QueryDatasetVersionInfo(object):
-    def __init__(self, job_id=None, query="", execution_timestamp="",
-        data_source_uri="", query_template="", query_parameters=[],
-        num_records=0):
+    def __init__(self, job_id=None,
+                 query="", execution_timestamp="", data_source_uri="",
+                 query_template="", query_parameters=[], num_records=0):
         if not query:
             raise ValueError("query not found")
         self.query = query
@@ -823,12 +881,14 @@ class QueryDatasetVersionInfo(object):
         self.num_records = num_records
 
 class AtlasHiveDatasetVersionInfo(QueryDatasetVersionInfo):
-    def __init__(self, guid="", atlas_url="", 
-        atlas_user_name="", atlas_password="", atlas_entity_endpoint="/api/atlas/v2/entity/bulk",
-        parent_id=None, desc=None, tags=None, attrs=None):
+    def __init__(self, guid="", atlas_url="",
+                 atlas_user_name="", atlas_password="",
+                 atlas_entity_endpoint="/api/atlas/v2/entity/bulk",
+                 parent_id=None, desc=None, tags=None, attrs=None):
         if guid and atlas_url:
             self.guid = guid
-            atlas_entity_details = self.get_entity_details(guid, atlas_url, atlas_user_name, atlas_password, atlas_entity_endpoint)
+            atlas_entity_details = self.get_entity_details(guid, atlas_url,
+                                                           atlas_user_name, atlas_password, atlas_entity_endpoint)
             if len(atlas_entity_details['entities']) != 1:
                 raise ValueError ("Error fetching details of entity from Atlas")
             table_obj = atlas_entity_details['entities'][0]
@@ -859,31 +919,32 @@ class AtlasHiveDatasetVersionInfo(QueryDatasetVersionInfo):
     @staticmethod
     def get_entity_details(guid, atlas_url, atlas_user_name, atlas_password, atlas_entity_endpoint):
         response = requests.get(atlas_url + atlas_entity_endpoint,
-                        auth=(atlas_user_name, atlas_password),
-                        params={'guid': guid})
+                                auth=(atlas_user_name, atlas_password),
+                                params={'guid': guid})
         return response.json()
 
     @staticmethod
     def generate_query(table_obj):
         table_name = table_obj['attributes']['name'] # store as attribute
         database_name = table_obj['relationshipAttributes']['db']['displayText'] #store as atrribute
-        query = "select * from " + database_name + "." + table_name 
+        query = "select * from {}.{}".format(database_name, table_name)
         return query
 
     @staticmethod
     def get_attributes(table_obj):
-        attribute_keyvals=[]
+        attribute_keyvals = []
         attributes = {}
-        attributes['type'] = table_obj['typeName'] 
+        attributes['type'] = table_obj['typeName']
         attributes['table_name'] = table_obj['attributes']['name'] # store as attribute
         attributes['database_name'] = table_obj['relationshipAttributes']['db']['displayText'] #store as atrribute
-        attributes['col_names'] =  AtlasHiveDatasetVersionInfo.get_columns(table_obj)
-        attributes['created_time'] =  table_obj['createTime']
-        attributes['update_time'] =  table_obj['updateTime']
+        attributes['col_names'] = AtlasHiveDatasetVersionInfo.get_columns(table_obj)
+        attributes['created_time'] = table_obj['createTime']
+        attributes['update_time'] = table_obj['updateTime']
         attributes['load_queries'] = AtlasHiveDatasetVersionInfo.get_inbound_queries(table_obj)
-        #for key, value in six.viewitems(attributes):
-        #    attribute_keyvals.append(_CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value, allow_collection=True)))
-        #return attribute_keyvals
+        # for key, value in six.viewitems(attributes):
+            # attribute_keyvals.append(_CommonService.KeyValue(key=key,
+            #                                                  value=_utils.python_to_val_proto(value, allow_collection=True)))
+        # return attribute_keyvals
         return attributes
 
     @staticmethod
@@ -903,8 +964,9 @@ class AtlasHiveDatasetVersionInfo(QueryDatasetVersionInfo):
         return verta_input_processes
 
 class BigQueryDatasetVersionInfo(QueryDatasetVersionInfo):
-    def __init__(self, job_id=None, query="", location="", execution_timestamp="",
-        data_source_uri="",query_template="",query_parameters=[],num_records=0):
+    def __init__(self, job_id=None,
+                 query="", location="", execution_timestamp="", data_source_uri="",
+                 query_template="",query_parameters=[], num_records=0):
         """https://googleapis.github.io/google-cloud-python/latest/bigquery/generated/google.cloud.bigquery.job.QueryJob.html#google.cloud.bigquery.job.QueryJob.query_plan"""
         if job_id is not None and location:
             self.job_id = job_id
@@ -915,15 +977,14 @@ class BigQueryDatasetVersionInfo(QueryDatasetVersionInfo):
             #TODO: extract the query template
             self.query_template = job.query
             self.query_parameters = []
-            shape = job.to_dataframe().shape
-            self.num_records = shape[0]
+            self.num_records = job.to_dataframe().shape[0]
         else:
             super(BigQueryDatasetVersionInfo, self).__init__()
 
     @staticmethod
     def get_bq_job(job_id, location):
         client = bigquery.Client()
-        return client.get_job(job_id, location = location)
+        return client.get_job(job_id, location=location)
 
 
 class _ModelDBEntity(object):
