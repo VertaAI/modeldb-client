@@ -5,6 +5,10 @@ ExperimentRun
 
 .. autoclass:: ExperimentRun
 
+.. autosummary::
+
+    ExperimentRun.log_attribute
+
 Basic Metadata
 --------------
 
