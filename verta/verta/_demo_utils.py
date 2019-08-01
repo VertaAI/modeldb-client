@@ -2,6 +2,7 @@ import six
 from six.moves.urllib.parse import urlparse
 
 import os
+import time
 
 import requests
 
@@ -71,7 +72,7 @@ class DeployedModel:
         response = self._session.get(self._status_url)
         return response.ok and 'token' in response.json()
 
-    def predict(self, x):
+    def predict(self, x, max_retries=5):
         """
         Make a prediction using input `x`.
 
@@ -82,6 +83,8 @@ class DeployedModel:
         ----------
         x : list
             List of Sequence of feature values representing a single data point.
+        max_retries : int, default 5
+            Maximum number of times to retry a request on a connection failure.
 
         Returns
         -------
@@ -90,13 +93,13 @@ class DeployedModel:
             error, None is returned instead as a silent failure.
 
         """
-        response = self._predict(x)
-
-
-
-        if not response.ok:
-            self._set_token_and_url()  # try refetching prediction token and URL
+        for i_retry in range(max_retries):
             response = self._predict(x)
-            if not response.ok:
-                return "model is warming up; please wait"
-        return response.json()
+            if response.ok:
+                return response.json()
+            elif response.status_code >= 500 or response.status_code == 429:
+                sleep = 0.3*(2**i_retry)  # 5 retries is 9.3 seconds total
+                print("received status {}; retrying in {:.1f}s".format(response.status_code, sleep))
+                time.sleep(sleep)
+            else:
+                response.raise_for_status()
