@@ -1,6 +1,8 @@
 import six
 from six.moves.urllib.parse import urlparse
 
+import json
+import gzip
 import os
 import time
 
@@ -58,21 +60,32 @@ class DeployedModel:
         else:
             raise RuntimeError("token not found in status endpoint response; deployment may not be ready")
 
-    def _predict(self, x):
+    def _predict(self, x, compress=False):
         """This is like ``DeployedModel.predict()``, but returns the raw ``Response`` for debugging."""
         if 'Access-token' not in self._session.headers or self._url is None:
             self._set_token_and_url()
 
-        result = self._session.post(self._url, json=x)
+        if compress:
+            # create gzip
+            gzstream = six.BytesIO()
+            with gzip.GzipFile(fileobj=gzstream, mode='wb') as gzf:
+                gzf.write(six.ensure_binary(json.dumps(x)))
+            gzstream.seek(0)
 
-        return result
+            return self._session.post(
+                self._url,
+                headers={'Content-Encoding': 'gzip'},
+                data=gzstream.read(),
+            )
+        else:
+            return self._session.post(self._url, json=x)
 
     @property
     def is_deployed(self):
         response = self._session.get(self._status_url)
         return response.ok and 'token' in response.json()
 
-    def predict(self, x, max_retries=5):
+    def predict(self, x, compress=False, max_retries=5):
         """
         Make a prediction using input `x`.
 
@@ -83,6 +96,8 @@ class DeployedModel:
         ----------
         x : list
             List of Sequence of feature values representing a single data point.
+        compress : bool, default False
+            Whether to compress the request body.
         max_retries : int, default 5
             Maximum number of times to retry a request on a connection failure.
 
@@ -94,7 +109,7 @@ class DeployedModel:
 
         """
         for i_retry in range(max_retries):
-            response = self._predict(x)
+            response = self._predict(x, compress)
             if response.ok:
                 return response.json()
             elif response.status_code >= 500 or response.status_code == 429:
