@@ -2,12 +2,26 @@ Release Notes
 =============
 
 
+v0.12.6 (2019-08-01)
+--------------------
+
+New Features
+^^^^^^^^^^^^
+- `implement a compress parameter on demo predict utility to enable request body compression
+  <https://github.com/VertaAI/modeldb-client/pull/154>`_
+
+Internal Changes
+^^^^^^^^^^^^^^^^
+- `reduce redundancies in demo predict utility
+  <https://github.com/VertaAI/modeldb-client/pull/153>`_
+
+
 v0.12.5 (2019-07-26)
 --------------------
 
 New Features
 ^^^^^^^^^^^^
-- `implement a debug parameter and attribute on Client to print verbose debugging information,
+- `implement a debug parameter and attribute on Client to print verbose debugging information
   <https://github.com/VertaAI/modeldb-client/pull/149>`_
 
 
