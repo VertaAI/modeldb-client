@@ -102,4 +102,5 @@ class DeployedModel:
                 print("received status {}; retrying in {:.1f}s".format(response.status_code, sleep))
                 time.sleep(sleep)
             else:
-                response.raise_for_status()
+                break
+        response.raise_for_status()
