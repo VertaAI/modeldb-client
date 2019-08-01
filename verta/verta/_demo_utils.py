@@ -56,7 +56,7 @@ class DeployedModel:
             self._session.headers['Access-token'] = status['token']
             self._url = "https://{}{}".format(self._socket, status['api'])
         else:
-            raise RuntimeError("deployment is not ready")
+            raise RuntimeError("token not found in status endpoint response")
 
     def _predict(self, x):
         """This is like ``DeployedModel.predict()``, but returns the raw ``Response`` for debugging."""
