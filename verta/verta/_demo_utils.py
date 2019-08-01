@@ -1,8 +1,8 @@
 import six
 from six.moves.urllib.parse import urlparse
 
-import json
 import os
+import time
 
 import requests
 
@@ -37,74 +37,42 @@ class DeployedModel:
         socket = socket.path if socket.netloc == '' else socket.netloc
 
         self._socket = socket
-        self._auth = {self._GRPC_PREFIX+'email': os.environ['VERTA_EMAIL'],
-                      self._GRPC_PREFIX+'developer_key': os.environ['VERTA_DEV_KEY'],
-                      self._GRPC_PREFIX+'source': "PythonClient"}
         self._id = model_id
 
-        self._prediction_token = None
-        self._input_headers = None
-
         self._status_url = "https://{}/api/v1/deployment/status/{}".format(socket, model_id)
-        self._get_url_url = "https://{}/v1/experiment-run/getUrlForArtifact".format(socket) # url to obtain artifact GET url
-        self._prediction_url = "https://{}/api/v1/predict/{}".format(socket, model_id)
+
+        self._url = None
+
+        self._session = requests.Session()
 
     def __repr__(self):
         return "<Model {}>".format(self._id)
 
-    def _set_prediction_token(self):
-        response = requests.get(self._status_url)
+    def _set_token_and_url(self):
+        response = self._session.get(self._status_url)
         response.raise_for_status()
         status = response.json()
-        try:
-            self._prediction_token = status['token']
-        except KeyError:
-            six.raise_from(RuntimeError("deployment is not ready"), None)
-
-    def _set_input_headers(self, key="model_api.json"):
-        # get url to get model_api.json from artifact store
-        params = {'id': self._id, 'key': key, 'method': "GET"}
-        response = requests.post(self._get_url_url, json=params, headers=self._auth)
-        response.raise_for_status()
-
-        # get model_api.json
-        get_artifact_url = response.json()['url']
-        response = requests.get(get_artifact_url)
-        response.raise_for_status()
-        model_api = json.loads(response.content)
-
-        model_api_input = model_api['input']
-
-        if 'fields' not in model_api_input:
-            self._input_headers = model_api_input['name']
+        if 'token' in status and 'api' in status:
+            self._session.headers['Access-token'] = status['token']
+            self._url = "https://{}{}".format(self._socket, status['api'])
         else:
-            self._input_headers = [field['name'] for field in model_api_input['fields']]
+            raise RuntimeError("token not found in status endpoint response; deployment may not be ready")
 
-    def _predict(self, x, return_input_body=False):
+    def _predict(self, x):
         """This is like ``DeployedModel.predict()``, but returns the raw ``Response`` for debugging."""
-        if self._prediction_token is None:
-            self._set_prediction_token()
-        if self._input_headers is None:
-            self._set_input_headers()
+        if 'Access-token' not in self._session.headers or self._url is None:
+            self._set_token_and_url()
 
-        result = requests.post(self._prediction_url,
-                               headers={
-                                   'Access-token': self._prediction_token,
-                                   'Content-length': str(len(json.dumps(x).encode('utf-8'))),
-                               },
-                               json=x)
+        result = self._session.post(self._url, json=x)
 
-        if return_input_body:
-            return result, input_body
-        else:
-            return result
+        return result
 
     @property
     def is_deployed(self):
-        response = requests.get(self._status_url)
+        response = self._session.get(self._status_url)
         return response.ok and 'token' in response.json()
 
-    def predict(self, x):
+    def predict(self, x, max_retries=5):
         """
         Make a prediction using input `x`.
 
@@ -115,6 +83,8 @@ class DeployedModel:
         ----------
         x : list
             List of Sequence of feature values representing a single data point.
+        max_retries : int, default 5
+            Maximum number of times to retry a request on a connection failure.
 
         Returns
         -------
@@ -123,14 +93,14 @@ class DeployedModel:
             error, None is returned instead as a silent failure.
 
         """
-        response = self._predict(x)
-
-        if not response.ok:
-            self._prediction_token = None  # try refetching token
+        for i_retry in range(max_retries):
             response = self._predict(x)
-            if not response.ok:
-                self._input_headers = None  # try refetching input headers
-                response = self._predict(x)
-                if not response.ok:
-                    return "model is warming up; please wait"
-        return response.json()
+            if response.ok:
+                return response.json()
+            elif response.status_code >= 500 or response.status_code == 429:
+                sleep = 0.3*(2**i_retry)  # 5 retries is 9.3 seconds total
+                print("received status {}; retrying in {:.1f}s".format(response.status_code, sleep))
+                time.sleep(sleep)
+            else:
+                break
+        response.raise_for_status()
