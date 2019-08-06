@@ -19,7 +19,6 @@ try:
 except ImportError:  # TensorFlow not installed
     pass
 
-# TODO: make python3 compatible; this is deprecated. replace with "from inspect import signature"
 from inspect import getargspec, ismethod
 
 def _get_model_expand_argument(func):
