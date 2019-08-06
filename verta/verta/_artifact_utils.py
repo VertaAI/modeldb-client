@@ -226,8 +226,14 @@ def serialize_model(model):
             method = "keras"
             break
     else:
-        model_type = "custom"
-        bytestream, method = ensure_bytestream(model)
+        if hasattr(model, 'predict'):
+            model_type = "custom"
+            bytestream, method = ensure_bytestream(model)
+        elif callable(model):
+            model_type = "callable"
+            bytestream, method = ensure_bytestream(model)
+        else:
+            raise ValueError("cannot determine the type for model argument")
     return bytestream, method, model_type
 
 
