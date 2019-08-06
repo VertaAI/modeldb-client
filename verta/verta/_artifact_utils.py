@@ -187,7 +187,7 @@ def serialize_model(model):
         Buffered bytestream of the serialized model.
     method : {"joblib", "cloudpickle", "pickle", "keras", None}
         Serialization method used to produce the bytestream.
-    model_type : {"torch", "sklearn", "xgboost", "tensorflow", "custom"}
+    model_type : {"torch", "sklearn", "xgboost", "tensorflow", "custom", "callable"}
         Framework with which the model was built.
 
     """
@@ -226,8 +226,14 @@ def serialize_model(model):
             method = "keras"
             break
     else:
-        model_type = "custom"
-        bytestream, method = ensure_bytestream(model)
+        if hasattr(model, 'predict'):
+            model_type = "custom"
+            bytestream, method = ensure_bytestream(model)
+        elif callable(model):
+            model_type = "callable"
+            bytestream, method = ensure_bytestream(model)
+        else:
+            raise TypeError("cannot determine the type for model argument")
     return bytestream, method, model_type
 
 
