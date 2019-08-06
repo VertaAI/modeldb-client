@@ -23,6 +23,24 @@ except ImportError:  # TensorFlow not installed
 from inspect import getargspec, ismethod
 
 def _get_model_expand_argument(func):
+    """
+    Determine if the model will require expansion of the arguments.
+
+    If a function has more than one argument, we need to transform its arguments into
+    a single value that can be passed through the wire and deserialized again. We could
+    enforce to always to do that, but we don't currently to keep backwards compatibility.
+
+    Parameters
+    ----------
+    func : callable
+        Function or method that will be used to call the model.
+
+    Returns
+    -------
+    bool
+        Flag indicating argument expansion will be required.
+
+    """
     args = getargspec(func)
     print(args)
     if ismethod(func):
