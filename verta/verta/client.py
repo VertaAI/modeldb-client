@@ -2696,7 +2696,7 @@ class ExperimentRun(_ModelDBEntity):
         except (TypeError, ValueError):
             extension = None
 
-        model, method, _ = _artifact_utils.serialize_model(model)
+        model, method, _, _= _artifact_utils.serialize_model(model)
 
         if extension is None:
             extension = _artifact_utils.ext_from_method(method)
