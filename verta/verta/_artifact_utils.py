@@ -19,6 +19,16 @@ try:
 except ImportError:  # TensorFlow not installed
     pass
 
+# TODO: make python3 compatible; this is deprecated. replace with "from inspect import signature"
+from inspect import getargspec, ismethod
+
+def _get_model_expand_argument(func):
+    args = getargspec(func)
+    print(args)
+    if ismethod(func):
+        # First argument is always "self", so we don't count it
+        return len(args.args) > 2 or args.varargs is not None or args.keywords is not None
+    return len(args.args) > 1 or args.varargs is not None or args.keywords is not None
 
 def get_file_ext(file):
     """
@@ -202,6 +212,8 @@ def serialize_model(model):
         finally:
             reset_stream(model)  # reset cursor to beginning as a courtesy
 
+    expand_arguments = False
+
     for class_obj in model.__class__.__mro__:
         module_name = class_obj.__module__
         if not module_name:
@@ -229,12 +241,14 @@ def serialize_model(model):
         if hasattr(model, 'predict'):
             model_type = "custom"
             bytestream, method = ensure_bytestream(model)
+            expand_arguments = _get_model_expand_argument(model.predict)
         elif callable(model):
             model_type = "callable"
             bytestream, method = ensure_bytestream(model)
+            expand_arguments = _get_model_expand_argument(model)
         else:
             raise TypeError("cannot determine the type for model argument")
-    return bytestream, method, model_type
+    return bytestream, method, model_type, expand_arguments
 
 
 def deserialize_model(bytestring):

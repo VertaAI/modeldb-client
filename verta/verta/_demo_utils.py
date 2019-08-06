@@ -25,6 +25,10 @@ class DeployedModel:
         Hostname of the node running the Verta backend.
     model_id : str
         id of the deployed ExperimentRun/ModelRecord.
+    compress : bool, default False
+        Whether to compress the request body.
+    max_retries : int, default 5
+        Maximum number of times to retry a request on a connection failure.
 
     Attributes
     ----------
@@ -34,12 +38,14 @@ class DeployedModel:
     """
     _GRPC_PREFIX = "Grpc-Metadata-"
 
-    def __init__(self, socket, model_id):
+    def __init__(self, socket, model_id, compress=False, max_retries=5):
         socket = urlparse(socket)
         socket = socket.path if socket.netloc == '' else socket.netloc
 
         self._socket = socket
         self._id = model_id
+        self._compress = compress
+        self._max_retries = max_retries
 
         self._status_url = "https://{}/api/v1/deployment/status/{}".format(socket, model_id)
 
@@ -85,7 +91,7 @@ class DeployedModel:
         response = self._session.get(self._status_url)
         return response.ok and 'token' in response.json()
 
-    def predict(self, x, compress=False, max_retries=5):
+    def predict(self, *args, **kwargs):
         """
         Make a prediction using input `x`.
 
@@ -96,10 +102,6 @@ class DeployedModel:
         ----------
         x : list
             List of Sequence of feature values representing a single data point.
-        compress : bool, default False
-            Whether to compress the request body.
-        max_retries : int, default 5
-            Maximum number of times to retry a request on a connection failure.
 
         Returns
         -------
@@ -108,8 +110,15 @@ class DeployedModel:
             error, None is returned instead as a silent failure.
 
         """
-        for i_retry in range(max_retries):
-            response = self._predict(x, compress)
+        # If a single argument, assume we don't have to pack them
+        # TODO: fetch this info from the model api
+        if len(args) == 1 and len(kwargs) == 0:
+            x = args[0]
+        else:
+            x = {"args": args, "kwargs": kwargs}
+
+        for i_retry in range(self._max_retries):
+            response = self._predict(x, self._compress)
             if response.ok:
                 return response.json()
             elif response.status_code == 502: # bad gateway; the error happened in the model backend
