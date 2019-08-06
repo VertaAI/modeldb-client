@@ -42,7 +42,6 @@ def _get_model_expand_argument(func):
 
     """
     args = getargspec(func)
-    print(args)
     if ismethod(func):
         # First argument is always "self", so we don't count it
         return len(args.args) > 2 or args.varargs is not None or args.keywords is not None
