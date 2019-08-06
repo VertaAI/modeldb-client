@@ -112,6 +112,11 @@ class DeployedModel:
             response = self._predict(x, compress)
             if response.ok:
                 return response.json()
+            elif response.status_code == 502: # bad gateway; the error happened in the model backend
+                data = response.json()
+                if 'message' not in data:
+                    raise ValueError("couldn't find error message in return json")
+                raise ValueError("Got error message from backend:\n" + data['message'])
             elif response.status_code >= 500 or response.status_code == 429:
                 sleep = 0.3*(2**i_retry)  # 5 retries is 9.3 seconds total
                 print("received status {}; retrying in {:.1f}s".format(response.status_code, sleep))
