@@ -175,14 +175,14 @@ def find_filepaths(paths, extensions=None, include_hidden=False):
     filepaths = set()
     for path in paths:
         if os.path.isdir(path):
-            for root, _, subpaths in os.walk(path):
-                if is_hidden(root) and not include_hidden:
+            for parent_dir, dirnames, filenames in os.walk(path):
+                if is_hidden(parent_dir) and not include_hidden:
                     continue  # skip hidden directories
-                for subpath in subpaths:
-                    if is_hidden(subpath) and not include_hidden:
+                for filename in filenames:
+                    if is_hidden(filename) and not include_hidden:
                         continue  # skip hidden files
-                    if extensions is None or os.path.splitext(subpath)[1] in extensions:
-                        filepaths.add(os.path.join(root, subpath))
+                    if extensions is None or os.path.splitext(filename)[1] in extensions:
+                        filepaths.add(os.path.join(parent_dir, filename))
         else:
             filepaths.add(path)
     return filepaths
