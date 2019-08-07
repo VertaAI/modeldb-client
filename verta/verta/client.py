@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import six
 import six.moves.cPickle as pickle
 from six.moves.urllib.parse import urlparse
