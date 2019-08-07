@@ -2611,7 +2611,7 @@ class ExperimentRun(_ModelDBEntity):
             model_extension = _artifact_utils.get_file_ext(model)
         except (TypeError, ValueError):
             model_extension = None
-        model, method, model_type, expand_arguments = _artifact_utils.serialize_model(model)
+        model, method, model_type = _artifact_utils.serialize_model(model)
         if method is None:
             raise ValueError("will not be able to deploy model due to unknown serialization method")
         if model_extension is None:
@@ -2626,7 +2626,6 @@ class ExperimentRun(_ModelDBEntity):
                 'python_version': _utils.get_python_version(),
                 'type': model_type,
                 'deserialization': method,
-                'expand_arguments': expand_arguments,
             }
         if self._conf.debug:
             print("[DEBUG] model API is:")
@@ -2696,7 +2695,7 @@ class ExperimentRun(_ModelDBEntity):
         except (TypeError, ValueError):
             extension = None
 
-        model, method, _, _ = _artifact_utils.serialize_model(model)
+        model, method, _ = _artifact_utils.serialize_model(model)
 
         if extension is None:
             extension = _artifact_utils.ext_from_method(method)
