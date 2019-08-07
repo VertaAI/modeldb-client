@@ -3035,7 +3035,7 @@ class ExperimentRun(_ModelDBEntity):
         common_prefix = os.path.commonprefix(paths_plus)
         common_dir = os.path.dirname(common_prefix)
 
-        filepaths = _utils.find_filepaths(paths, include_hidden=True)
+        filepaths = _utils.find_filepaths(paths, include_hidden=True, include_venv=False)
 
         # get search paths to modify Deployment's sys.path
         if self._conf.debug:
