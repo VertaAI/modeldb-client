@@ -146,7 +146,7 @@ def is_hidden(path):  # to avoid "./".startswith('.')
     return os.path.basename(path.rstrip('/')).startswith('.') and path != "."
 
 
-def find_filepaths(paths, extensions=None, include_hidden=False):
+def find_filepaths(paths, extensions=None, include_hidden=False, include_venv=False):
     """
     Unravels a list of file and directory paths into a list of only filepaths by walking through the
     directories.
@@ -160,6 +160,8 @@ def find_filepaths(paths, extensions=None, include_hidden=False):
         included.
     include_hidden : bool, default False
         Whether to include hidden files and subdirectories found while walking through directories.
+    include_venv : bool, default False
+        Whether to include Python virtual environment directories.
 
     """
     if isinstance(paths, six.string_types):
@@ -176,11 +178,15 @@ def find_filepaths(paths, extensions=None, include_hidden=False):
     for path in paths:
         if os.path.isdir(path):
             for parent_dir, dirnames, filenames in os.walk(path):
-                if is_hidden(parent_dir) and not include_hidden:
-                    continue  # skip hidden directories
+                if not include_hidden:
+                    # skip hidden directories
+                    dirnames[:] = [dirname for dirname in dirnames if not is_hidden(dirname)]
+                    # skip hidden files
+                    filenames[:] = [filename for filename in filenames if not is_hidden(filename)]
+                if not include_venv:
+                    exec_path = os.path.join(parent_dir, "{}", "bin", "python")
+                    dirnames[:] = [dirname for dirname in dirnames if not os.path.lexists(exec_path.format(dirname))]
                 for filename in filenames:
-                    if is_hidden(filename) and not include_hidden:
-                        continue  # skip hidden files
                     if extensions is None or os.path.splitext(filename)[1] in extensions:
                         filepaths.add(os.path.join(parent_dir, filename))
         else:
