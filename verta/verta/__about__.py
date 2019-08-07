@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 __description__ = "Python client for interfacing with ModelDB and the Verta platform"
 __license__ = "Apache 2.0"
 __maintainer__ = "Michael Liu"
