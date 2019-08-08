@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import six
-from six.moves.urllib.parse import urlparse
+from six.moves.urllib.parse import urljoin, urlparse
 
 import json
 import gzip
@@ -24,9 +24,9 @@ class DeployedModel:
     Parameters
     ----------
     socket : str
-        Hostname of the node running the Verta backend.
-    model_id : str
-        id of the deployed ExperimentRun/ModelRecord.
+        Hostname of the node running the Verta backend, e.g. "app.verta.ai".
+    model_id : str, optional
+        ID of the deployed ExperimentRun/ModelRecord.
 
     Attributes
     ----------
@@ -39,32 +39,56 @@ class DeployedModel:
     def __init__(self, socket, model_id):
         socket = urlparse(socket)
         socket = socket.path if socket.netloc == '' else socket.netloc
-
         self._socket = socket
-        self._id = model_id
 
+        self._id = model_id
         self._status_url = "https://{}/api/v1/deployment/status/{}".format(socket, model_id)
 
-        self._url = None
+        self._prediction_url = None
 
         self._session = requests.Session()
 
+        self._auth = {self._GRPC_PREFIX+'email': os.environ['VERTA_EMAIL'],
+                      self._GRPC_PREFIX+'developer_key': os.environ.get('VERTA_DEV_KEY'),
+                      self._GRPC_PREFIX+'source': "PythonClient"}
+
     def __repr__(self):
         return "<Model {}>".format(self._id)
+
+    @classmethod
+    def from_url(cls, url, token):
+        """
+
+        url : str, optional
+            Prediction endpoint URL or path. Can be copy and pasted directly from the Verta Web App.
+        token : str, optional
+            Prediction token. Can be copy and pasted directly from the Verta Web App.
+
+        """
+        parsed_url = urlparse(url)
+
+        deployed_model = cls(parsed_url.netloc, "")
+        deployed_model._id = None
+        deployed_model._status_url = None
+
+        deployed_model._prediction_url = urljoin("https://{}".format(parsed_url.netloc), parsed_url.path)
+        deployed_model._session.headers['Access-Token'] = token
+
+        return deployed_model
 
     def _set_token_and_url(self):
         response = self._session.get(self._status_url)
         response.raise_for_status()
         status = response.json()
         if 'token' in status and 'api' in status:
-            self._session.headers['Access-token'] = status['token']
-            self._url = "https://{}{}".format(self._socket, status['api'])
+            self._session.headers['Access-Token'] = status['token']
+            self._prediction_url = urljoin("https://{}".format(self._socket), status['api'])
         else:
             raise RuntimeError("token not found in status endpoint response; deployment may not be ready")
 
     def _predict(self, x, compress=False):
         """This is like ``DeployedModel.predict()``, but returns the raw ``Response`` for debugging."""
-        if 'Access-token' not in self._session.headers or self._url is None:
+        if 'Access-token' not in self._session.headers or self._prediction_url is None:
             self._set_token_and_url()
 
         if compress:
@@ -75,12 +99,12 @@ class DeployedModel:
             gzstream.seek(0)
 
             return self._session.post(
-                self._url,
+                self._prediction_url,
                 headers={'Content-Encoding': 'gzip'},
                 data=gzstream.read(),
             )
         else:
-            return self._session.post(self._url, json=x)
+            return self._session.post(self._prediction_url, json=x)
 
     @property
     def is_deployed(self):
