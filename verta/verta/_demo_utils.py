@@ -24,11 +24,13 @@ class DeployedModel:
     Parameters
     ----------
     socket : str
-        Hostname of the node running the Verta backend.
+        Hostname of the node running the Verta backend, e.g. "app.verta.ai".
     model_id : str, optional
-        id of the deployed ExperimentRun/ModelRecord.
+        ID of the deployed ExperimentRun/ModelRecord.
     url : str, optional
+        Prediction endpoint URL or path. Can be copy and pasted directly from the Verta Web App.
     token : str, optional
+        Prediction token. Can be copy and pasted directly from the Verta Web App.
 
     Attributes
     ----------
