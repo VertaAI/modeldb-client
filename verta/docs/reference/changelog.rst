@@ -2,6 +2,16 @@ Release Notes
 =============
 
 
+v0.12.8 (2019-08-08)
+--------------------
+
+Internal Changes
+^^^^^^^^^^^^^^^^
+- bump patch version to 8, to celebrate August 8th
+- `handle getting Verta environment variables more consistently
+  <https://github.com/VertaAI/modeldb-client/commit/ad9971398273b0136b6a96d46ff80fb7a0d4de37>`_
+
+
 v0.12.7 (2019-08-08)
 --------------------
 
