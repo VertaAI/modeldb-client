@@ -2,6 +2,33 @@ Release Notes
 =============
 
 
+v0.12.7 (2019-08-08)
+--------------------
+
+New Features
+^^^^^^^^^^^^
+- `support logging functions for deployment
+  <https://github.com/VertaAI/modeldb-client/pull/157>`_
+- `ignore virtual environment directories when logging custom modules for deployment
+  <https://github.com/VertaAI/modeldb-client/pull/161>`_
+
+Bug Fixes
+^^^^^^^^^
+- `define source code UTF-8 encoding for Python 2 compatibility
+  <https://github.com/VertaAI/modeldb-client/pull/159>`_
+- `use new-style classes for Python 2 compatibility
+  <https://github.com/VertaAI/modeldb-client/commit/bbfa327aa9acf5aef8c1f95d3f5602663f9eef95>`_
+
+Internal Changes
+^^^^^^^^^^^^^^^^
+- `implement DeployedModel::from_url() factory method
+  <https://github.com/VertaAI/modeldb-client/pull/163>`_
+- `propagate runtime errors to the Client during DeployedModel.predict()
+  <https://github.com/VertaAI/modeldb-client/commit/2f55d113a07fca42b93e5cfdce909bec9b139869>`_
+- `add custom module logging example notebook
+  <https://github.com/VertaAI/modeldb-client/pull/155>`_
+
+
 v0.12.6 (2019-08-01)
 --------------------
 
