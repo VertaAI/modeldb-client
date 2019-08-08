@@ -25,8 +25,10 @@ class DeployedModel:
     ----------
     socket : str
         Hostname of the node running the Verta backend.
-    model_id : str
+    model_id : str, optional
         id of the deployed ExperimentRun/ModelRecord.
+    url : str, optional
+    token : str, optional
 
     Attributes
     ----------
@@ -36,7 +38,12 @@ class DeployedModel:
     """
     _GRPC_PREFIX = "Grpc-Metadata-"
 
-    def __init__(self, socket, model_id):
+    def __init__(self, socket, model_id=None, url=None, token=None):
+        if model_id is None and (url is None or token is None):
+            raise ValueError("`url` and `token` must be provided together")
+        elif model_id is not None and (url is not None or token is not None):
+            raise ValueError("`url` and `token` cannot be provided if `model_id` is provided")
+
         socket = urlparse(socket)
         socket = socket.path if socket.netloc == '' else socket.netloc
 
