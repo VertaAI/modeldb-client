@@ -45,7 +45,7 @@ from . import _artifact_utils
 from . import utils
 
 
-class Client:
+class Client(object):
     """
     Object for interfacing with the ModelDB backend.
 
@@ -826,7 +826,7 @@ class BigQueryDatasetVersionInfo(QueryDatasetVersionInfo):
         return client.get_job(job_id, location = location)
 
 
-class _ModelDBEntity:
+class _ModelDBEntity(object):
     def __init__(self, conn, conf, service_module, service_url_component, id):
         self._conn = conn
         self._conf = conf
