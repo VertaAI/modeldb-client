@@ -48,7 +48,7 @@ class DeployedModel:
 
         self._session = requests.Session()
 
-        self._auth = {self._GRPC_PREFIX+'email': os.environ['VERTA_EMAIL'],
+        self._auth = {self._GRPC_PREFIX+'email': os.environ.get('VERTA_EMAIL'),
                       self._GRPC_PREFIX+'developer_key': os.environ.get('VERTA_DEV_KEY'),
                       self._GRPC_PREFIX+'source': "PythonClient"}
 

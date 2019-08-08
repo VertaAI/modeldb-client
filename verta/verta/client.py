@@ -100,7 +100,7 @@ class Client(object):
             email = os.environ['VERTA_EMAIL']
             print("set email from environment")
         if dev_key is None and 'VERTA_DEV_KEY' in os.environ:
-            dev_key = os.environ.get('VERTA_DEV_KEY')
+            dev_key = os.environ['VERTA_DEV_KEY']
             print("set developer key from environment")
 
         if email is None and dev_key is None:
