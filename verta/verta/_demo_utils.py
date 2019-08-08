@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import six
-from six.moves.urllib.parse import urlparse
+from six.moves.urllib.parse import urljoin, urlparse
 
 import json
 import gzip
@@ -46,18 +46,19 @@ class DeployedModel:
 
         socket = urlparse(socket)
         socket = socket.path if socket.netloc == '' else socket.netloc
-
         self._socket = socket
+
+        self._id = model_id
+        self._status_url = None if model_id is None else "https://{}/api/v1/deployment/status/{}".format(socket, model_id)
+
+        self._prediction_url = None if url is None else urljoin("https://{}".format(self._socket), urlparse(url).path)
+
+        self._session = requests.Session()
+        self._session.headers['Access-Token'] = token
+
         self._auth = {self._GRPC_PREFIX+'email': os.environ['VERTA_EMAIL'],
                       self._GRPC_PREFIX+'developer_key': os.environ.get('VERTA_DEV_KEY'),
                       self._GRPC_PREFIX+'source': "PythonClient"}
-        self._id = model_id
-
-        self._status_url = "https://{}/api/v1/deployment/status/{}".format(socket, model_id)
-
-        self._url = None
-
-        self._session = requests.Session()
 
     def __repr__(self):
         return "<Model {}>".format(self._id)
@@ -67,14 +68,14 @@ class DeployedModel:
         response.raise_for_status()
         status = response.json()
         if 'token' in status and 'api' in status:
-            self._session.headers['Access-token'] = status['token']
-            self._url = "https://{}{}".format(self._socket, status['api'])
+            self._session.headers['Access-Token'] = status['token']
+            self._prediction_url = urljoin("https://{}".format(self._socket), status['api'])
         else:
             raise RuntimeError("token not found in status endpoint response; deployment may not be ready")
 
     def _predict(self, x, compress=False):
         """This is like ``DeployedModel.predict()``, but returns the raw ``Response`` for debugging."""
-        if 'Access-token' not in self._session.headers or self._url is None:
+        if 'Access-token' not in self._session.headers or self._prediction_url is None:
             self._set_token_and_url()
 
         if compress:
@@ -85,12 +86,12 @@ class DeployedModel:
             gzstream.seek(0)
 
             return self._session.post(
-                self._url,
+                self._prediction_url,
                 headers={'Content-Encoding': 'gzip'},
                 data=gzstream.read(),
             )
         else:
-            return self._session.post(self._url, json=x)
+            return self._session.post(self._prediction_url, json=x)
 
     @property
     def is_deployed(self):
