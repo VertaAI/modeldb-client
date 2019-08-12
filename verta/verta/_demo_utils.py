@@ -80,6 +80,8 @@ class DeployedModel:
         response = self._session.get(self._status_url)
         response.raise_for_status()
         status = response.json()
+        if status['status'] == 'error':
+            raise RuntimeError("Error in deployed model: %s" % status['message'])
         if 'token' in status and 'api' in status:
             self._session.headers['Access-Token'] = status['token']
             self._prediction_url = urljoin("https://{}".format(self._socket), status['api'])
