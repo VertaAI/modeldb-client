@@ -123,9 +123,13 @@ class Client(object):
         back_end_url = urlparse(host)
         scheme = back_end_url.scheme or scheme
         socket = back_end_url.netloc + back_end_url.path.rstrip('/')
+        if port is not None:
+            warnings.warn("`port` (the second parameter) will removed in a later version;"
+                          " please combine it with the first parameter, e.g. \"localhost:8080\"",
+                          category=DeprecationWarning, stacklevel=2)
+            socket = "{}:{}".format(socket, port)
 
         # verify connection
-        socket = socket if port is None else "{}:{}".format(socket, port)
         conn = _utils.Connection(scheme, socket, auth, max_retries, ignore_conn_err)
         try:
             response = _utils.make_request("GET",
