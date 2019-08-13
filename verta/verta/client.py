@@ -126,7 +126,7 @@ class Client(object):
         if port is not None:
             warnings.warn("`port` (the second parameter) will removed in a later version;"
                           " please combine it with the first parameter, e.g. \"localhost:8080\"",
-                          category=DeprecationWarning, stacklevel=2)
+                          category=FutureWarning)
             socket = "{}:{}".format(socket, port)
 
         # verify connection
@@ -3019,7 +3019,7 @@ class ExperimentRun(_ModelDBEntity):
         if search_path is not None:
             warnings.warn("`search_path` is no longer used and will removed in a later version;"
                           " consider removing it from the function call",
-                          category=DeprecationWarning, stacklevel=2)
+                          category=FutureWarning)
         if isinstance(paths, six.string_types):
             paths = [paths]
 
