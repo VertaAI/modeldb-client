@@ -59,7 +59,7 @@ def test_series_from_api(api_and_values):
 def test_dataframe_from_api(api_and_values):
     api, values = api_and_values
     assert api['name'] == ''
-    assert api['type'] == 'VertaJson'
+    assert api['type'] == 'VertaList'
     for subapi, c in zip(api['value'], values.columns):
         subvalues = values[c]
 

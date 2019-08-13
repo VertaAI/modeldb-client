@@ -40,4 +40,4 @@ model_api = st.recursive(modelapi_base, recursive)
 # pandas-specific types
 name = st.text(printable)
 model_api_series = st.tuples(name, modelapi_base).map(lambda arg: dict_replace(arg[1], 'name', arg[0]))
-model_api_dataframe = st.lists(model_api_series, 1, unique_by=lambda x: x['name']).map(lambda v: {'type': 'VertaJson', 'name': '', 'value': v})
+model_api_dataframe = st.lists(model_api_series, 1, unique_by=lambda x: x['name']).map(lambda v: {'type': 'VertaList', 'name': '', 'value': v})
