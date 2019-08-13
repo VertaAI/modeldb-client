@@ -2,6 +2,25 @@ Release Notes
 =============
 
 
+v0.12.9 (2019-08-13)
+--------------------
+
+New Features
+^^^^^^^^^^^^
+- `support passing in a full URL as the host parameter to Client()
+  <https://github.com/VertaAI/modeldb-client/pull/166>`_
+
+Bug Fixes
+^^^^^^^^^
+- `fix bugs regarding logging and retrieving datasets
+  <https://github.com/VertaAI/modeldb-client/pull/167>`_
+
+Internal Changes
+^^^^^^^^^^^^^^^^
+- `propagate more deployment errors to the Client
+  <https://github.com/VertaAI/modeldb-client/pull/165>`_
+
+
 v0.12.8 (2019-08-08)
 --------------------
 
