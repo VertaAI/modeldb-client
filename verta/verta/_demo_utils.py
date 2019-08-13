@@ -37,12 +37,12 @@ class DeployedModel:
     _GRPC_PREFIX = "Grpc-Metadata-"
 
     def __init__(self, socket, model_id):
-        socket = urlparse(socket)
-        socket = socket.path if socket.netloc == '' else socket.netloc
-        self._socket = socket
+        back_end_url = urlparse(socket)
+        self._scheme = back_end_url.scheme or "https"
+        self._socket = back_end_url.netloc + back_end_url.path.rstrip('/')
 
         self._id = model_id
-        self._status_url = "https://{}/api/v1/deployment/status/{}".format(socket, model_id)
+        self._status_url = "{}://{}/api/v1/deployment/status/{}".format(self._scheme, self._socket, model_id)
 
         self._prediction_url = None
 
@@ -71,7 +71,7 @@ class DeployedModel:
         deployed_model._id = None
         deployed_model._status_url = None
 
-        deployed_model._prediction_url = urljoin("https://{}".format(parsed_url.netloc), parsed_url.path)
+        deployed_model._prediction_url = urljoin("{}://{}".format(parsed_url.scheme, parsed_url.netloc), parsed_url.path)
         deployed_model._session.headers['Access-Token'] = token
 
         return deployed_model
@@ -84,7 +84,7 @@ class DeployedModel:
             raise RuntimeError(status['message'])
         if 'token' in status and 'api' in status:
             self._session.headers['Access-Token'] = status['token']
-            self._prediction_url = urljoin("https://{}".format(self._socket), status['api'])
+            self._prediction_url = urljoin("{}://{}".format(self._scheme, self._socket), status['api'])
         else:
             raise RuntimeError("token not found in status endpoint response; deployment may not be ready")
 
