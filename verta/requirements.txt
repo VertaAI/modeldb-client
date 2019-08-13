@@ -9,7 +9,6 @@ six>=1.11
 pytest>=4.3
 
 # unit testing dependencies
-google-cloud-bigquery
 matplotlib<3.0
 numpy<1.17
 pandas
