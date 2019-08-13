@@ -103,6 +103,7 @@ class Client(object):
             dev_key = os.environ['VERTA_DEV_KEY']
             print("set developer key from environment")
 
+        scheme = auth = None
         if email is None and dev_key is None:
             if debug:
                 print("[DEBUG] email and developer key not found; auth disabled")
@@ -119,17 +120,12 @@ class Client(object):
         else:
             raise ValueError("`email` and `dev_key` must be provided together")
 
-        host = urlparse(host)
-        if host.netloc == '':
-            # We passed a host that cannot be resolved into a basic URL. Assume it's the right path
-            host = host.path
-        else:
-            # Otherwise, just get the netlocation, which contains the hostname and port
-            # TODO(conrado): support subpaths? (e.g. example.com/backend)
-            host = host.netloc
+        back_end_url = urlparse(host)
+        scheme = back_end_url.scheme or scheme
+        socket = back_end_url.netloc + back_end_url.path.rstrip('/')
 
         # verify connection
-        socket = host if port is None else "{}:{}".format(host, port)
+        socket = socket if port is None else "{}:{}".format(socket, port)
         conn = _utils.Connection(scheme, socket, auth, max_retries, ignore_conn_err)
         try:
             response = _utils.make_request("GET",
