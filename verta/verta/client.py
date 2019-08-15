@@ -12,25 +12,22 @@ import time
 import warnings
 import zipfile
 
-import PIL
 import requests
+
+try:
+    import PIL
+except ImportError:  # Pillow not installed
+    PIL = None
 
 try:
     from google.cloud import bigquery
 except ImportError:  # BigQuery not installed
-    pass
-else:
-    import datetime  # TODO: remove this
-    import pytz
+    bigquery = None
 
 try:
-    from boto3 import client as BotoClient
+    import boto3
 except ImportError:  # Boto 3 not installed
-    pass
-else:
-    import datetime  # TODO: remove this
-    import pytz  # TODO: remove this
-    import dateutil
+    boto3 = None
 
 from ._protos.public.modeldb import CommonService_pb2 as _CommonService
 from ._protos.public.modeldb import ProjectService_pb2 as _ProjectService
@@ -844,8 +841,11 @@ class S3DatasetVersionInfo(PathDatasetVersionInfo):
         self.compute_dataset_size()
 
     def get_dataset_part_infos(self):
+        if boto3 is None:  # Boto 3 not installed
+            six.raise_from(ImportError("Boto 3 is not installed; try `pip install boto3`"), None)
+
+        conn = boto3.client('s3')
         dataset_part_infos = []
-        conn = BotoClient('s3')
         if self.key is None:
             for obj in conn.list_objects(Bucket=self.bucket_name)['Contents']:
                 dataset_part_infos.append(self.get_s3_object_info(obj))
@@ -862,8 +862,7 @@ class S3DatasetVersionInfo(PathDatasetVersionInfo):
         dataset_part_info.path = object_info['Key'] if key is None else key
         dataset_part_info.size = object_info['Size'] if key is None else object_info['ContentLength']
         dataset_part_info.checksum = object_info['ETag']
-        dataset_part_info.last_modified_at_source = int((object_info['LastModified']
-                                                       - datetime.datetime(1970, 1, 1, tzinfo=pytz.UTC)).total_seconds())
+        dataset_part_info.last_modified_at_source = int(object_info['LastModified'].timestamp())
         return dataset_part_info
 
 
@@ -971,7 +970,7 @@ class BigQueryDatasetVersionInfo(QueryDatasetVersionInfo):
         if job_id is not None and location:
             self.job_id = job_id
             job = self.get_bq_job(job_id, location)
-            self.execution_timestamp = int((job.started - datetime.datetime(1970,1,1, tzinfo=pytz.UTC)).total_seconds())
+            self.execution_timestamp = int(job.started.timestamp())
             self.data_source_uri = job.self_link
             self.query = job.query
             #TODO: extract the query template
@@ -983,6 +982,11 @@ class BigQueryDatasetVersionInfo(QueryDatasetVersionInfo):
 
     @staticmethod
     def get_bq_job(job_id, location):
+        if bigquery is None:  # BigQuery not installed
+            six.raise_from(ImportError("BigQuery is not installed;"
+                                       " try `pip install google-cloud-bigquery`"),
+                           None)
+
         client = bigquery.Client()
         return client.get_job(job_id, location=location)
 
@@ -2996,9 +3000,11 @@ class ExperimentRun(_ModelDBEntity):
         if path_only:
             return image
         else:
+            if PIL is None:  # Pillow not installed
+                return six.BytesIO(image)
             try:
                 return PIL.Image.open(six.BytesIO(image))
-            except IOError:
+            except IOError:  # can't be handled by Pillow
                 return six.BytesIO(image)
 
     def log_artifact(self, key, artifact):
