@@ -844,7 +844,7 @@ class S3DatasetVersionInfo(PathDatasetVersionInfo):
         try:
             conn = BotoClient('s3')
         except NameError:  # Boto 3 not installed
-            six.raise_from(ImportError("Boto 3 is not installed"), None)
+            six.raise_from(ImportError("Boto 3 is not installed; try `pip install boto3`"), None)
         dataset_part_infos = []
         if self.key is None:
             for obj in conn.list_objects(Bucket=self.bucket_name)['Contents']:
@@ -985,7 +985,8 @@ class BigQueryDatasetVersionInfo(QueryDatasetVersionInfo):
         try:
             client = bigquery.Client()
         except NameError:  # BigQuery not installed
-            six.raise_from(ImportError("BigQuery is not installed"), None)
+            six.raise_from(ImportError("BigQuery is not installed; try `pip install google-cloud-bigquery`"),
+                           None)
         return client.get_job(job_id, location=location)
 
 
