@@ -460,13 +460,13 @@ class Dataset(object):
         if name is not None and _dataset_id is not None:
             raise ValueError("cannot specify both `name` and `_dataset_id`")
 
-        # retrieve dataset by id
         if _dataset_id is not None:
             dataset = Dataset._get(conn, _dataset_id=_dataset_id)
-            if dataset is None:
+            if dataset is not None:
+                print("set existing Dataset: {}".format(dataset.name))
+            else:
                 raise ValueError("Dataset with ID {} not found".format(_dataset_id))
         else:
-            # create a new dataset
             if name is None:
                 name = Dataset._generate_default_name()
             try:
@@ -477,6 +477,7 @@ class Dataset(object):
                         warnings.warn("Dataset with name {} already exists;"
                                       " cannot initialize `desc`, `tags`, or `attrs`".format(name))
                     dataset = Dataset._get(conn, name)
+                    print("set existing Dataset: {}".format(dataset.name))
                 else:
                     raise e
             else:
@@ -515,6 +516,22 @@ class Dataset(object):
             if response.ok:
                 dataset = _utils.json_to_proto(response.json(), Message.Response).dataset
                 return dataset
+            else:
+                if response.status_code == 404 and response.json()['code'] == 5:
+                    return None
+                else:
+                    response.raise_for_status()
+        elif dataset_name is not None:
+            Message = _DatasetService.GetDatasetByName
+            msg = Message(name=dataset_name)
+            data = _utils.proto_to_json(msg)
+            response = _utils.make_request("GET",
+                                           "{}://{}/v1/dataset/getDatasetByName".format(conn.scheme, conn.socket),
+                                           conn, params=data)
+
+            if response.ok:
+                response_msg = _utils.json_to_proto(response.json(), Message.Response)
+                return response_msg.dataset_by_user
             else:
                 if response.status_code == 404 and response.json()['code'] == 5:
                     return None
