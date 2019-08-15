@@ -837,8 +837,11 @@ class S3DatasetVersionInfo(PathDatasetVersionInfo):
         self.compute_dataset_size()
 
     def get_dataset_part_infos(self):
+        try:
+            conn = BotoClient('s3')
+        except NameError:  # Boto 3 not installed
+            six.raise_from(ImportError("Boto 3 is not installed"), None)
         dataset_part_infos = []
-        conn = BotoClient('s3')
         if self.key is None:
             for obj in conn.list_objects(Bucket=self.bucket_name)['Contents']:
                 dataset_part_infos.append(self.get_s3_object_info(obj))
@@ -975,7 +978,10 @@ class BigQueryDatasetVersionInfo(QueryDatasetVersionInfo):
 
     @staticmethod
     def get_bq_job(job_id, location):
-        client = bigquery.Client()
+        try:
+            client = bigquery.Client()
+        except NameError:  # BigQuery not installed
+            six.raise_from(ImportError("BigQuery is not installed"), None)
         return client.get_job(job_id, location=location)
 
 
