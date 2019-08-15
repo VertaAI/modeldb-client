@@ -17,17 +17,17 @@ import requests
 try:
     import PIL
 except ImportError:  # Pillow not installed
-    pass
+    PIL = None
 
 try:
     from google.cloud import bigquery
 except ImportError:  # BigQuery not installed
-    pass
+    bigquery = None
 
 try:
-    from boto3 import client as BotoClient
+    import boto3
 except ImportError:  # Boto 3 not installed
-    pass
+    boto3 = None
 
 from ._protos.public.modeldb import CommonService_pb2 as _CommonService
 from ._protos.public.modeldb import ProjectService_pb2 as _ProjectService
@@ -841,10 +841,10 @@ class S3DatasetVersionInfo(PathDatasetVersionInfo):
         self.compute_dataset_size()
 
     def get_dataset_part_infos(self):
-        try:
-            conn = BotoClient('s3')
-        except NameError:  # Boto 3 not installed
+        if boto3 is None:  # Boto 3 not installed
             six.raise_from(ImportError("Boto 3 is not installed; try `pip install boto3`"), None)
+
+        conn = boto3.client('s3')
         dataset_part_infos = []
         if self.key is None:
             for obj in conn.list_objects(Bucket=self.bucket_name)['Contents']:
@@ -982,11 +982,12 @@ class BigQueryDatasetVersionInfo(QueryDatasetVersionInfo):
 
     @staticmethod
     def get_bq_job(job_id, location):
-        try:
-            client = bigquery.Client()
-        except NameError:  # BigQuery not installed
-            six.raise_from(ImportError("BigQuery is not installed; try `pip install google-cloud-bigquery`"),
+        if bigquery is None:  # BigQuery not installed
+            six.raise_from(ImportError("BigQuery is not installed;"
+                                       " try `pip install google-cloud-bigquery`"),
                            None)
+
+        client = bigquery.Client()
         return client.get_job(job_id, location=location)
 
 
@@ -2999,10 +3000,11 @@ class ExperimentRun(_ModelDBEntity):
         if path_only:
             return image
         else:
+            if PIL is None:  # Pillow not installed
+                return six.BytesIO(image)
             try:
                 return PIL.Image.open(six.BytesIO(image))
-            except (NameError,  # Pillow not installed
-                    IOError):  # can't be handled by Pillow
+            except IOError:  # can't be handled by Pillow
                 return six.BytesIO(image)
 
     def log_artifact(self, key, artifact):
