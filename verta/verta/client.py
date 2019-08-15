@@ -12,8 +12,12 @@ import time
 import warnings
 import zipfile
 
-import PIL
 import requests
+
+try:
+    import PIL
+except ImportError:  # Pillow not installed
+    pass
 
 try:
     from google.cloud import bigquery
@@ -2996,7 +3000,8 @@ class ExperimentRun(_ModelDBEntity):
         else:
             try:
                 return PIL.Image.open(six.BytesIO(image))
-            except IOError:
+            except (NameError,  # Pillow not installed
+                    IOError):  # can't be handled by Pillow
                 return six.BytesIO(image)
 
     def log_artifact(self, key, artifact):
