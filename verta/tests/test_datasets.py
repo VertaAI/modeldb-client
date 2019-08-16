@@ -7,7 +7,7 @@ import time
 import utils
 import shutil
 
-from verta.client import Dataset, DatasetVersion, S3DatasetVersionInfo, FilesystemDatasetVersionInfo
+from verta._dataset import Dataset, DatasetVersion, S3DatasetVersionInfo, FilesystemDatasetVersionInfo
 from verta._protos.public.modeldb import DatasetService_pb2 as _DatasetService
 from verta._protos.public.modeldb import DatasetVersionService_pb2 as _DatasetVersionService
 
