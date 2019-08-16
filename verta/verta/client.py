@@ -309,25 +309,25 @@ class Client(object):
                              desc, tags, attrs)
 
     # NOTE: dataset visibility cannot be set via a client
-    def create_dataset(self, name=None, dataset_type=None,
+    def create_dataset(self, name=None, type="raw",
                        desc=None, tags=None, attrs=None,
                        id=None):
-        return _dataset.Dataset(self._conn, self._conf,
-                       name=name, dataset_type=dataset_type,
-                       desc=desc, tags=tags, attrs=attrs,
+        if type == "raw":
+            DatasetSubclass = _dataset.RawDataset
+        elif type == "s3":
+            DatasetSubclass = _dataset.S3Dataset
+        elif type == "local":
+            DatasetSubclass = _dataset.LocalDataset
+        elif type == "big query":
+            DatasetSubclass = _dataset.BigQueryDataset
+        elif type == "atlas hive":
+            DatasetSubclass = _dataset.AtlasHiveDataset
+        else:
+            raise ValueError("`type` must be one of {'raw', 's3', 'local', 'big query', 'atlas hive'}")
+
+        return DatasetSubclass(self._conn, self._conf,
+                       name=name, desc=desc, tags=tags, attrs=attrs,
                        _dataset_id=id)
-
-    def create_s3_dataset(self, name):
-        return self.create_dataset(name, dataset_type=_dataset._DatasetService.DatasetTypeEnum.PATH)
-
-    def create_local_dataset(self, name):
-        return self.create_dataset(name, dataset_type=_dataset._DatasetService.DatasetTypeEnum.PATH)
-
-    def create_big_query_dataset(self, name):
-        return self.create_dataset(name, dataset_type=_dataset._DatasetService.DatasetTypeEnum.QUERY)
-
-    def create_atlas_hive_dataset(self, name):
-        return self.create_dataset(name, dataset_type=_dataset._DatasetService.DatasetTypeEnum.QUERY)
 
     # TODO: needs a by name after backend implements
     def get_dataset(self, id):
