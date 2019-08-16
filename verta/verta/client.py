@@ -2400,6 +2400,8 @@ class ExperimentRun(_ModelDBEntity):
         if isinstance(paths, six.string_types):
             paths = [paths]
 
+        CUSTOM_MODULES_DIR = "/app/custom_modules/"
+
         # convert into absolute paths
         paths = map(os.path.abspath, paths)
         # add trailing separator to directories
@@ -2407,7 +2409,7 @@ class ExperimentRun(_ModelDBEntity):
                  for path in paths]
 
         # obtain deepest common directory
-        curr_dir = os.path.join(os.path.abspath(os.curdir), "")
+        curr_dir = os.path.join(os.getcwd(), "")
         paths_plus = paths + [curr_dir]
         common_prefix = os.path.commonprefix(paths_plus)
         common_dir = os.path.dirname(common_prefix)
@@ -2425,7 +2427,7 @@ class ExperimentRun(_ModelDBEntity):
         # strip common directory
         search_paths = list(map(lambda path: os.path.relpath(path, common_dir), search_paths))
         # append to Deployment's custom modules directory
-        search_paths = list(map(lambda path: os.path.join("/app/custom_modules/", path), search_paths))
+        search_paths = list(map(lambda path: os.path.join(CUSTOM_MODULES_DIR, path), search_paths))
         if self._conf.debug:
             print("[DEBUG] deployment search paths are:")
             pprint.pprint(search_paths)
@@ -2434,12 +2436,17 @@ class ExperimentRun(_ModelDBEntity):
         with zipfile.ZipFile(bytestream, 'w') as zipf:
             for filepath in filepaths:
                 zipf.write(filepath, os.path.relpath(filepath, common_dir))
+            working_dir = os.path.join(CUSTOM_MODULES_DIR, os.path.relpath(curr_dir, common_dir))
             zipf.writestr(
                 "_verta_config.py",
                 six.ensure_binary('\n'.join([
-                    "import sys",
+                    "import os, sys",
+                    "",
                     "",
                     "sys.path = sys.path[:1] + {} + sys.path[1:]".format(list(search_paths)),
+                    "",
+                    "os.makedirs(\"{}\")".format(working_dir),
+                    "os.chdir(\"{}\")".format(working_dir),
                 ]))
             )
             if self._conf.debug:
