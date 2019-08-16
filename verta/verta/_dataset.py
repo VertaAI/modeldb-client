@@ -202,7 +202,6 @@ class AtlasHiveDataset(QueryDataset):
                        atlas_entity_endpoint="/api/atlas/v2/entity/bulk",
                        parent_id=None,
                        desc=None, tags=None, attrs=None):
-        # TODO: use the input tagas and attrs
         version_info = _dataset.AtlasHiveDatasetVersionInfo(
             guid=guid, atlas_url=atlas_url,
             atlas_user_name=atlas_user_name, atlas_password=atlas_password,
@@ -212,8 +211,8 @@ class AtlasHiveDataset(QueryDataset):
                                    dataset_id=self.id, dataset_type=self.TYPE,
                                    dataset_version_info=version_info, parent_id=parent_id,
                                    desc=desc,
-                                   tags=version_info.tags,
-                                   attrs=version_info.attributes)
+                                   tags=tags or version_info.tags or [],
+                                   attrs=attrs or version_info.attributes or {})
 
 
 class DatasetVersion(object):
