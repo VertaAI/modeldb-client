@@ -355,19 +355,6 @@ class Client(object):
     def get_dataset_version(self, id):
         return _dataset.DatasetVersion._get(self._conn, _dataset_version_id=id)
 
-    # TODO: sorting seems to be incorrect
-    def get_latest_version_for_dataset(self, dataset, ascending=None, sort_key=None):
-        Message = _dataset._DatasetVersionService.GetLatestDatasetVersionByDatasetId
-        msg = Message(dataset_id=dataset.id, ascending=ascending, sort_key=sort_key)
-        data = _utils.proto_to_json(msg)
-        response = _utils.make_request("GET",
-                                        "{}://{}/v1/dataset-version/getLatestDatasetVersionByDatasetId".format(self._conn.scheme, self._conn.socket),
-                                        self._conn, params=data)
-        response.raise_for_status()
-
-        response_msg = _utils.json_to_proto(response.json(), Message.Response)
-        return response_msg.dataset_version
-
 
 class _ModelDBEntity(object):
     def __init__(self, conn, conf, service_module, service_url_component, id):
