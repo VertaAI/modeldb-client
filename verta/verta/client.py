@@ -352,7 +352,8 @@ class Client(object):
                                desc=None, tags=None, dataset_type=None, attrs=None,
                                version=None, id=None):
         return _dataset.DatasetVersion(self._conn, self._conf,
-                              dataset_id=dataset.id, dataset_type=dataset_type or dataset.dataset_type or 0,
+                              dataset_id=dataset.id,
+                              dataset_type=dataset_type or dataset.dataset_type or _dataset._DatasetService.DatasetTypeEnum.RAW,
                               dataset_version_info=dataset_version_info,
                               parent_id=parent_id,
                               desc=desc, tags=tags, attrs=attrs,
