@@ -350,18 +350,6 @@ class Client(object):
         return [_dataset.Dataset(self._conn, self._conf, _dataset_id = dataset.id)
                 for dataset in response_msg.datasets]
 
-    def create_dataset_version(self, dataset, dataset_version_info,
-                               parent_id=None,
-                               desc=None, tags=None, dataset_type=None, attrs=None,
-                               version=None, id=None):
-        return _dataset.DatasetVersion(self._conn, self._conf,
-                              dataset_id=dataset.id,
-                              dataset_type=dataset_type or dataset.dataset_type or _dataset._DatasetService.DatasetTypeEnum.RAW,
-                              dataset_version_info=dataset_version_info,
-                              parent_id=parent_id,
-                              desc=desc, tags=tags, attrs=attrs,
-                              version=version, _dataset_version_id=id)
-
     # TODO: this should also allow gets based on dataset_id and version, but
     # not supported by backend yet
     def get_dataset_version(self, id):
