@@ -309,9 +309,12 @@ class Client(object):
                              desc, tags, attrs)
 
     # NOTE: dataset visibility cannot be set via a client
-    def create_dataset(self, name=None, type="raw",
+    def set_dataset(self, name=None, type="raw",
                        desc=None, tags=None, attrs=None,
                        id=None):
+        # Note: If a dataset with `name` already exists,
+        #       there is no way to determine its type/subclass from back end,
+        #       so it is assumed that the user has passed in the correct `type`.
         if type == "raw":
             DatasetSubclass = _dataset.RawDataset
         elif type == "s3":
