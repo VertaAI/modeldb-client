@@ -131,6 +131,46 @@ class Dataset(object):
         else:
             response.raise_for_status()
 
+    def create_version(self):
+        raise NotImplementedError('this function must be implemented by subclasses')
+
+
+class RawDataset(Dataset):
+    TYPE = _DatasetService.DatasetTypeEnum.RAW
+
+    def __init__(self, *args, **kwargs):
+        super(RawDataset, self).__init__(*args, **kwargs, dataset_type=self.TYPE)
+
+
+class PathDataset(Dataset):
+    TYPE = _DatasetService.DatasetTypeEnum.PATH
+
+    def __init__(self, *args, **kwargs):
+        super(PathDataset, self).__init__(*args, **kwargs, dataset_type=self.TYPE)
+
+
+class QueryDataset(Dataset):
+    TYPE = _DatasetService.DatasetTypeEnum.QUERY
+
+    def __init__(self, *args, **kwargs):
+        super(QueryDataset, self).__init__(*args, **kwargs, dataset_type=self.TYPE)
+
+
+class S3Dataset(PathDataset):
+    pass
+
+
+class LocalDataset(PathDataset):
+    pass
+
+
+class BigQueryDataset(QueryDataset):
+    pass
+
+
+class AtlasHiveDataset(QueryDataset):
+    pass
+
 
 class DatasetVersion(object):
     # TODO: visibility not done
@@ -270,7 +310,7 @@ class DatasetVersion(object):
                             parent_id=None,
                             desc=None, tags=None, attrs=None,
                             version=None):
-        raise NotImplementedError('Must be implemented by subclasses')
+        raise NotImplementedError('this function must be implemented by subclasses')
 
 
 class RawDatasetVersion(DatasetVersion):
@@ -300,6 +340,35 @@ class RawDatasetVersion(DatasetVersion):
         return msg
 
 
+class PathDatasetVersion(DatasetVersion):
+    def __init__(self, *args, **kwargs):
+        super(PathDatasetVersion, self).__init__(*args, **kwargs)
+        self.dataset_version_info = self.dataset_version.path_dataset_version_info
+        # TODO: this is hacky, we should store dataset_version
+        self.dataset_version = None
+
+    @staticmethod
+    def make_create_message(dataset_id, dataset_type,
+                            dataset_version_info,
+                            parent_id=None,
+                            desc=None, tags=None, attrs=None,
+                            version=None):
+        Message = _DatasetVersionService.CreateDatasetVersion
+        # turn dataset_version_info into proto format
+        version_msg = _DatasetVersionService.PathDatasetVersionInfo
+        converted_dataset_version_info = version_msg(
+            location_type=dataset_version_info.location_type,
+            size=dataset_version_info.size,
+            dataset_part_infos=dataset_version_info.dataset_part_infos,
+            base_path=dataset_version_info.base_path
+        )
+        msg = Message(dataset_id=dataset_id, parent_id=parent_id,
+                        description=desc, tags=tags, dataset_type=dataset_type,
+                        attributes=attrs, version=version,
+                        path_dataset_version_info=converted_dataset_version_info)
+        return msg
+
+
 class QueryDatasetVersion(DatasetVersion):
     def __init__(self, *args, **kwargs):
         super(QueryDatasetVersion, self).__init__(*args, **kwargs)
@@ -326,35 +395,6 @@ class QueryDatasetVersion(DatasetVersion):
                       attributes=attrs, version=version,
                       # different dataset versions
                       query_dataset_version_info=converted_dataset_version_info)
-        return msg
-
-
-class PathDatasetVersion(DatasetVersion):
-    def __init__(self, *args, **kwargs):
-        super(PathDatasetVersion, self).__init__(*args, **kwargs)
-        self.dataset_version_info = self.dataset_version.path_dataset_version_info
-        # TODO: this is hacky, we should store dataset_version
-        self.dataset_version = None
-
-    @staticmethod
-    def make_create_message(dataset_id, dataset_type,
-                            dataset_version_info,
-                            parent_id=None,
-                            desc=None, tags=None, attrs=None,
-                            version=None):
-        Message = _DatasetVersionService.CreateDatasetVersion
-        # turn dataset_version_info into proto format
-        version_msg = _DatasetVersionService.PathDatasetVersionInfo
-        converted_dataset_version_info = version_msg(
-            location_type=dataset_version_info.location_type,
-            size=dataset_version_info.size,
-            dataset_part_infos=dataset_version_info.dataset_part_infos,
-            base_path=dataset_version_info.base_path
-        )
-        msg = Message(dataset_id=dataset_id, parent_id=parent_id,
-                      description=desc, tags=tags, dataset_type=dataset_type,
-                      attributes=attrs, version=version,
-                      path_dataset_version_info=converted_dataset_version_info)
         return msg
 
 
