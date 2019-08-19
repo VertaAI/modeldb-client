@@ -355,19 +355,6 @@ class Client(object):
     def get_dataset_version(self, id):
         return _dataset.DatasetVersion._get(self._conn, _dataset_version_id=id)
 
-    def get_all_versions_for_dataset(self, dataset):
-        Message = _dataset._DatasetVersionService.GetAllDatasetVersionsByDatasetId
-        msg = Message(dataset_id=dataset.id)
-        data = _utils.proto_to_json(msg)
-        response = _utils.make_request("GET",
-                                        "{}://{}/v1/dataset-version/getAllDatasetVersionsByDatasetId".format(self._conn.scheme, self._conn.socket),
-                                        self._conn, params=data)
-        response.raise_for_status()
-
-        response_msg = _utils.json_to_proto(response.json(), Message.Response)
-        return [_dataset.DatasetVersion(self._conn, self._conf, _dataset_version_id = dataset_version.id)
-                for dataset_version in response_msg.dataset_versions]
-
     # TODO: sorting seems to be incorrect
     def get_latest_version_for_dataset(self, dataset, ascending=None, sort_key=None):
         Message = _dataset._DatasetVersionService.GetLatestDatasetVersionByDatasetId
