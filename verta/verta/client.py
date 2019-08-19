@@ -349,64 +349,15 @@ class Client(object):
 
     def create_dataset_version(self, dataset, dataset_version_info,
                                parent_id=None,
-                               desc=None, tags=None, dataset_type=0, attrs=None,
+                               desc=None, tags=None, dataset_type=None, attrs=None,
                                version=None, id=None):
         return _dataset.DatasetVersion(self._conn, self._conf,
-                              dataset_id=dataset.id, dataset_type=dataset.dataset_type or dataset_type,
+                              dataset_id=dataset.id,
+                              dataset_type=dataset_type or dataset.dataset_type or _dataset._DatasetService.DatasetTypeEnum.RAW,
                               dataset_version_info=dataset_version_info,
                               parent_id=parent_id,
                               desc=desc, tags=tags, attrs=attrs,
                               version=version, _dataset_version_id=id)
-
-    def create_s3_dataset_version(self, dataset,
-                                bucket_name, key=None, url_stub=None,
-                                parent_id=None,
-                                desc=None, tags=None, attrs=None):
-        s3_dataset_version_info = _dataset.S3DatasetVersionInfo(bucket_name, key=key, url_stub=url_stub)
-        return _dataset.PathDatasetVersion(self._conn, self._conf,
-                                dataset_id=dataset.id, dataset_type=dataset.dataset_type,
-                                dataset_version_info=s3_dataset_version_info,
-                                parent_id=parent_id,
-                                desc=desc, tags=tags, attrs=attrs)
-
-    def create_local_dataset_version(self, dataset,
-                                    path,
-                                    parent_id=None,
-                                    desc=None, tags=None, attrs=None):
-        filesystem_dataset_version_info = _dataset.FilesystemDatasetVersionInfo(path)
-        return _dataset.PathDatasetVersion(self._conn, self._conf,
-                                dataset_id=dataset.id, dataset_type=dataset.dataset_type,
-                                dataset_version_info=filesystem_dataset_version_info,
-                                parent_id=parent_id,
-                                desc=desc, tags=tags, attrs=attrs)
-
-    def create_big_query_dataset_version(self, dataset,
-                                        job_id, location,
-                                        parent_id=None,
-                                        desc=None, tags=None, attrs=None):
-        filesystem_dataset_version_info = _dataset.BigQueryDatasetVersionInfo(job_id=job_id, location=location)
-        return _dataset.QueryDatasetVersion(self._conn, self._conf,
-                                    dataset_id=dataset.id, dataset_type=dataset.dataset_type,
-                                    dataset_version_info=filesystem_dataset_version_info,
-                                    parent_id=parent_id,
-                                    desc=desc, tags=tags, attrs=attrs)
-
-    def create_atlas_hive_dataset_version(self, dataset,
-                                        guid, atlas_url,
-                                        atlas_user_name, atlas_password,
-                                        atlas_entity_endpoint="/api/atlas/v2/entity/bulk",
-                                        parent_id=None,
-                                        desc=None, tags=None, attrs=None):
-        #TODO: use the input tagas and attrs
-        filesystem_dataset_version_info = _dataset.AtlasHiveDatasetVersionInfo(
-            guid=guid, atlas_url=atlas_url,
-            atlas_user_name=atlas_user_name, atlas_password=atlas_password,
-            atlas_entity_endpoint=atlas_entity_endpoint
-        )
-        return _dataset.QueryDatasetVersion(self._conn, self._conf,
-                                    dataset_id=dataset.id, dataset_type=dataset.dataset_type,
-                                    dataset_version_info=filesystem_dataset_version_info, parent_id=parent_id,
-                                    desc=desc, tags=filesystem_dataset_version_info.tags, attrs=filesystem_dataset_version_info.attributes)
 
     # TODO: this should also allow gets based on dataset_id and version, but
     # not supported by backend yet

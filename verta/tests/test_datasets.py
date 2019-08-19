@@ -328,8 +328,7 @@ class TestS3ClientFunctions:
     def test_s3_dataset_version_creation(self, client, s3_bucket):
         name = utils.gen_str()
         dataset = client.create_dataset("s3-" + name, type="s3")
-        dataset_version = client.create_s3_dataset_version(dataset,
-            s3_bucket)
+        dataset_version = dataset.create_version(s3_bucket)
 
         assert len(dataset_version.dataset_version_info.dataset_part_infos) == 2
 
@@ -344,8 +343,7 @@ class TestFilesystemClientFunctions:
         dir_name, _ = self.create_dir_with_files(num_files=3)
         name = utils.gen_str()
         dataset = client.create_dataset("fs-" + name, type="local")
-        dataset_version = client.create_local_dataset_version(dataset,
-            dir_name)
+        dataset_version = dataset.create_version(dir_name)
 
         assert len(dataset_version.dataset_version_info.dataset_part_infos) == 3
         shutil.rmtree(dir_name)
@@ -371,8 +369,7 @@ class TestBigQueryDatasetVersionInfo:
     def test_big_query_dataset_version_creation(self, client, big_query_job):
         name = utils.gen_str()
         dataset = client.create_dataset("bq-" + name, type="big query")
-        dataset_version = client.create_big_query_dataset_version(dataset,
-            job_id=big_query_job[0], location=big_query_job[1])
+        dataset_version = dataset.create_version(job_id=big_query_job[0], location=big_query_job[1])
 
         assert dataset_version.dataset_version_info.query == big_query_job[2]
 
@@ -383,7 +380,7 @@ class TestLogDatasetVersion:
         dataset = client.create_dataset("s3-" + name, type="s3")
         assert dataset.dataset_type == _DatasetService.DatasetTypeEnum.PATH
 
-        dataset_version = client.create_s3_dataset_version(dataset, s3_bucket)
+        dataset_version = dataset.create_version(s3_bucket)
         experiment_run.log_dataset_version('train', dataset_version)
 
         _, linked_id = experiment_run.get_dataset('train')

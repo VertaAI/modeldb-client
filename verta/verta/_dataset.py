@@ -157,19 +157,62 @@ class QueryDataset(Dataset):
 
 
 class S3Dataset(PathDataset):
-    pass
+    def create_version(self,
+                       bucket_name, key=None, url_stub=None,
+                       parent_id=None,
+                       desc=None, tags=None, attrs=None):
+        version_info = S3DatasetVersionInfo(bucket_name, key=key, url_stub=url_stub)
+        return PathDatasetVersion(self._conn, self._conf,
+                                  dataset_id=self.id, dataset_type=self.TYPE,
+                                  dataset_version_info=version_info,
+                                  parent_id=parent_id,
+                                  desc=desc, tags=tags, attrs=attrs)
 
 
 class LocalDataset(PathDataset):
-    pass
+    def create_version(self,
+                       path,
+                       parent_id=None,
+                       desc=None, tags=None, attrs=None):
+        version_info = FilesystemDatasetVersionInfo(path)
+        return PathDatasetVersion(self._conn, self._conf,
+                                  dataset_id=self.id, dataset_type=self.TYPE,
+                                  dataset_version_info=version_info,
+                                  parent_id=parent_id,
+                                  desc=desc, tags=tags, attrs=attrs)
 
 
 class BigQueryDataset(QueryDataset):
-    pass
+    def create_version(self,
+                       job_id, location,
+                       parent_id=None,
+                       desc=None, tags=None, attrs=None):
+        version_info = BigQueryDatasetVersionInfo(job_id=job_id, location=location)
+        return QueryDatasetVersion(self._conn, self._conf,
+                                   dataset_id=self.id, dataset_type=self.TYPE,
+                                   dataset_version_info=version_info,
+                                   parent_id=parent_id,
+                                   desc=desc, tags=tags, attrs=attrs)
 
 
 class AtlasHiveDataset(QueryDataset):
-    pass
+    def create_version(self,
+                       guid, atlas_url,
+                       atlas_user_name, atlas_password,
+                       atlas_entity_endpoint="/api/atlas/v2/entity/bulk",
+                       parent_id=None,
+                       desc=None, tags=None, attrs=None):
+        version_info = _dataset.AtlasHiveDatasetVersionInfo(
+            guid=guid, atlas_url=atlas_url,
+            atlas_user_name=atlas_user_name, atlas_password=atlas_password,
+            atlas_entity_endpoint=atlas_entity_endpoint
+        )
+        return QueryDatasetVersion(self._conn, self._conf,
+                                   dataset_id=self.id, dataset_type=self.TYPE,
+                                   dataset_version_info=version_info, parent_id=parent_id,
+                                   desc=desc,
+                                   tags=tags or version_info.tags or [],
+                                   attrs=attrs or version_info.attributes or {})
 
 
 class DatasetVersion(object):
