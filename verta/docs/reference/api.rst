@@ -2,51 +2,12 @@ API Reference
 =============
 
 
-Verta Client
-------------
+.. toctree::
+    :hidden:
 
-
-Client
-^^^^^^
-
-.. autoclass:: verta.client.Client
-    :members:
-
-
-ExperimentRuns
-^^^^^^^^^^^^^^
-
-.. autoclass:: verta.client.ExperimentRuns
-    :members:
-
-
-Project
-^^^^^^^
-
-.. autoclass:: verta.client.Project
-    :members:
-    :inherited-members:
-
-
-Experiment
-^^^^^^^^^^
-
-.. autoclass:: verta.client.Experiment
-    :members:
-    :inherited-members:
-
-
-ExperimentRun
-^^^^^^^^^^^^^
-
-.. autoclass:: verta.client.ExperimentRun
-    :members:
-    :inherited-members:
-
-
-Utilities
----------
-
-
-.. automodule:: verta.utils
-    :members:
+    Client <api/client>
+    Project <api/project>
+    Experiment <api/experiment>
+    ExperimentRun <api/experimentrun>
+    ExperimentRuns <api/experimentruns>
+    Utilities <api/utilities>

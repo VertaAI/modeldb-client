@@ -41,6 +41,7 @@ release = ''
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinx.ext.autosummary',
     'sphinx.ext.napoleon',
 ]
 
@@ -83,6 +84,23 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = None
 
+# reStructuredText to be included at the beginning of every source file.
+rst_prolog = '\n'.join([
+".. |tags description| replace:: Tags are short textual labels used to help"
+    " identify a run, such as its purpose or its environment.",
+".. |attributes description| replace:: Attributes are descriptive metadata,"
+    " such as the team responsible for this model or the expected training"
+    " time.",
+".. |hyperparameters description| replace:: Hyperparameters are model"
+    " configuration metadata, such as the loss function or the regularization"
+    " penalty.",
+".. |metrics description| replace:: Metrics are unique performance metadata,"
+    " such as accuracy or loss on the full training set.",
+".. |observations description| replace:: Observations are recurring metadata"
+    " that are repeatedly measured over time, such as batch losses over an"
+    " epoch or memory usage.",
+])
+
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -96,8 +114,8 @@ html_theme = 'alabaster'
 # documentation.
 #
 html_theme_options = {
-    # uncomment when you figure out how to collapse the Release Notes headers
-    # 'fixed_sidebar': True,
+    'fixed_sidebar': True,
+    'logo': 'images/logo.svg',
     'sidebar_collapse': False,
     'show_relbar_bottom': True,
 }
@@ -105,7 +123,7 @@ html_theme_options = {
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-# html_static_path = ['_static']
+html_static_path = ['_static/']
 
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.
