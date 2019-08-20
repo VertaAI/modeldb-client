@@ -309,24 +309,22 @@ class Client(object):
                              desc, tags, attrs)
 
     # NOTE: dataset visibility cannot be set via a client
-    def set_dataset(self, name=None, type="raw",
+    def set_dataset(self, name=None, type="local",
                        desc=None, tags=None, attrs=None,
                        id=None):
         # Note: If a dataset with `name` already exists,
         #       there is no way to determine its type/subclass from back end,
         #       so it is assumed that the user has passed in the correct `type`.
-        if type == "raw":
-            DatasetSubclass = _dataset.RawDataset
+        if type == "local":
+            DatasetSubclass = _dataset.LocalDataset
         elif type == "s3":
             DatasetSubclass = _dataset.S3Dataset
-        elif type == "local":
-            DatasetSubclass = _dataset.LocalDataset
         elif type == "big query":
             DatasetSubclass = _dataset.BigQueryDataset
         elif type == "atlas hive":
             DatasetSubclass = _dataset.AtlasHiveDataset
         else:
-            raise ValueError("`type` must be one of {'raw', 's3', 'local', 'big query', 'atlas hive'}")
+            raise ValueError("`type` must be one of {'local', 's3', 'big query', 'atlas hive'}")
 
         return DatasetSubclass(self._conn, self._conf,
                        name=name, desc=desc, tags=tags, attrs=attrs,

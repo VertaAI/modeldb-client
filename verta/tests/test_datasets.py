@@ -136,10 +136,10 @@ class TestClientDatasetFunctions:
         assert dataset2.dataset_type == _DatasetService.DatasetTypeEnum.PATH
         assert dataset2.id
 
-        name = utils.gen_str()
-        dataset3 = client.set_dataset(name=name, type="raw")
-        assert dataset3.dataset_type == _DatasetService.DatasetTypeEnum.RAW
-        assert dataset3.id
+        # name = utils.gen_str()
+        # dataset3 = client.set_dataset(name=name, type="raw")
+        # assert dataset3.dataset_type == _DatasetService.DatasetTypeEnum.RAW
+        # assert dataset3.id
 
         # datasets = client.get_all_datasets()
         # assert len(datasets) == 3
