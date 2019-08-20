@@ -2,6 +2,31 @@ Release Notes
 =============
 
 
+v0.13.0 (2019-08-20)
+--------------------
+
+New Features
+^^^^^^^^^^^^
+- `enable file extensions on artifacts in the Web App
+  <https://github.com/VertaAI/modeldb-client/pull/144>`_
+- `support basic data versioning
+  <https://github.com/VertaAI/modeldb-client/compare/cfea45e...4bbfcd1>`_
+
+Internal Changes
+^^^^^^^^^^^^^^^^
+- `support dynamically fetching custom deployment URLs
+  <https://github.com/VertaAI/modeldb-client/pull/145>`_
+- `make Pillow an optional dependency
+  <https://github.com/VertaAI/modeldb-client/pull/170>`_
+- `support potentially handling a 401 on verifyConnection
+  <https://github.com/VertaAI/modeldb-client/pull/152>`_
+
+Bug Fixes
+^^^^^^^^^
+- `convert everything to new-style classes for Python 2 compatibility
+  <https://github.com/VertaAI/modeldb-client/pull/147/files>`_
+
+
 v0.12.9 (2019-08-13)
 --------------------
 
