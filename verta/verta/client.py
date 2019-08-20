@@ -1434,7 +1434,7 @@ class ExperimentRun(_ModelDBEntity):
         response.raise_for_status()
         print("upload complete ({})".format(basename))
 
-    def _log_artifact_path(self, key, artifact_path, artifact_type, linked_artifact_id=None):
+    def _log_artifact_path(self, key, artifact_path, artifact_type):
         """
         Logs the filesystem path of an artifact to this Experiment Run.
 
@@ -1446,17 +1446,13 @@ class ExperimentRun(_ModelDBEntity):
             Filesystem path of the artifact.
         artifact_type : int
             Variant of `_CommonService.ArtifactTypeEnum`.
-        # TODO: this design might need to be revisited by @miliu
-        linked_artifact_id: string, optional
-            Id of linked artifact
         """
         # log key-path to ModelDB
         Message = _ExperimentRunService.LogArtifact
         artifact_msg = _CommonService.Artifact(key=key,
                                                path=artifact_path,
                                                path_only=True,
-                                               artifact_type=artifact_type,
-                                               linked_artifact_id=linked_artifact_id)
+                                               artifact_type=artifact_type)
         msg = Message(id=self.id, artifact=artifact_msg)
         data = _utils.proto_to_json(msg)
         response = _utils.make_request("POST",
@@ -1545,17 +1541,16 @@ class ExperimentRun(_ModelDBEntity):
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
         dataset = {dataset.key: dataset for dataset in response_msg.datasets}.get(key)
         if dataset is None:
-            raise KeyError("no dataset found with key {}".format(key))
-        if dataset.path_only:
-            return dataset.path, dataset.path_only, dataset.linked_artifact_id
+            # may be old artifact-based dataset
+            try:
+                dataset, path_only = self._get_artifact(key)
+            except KeyError:
+                six.raise_from(KeyError("no dataset found with key {}".format(key)),
+                               None)
+            else:
+                return dataset, path_only, None
         else:
-            raise NotImplementedError("Temporary hack")
-            # # download dataset from artifact store
-            # url = self._get_url_for_dataset(key, "GET")
-            # response = _utils.make_request("GET", url, self._conn)
-            # response.raise_for_status()
-
-            # return response.content, dataset.path_only, None
+            return dataset.path, dataset.path_only, dataset.linked_artifact_id
 
     def log_tag(self, tag):
         """
@@ -2076,7 +2071,10 @@ class ExperimentRun(_ModelDBEntity):
         """
         dataset, path_only, linked_id = self._get_dataset(key)
         if path_only:
-            return dataset, linked_id
+            if linked_id:
+                return _dataset.DatasetVersion(self._conn, self._conf, _dataset_version_id=linked_id)
+            else:
+                return dataset
         else:
             # TODO: may need to be updated for raw
             try:

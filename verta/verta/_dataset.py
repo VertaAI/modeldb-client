@@ -300,7 +300,10 @@ class DatasetVersion(object):
         self.dataset_version_info = None
 
     def __repr__(self):
-        return "<DatasetVersion \"{}\">".format(self.id)
+        msg_copy = _DatasetVersionService.DatasetVersion()
+        msg_copy.CopyFrom(self.dataset_version)
+        msg_copy.owner = ''  # hide owner field
+        return msg_copy.__repr__()
 
     # TODO: get by dataset_id and version is not supported on the backend
     @staticmethod
