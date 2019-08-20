@@ -309,24 +309,22 @@ class Client(object):
                              desc, tags, attrs)
 
     # NOTE: dataset visibility cannot be set via a client
-    def set_dataset(self, name=None, type="raw",
+    def set_dataset(self, name=None, type="local",
                        desc=None, tags=None, attrs=None,
                        id=None):
         # Note: If a dataset with `name` already exists,
         #       there is no way to determine its type/subclass from back end,
         #       so it is assumed that the user has passed in the correct `type`.
-        if type == "raw":
-            DatasetSubclass = _dataset.RawDataset
+        if type == "local":
+            DatasetSubclass = _dataset.LocalDataset
         elif type == "s3":
             DatasetSubclass = _dataset.S3Dataset
-        elif type == "local":
-            DatasetSubclass = _dataset.LocalDataset
         elif type == "big query":
             DatasetSubclass = _dataset.BigQueryDataset
         elif type == "atlas hive":
             DatasetSubclass = _dataset.AtlasHiveDataset
         else:
-            raise ValueError("`type` must be one of {'raw', 's3', 'local', 'big query', 'atlas hive'}")
+            raise ValueError("`type` must be one of {'local', 's3', 'big query', 'atlas hive'}")
 
         return DatasetSubclass(self._conn, self._conf,
                        name=name, desc=desc, tags=tags, attrs=attrs,
@@ -1985,16 +1983,19 @@ class ExperimentRun(_ModelDBEntity):
         _utils.validate_flat_key(key)
 
         if isinstance(dataset, _dataset.Dataset):
-            pass
-            # version = self.create_dataset_version()
-            # self._log_dataset(key, dataset, ...)
-        else:
-            try:
-                extension = _artifact_utils.get_file_ext(dataset)
-            except (TypeError, ValueError):
-                extension = None
+            raise ValueError("directly logging a Dataset is not supported;"
+                             " consider using run.log_dataset_version() instead")
 
-            self._log_artifact(key, dataset, _CommonService.ArtifactTypeEnum.DATA, extension)
+        if isinstance(dataset, _dataset.DatasetVersion):
+            # TODO: maybe raise a warning pointing to log_dataset_version()
+            self.log_dataset_version(key, dataset)
+
+        # log `dataset` as artifact
+        try:
+            extension = _artifact_utils.get_file_ext(dataset)
+        except (TypeError, ValueError):
+            extension = None
+        self._log_artifact(key, dataset, _CommonService.ArtifactTypeEnum.DATA, extension)
 
     def log_dataset_version(self, key, dataset_version):
         if not isinstance(dataset_version, _dataset.DatasetVersion):
