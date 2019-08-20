@@ -350,48 +350,10 @@ class Client(object):
         return [_dataset.Dataset(self._conn, self._conf, _dataset_id = dataset.id)
                 for dataset in response_msg.datasets]
 
-    def create_dataset_version(self, dataset, dataset_version_info,
-                               parent_id=None,
-                               desc=None, tags=None, dataset_type=None, attrs=None,
-                               version=None, id=None):
-        return _dataset.DatasetVersion(self._conn, self._conf,
-                              dataset_id=dataset.id,
-                              dataset_type=dataset_type or dataset.dataset_type or _dataset._DatasetService.DatasetTypeEnum.RAW,
-                              dataset_version_info=dataset_version_info,
-                              parent_id=parent_id,
-                              desc=desc, tags=tags, attrs=attrs,
-                              version=version, _dataset_version_id=id)
-
     # TODO: this should also allow gets based on dataset_id and version, but
     # not supported by backend yet
     def get_dataset_version(self, id):
         return _dataset.DatasetVersion._get(self._conn, _dataset_version_id=id)
-
-    def get_all_versions_for_dataset(self, dataset):
-        Message = _dataset._DatasetVersionService.GetAllDatasetVersionsByDatasetId
-        msg = Message(dataset_id=dataset.id)
-        data = _utils.proto_to_json(msg)
-        response = _utils.make_request("GET",
-                                        "{}://{}/v1/dataset-version/getAllDatasetVersionsByDatasetId".format(self._conn.scheme, self._conn.socket),
-                                        self._conn, params=data)
-        response.raise_for_status()
-
-        response_msg = _utils.json_to_proto(response.json(), Message.Response)
-        return [_dataset.DatasetVersion(self._conn, self._conf, _dataset_version_id = dataset_version.id)
-                for dataset_version in response_msg.dataset_versions]
-
-    # TODO: sorting seems to be incorrect
-    def get_latest_version_for_dataset(self, dataset, ascending=None, sort_key=None):
-        Message = _dataset._DatasetVersionService.GetLatestDatasetVersionByDatasetId
-        msg = Message(dataset_id=dataset.id, ascending=ascending, sort_key=sort_key)
-        data = _utils.proto_to_json(msg)
-        response = _utils.make_request("GET",
-                                        "{}://{}/v1/dataset-version/getLatestDatasetVersionByDatasetId".format(self._conn.scheme, self._conn.socket),
-                                        self._conn, params=data)
-        response.raise_for_status()
-
-        response_msg = _utils.json_to_proto(response.json(), Message.Response)
-        return response_msg.dataset_version
 
 
 class _ModelDBEntity(object):
