@@ -1469,40 +1469,6 @@ class ExperimentRun(_ModelDBEntity):
             else:
                 response.raise_for_status()
 
-
-    def _log_dataset_path(self, key, dataset_path, linked_artifact_id=None):
-        """
-        Logs the filesystem path of an artifact to this Experiment Run.
-
-        Parameters
-        ----------
-        key : str
-            Name of the artifact.
-        artifact_path : str
-            Filesystem path of the artifact.
-        # TODO: this design might need to be revisited by @miliu
-        linked_artifact_id: string, optional
-            Id of linked artifact
-        """
-        # log key-path to ModelDB
-        Message = _ExperimentRunService.LogDataset
-        artifact_msg = _CommonService.Artifact(key=key,
-                                               path=dataset_path,
-                                               path_only=True,
-                                               artifact_type=_CommonService.ArtifactTypeEnum.DATA,
-                                               linked_artifact_id=linked_artifact_id)
-        msg = Message(id=self.id, dataset=artifact_msg)
-        data = _utils.proto_to_json(msg)
-        response = _utils.make_request("POST",
-                                       "{}://{}/v1/experiment-run/logDataset".format(self._conn.scheme, self._conn.socket),
-                                       self._conn, json=data)
-        if not response.ok:
-            if response.status_code == 409:
-                raise ValueError("dataset with key {} already exists;"
-                                 " consider using observations instead".format(key))
-            else:
-                response.raise_for_status()
-
     def _get_artifact(self, key):
         """
         Gets the artifact with name `key` from this Experiment Run.
@@ -2031,12 +1997,32 @@ class ExperimentRun(_ModelDBEntity):
             self._log_artifact(key, dataset, _CommonService.ArtifactTypeEnum.DATA, extension)
 
     def log_dataset_version(self, key, dataset_version):
-        # TODO: hack because path_only artifact needs a placeholder path
         if not isinstance(dataset_version, _dataset.DatasetVersion):
-            raise ValueError('dataset_version should be of type DatasetVersion')
-        self.log_dataset_path(key, "See attached dataset version", dataset_version.id)
+            raise ValueError("`dataset_version` must be of type DatasetVersion")
 
-    def log_dataset_path(self, key, path, linked_dataset_id=None):
+        # TODO: hack because path_only artifact needs a placeholder path
+        dataset_path = "See attached dataset version"
+
+        # log key-path to ModelDB
+        Message = _ExperimentRunService.LogDataset
+        artifact_msg = _CommonService.Artifact(key=key,
+                                               path=dataset_path,
+                                               path_only=True,
+                                               artifact_type=_CommonService.ArtifactTypeEnum.DATA,
+                                               linked_artifact_id=dataset_version.id)
+        msg = Message(id=self.id, dataset=artifact_msg)
+        data = _utils.proto_to_json(msg)
+        response = _utils.make_request("POST",
+                                       "{}://{}/v1/experiment-run/logDataset".format(self._conn.scheme, self._conn.socket),
+                                       self._conn, json=data)
+        if not response.ok:
+            if response.status_code == 409:
+                raise ValueError("dataset with key {} already exists;"
+                                 " consider using observations instead".format(key))
+            else:
+                response.raise_for_status()
+
+    def log_dataset_path(self, key, path):
         """
         Logs the filesystem path of an dataset to this Experiment Run.
 
@@ -2053,7 +2039,16 @@ class ExperimentRun(_ModelDBEntity):
         """
         _utils.validate_flat_key(key)
 
-        self._log_dataset_path(key, path, linked_artifact_id=linked_dataset_id)
+        warnings.warn("`log_dataset_path()` is deprecated and will removed in a later version;"
+                      " consider using `client.set_dataset(..., type=\"local\")`"
+                      " and `run.log_dataset_version()` instead",
+                      category=DeprecationWarning, stacklevel=2)
+
+        # create impromptu DatasetVersion
+        dataset = _dataset.LocalDataset(self._conn, self._conf, name=key)
+        dataset_version = dataset.create_version(path=path)
+
+        self.log_dataset_version(key, dataset_version)
 
     def get_dataset(self, key):
         """
