@@ -14,13 +14,18 @@ import time
 import warnings
 import zipfile
 
-import PIL
 import requests
+
+try:
+    import PIL
+except ImportError:  # Pillow not installed
+    PIL = None
 
 from ._protos.public.modeldb import CommonService_pb2 as _CommonService
 from ._protos.public.modeldb import ProjectService_pb2 as _ProjectService
 from ._protos.public.modeldb import ExperimentService_pb2 as _ExperimentService
 from ._protos.public.modeldb import ExperimentRunService_pb2 as _ExperimentRunService
+from . import _dataset
 from . import _utils
 from . import _artifact_utils
 from . import utils
@@ -119,6 +124,13 @@ class Client(object):
         except requests.ConnectionError:
             six.raise_from(requests.ConnectionError("connection failed; please check `host` and `port`"),
                            None)
+
+        def is_unauthorized(response): return response.status_code == 401
+
+        if is_unauthorized(response):
+            auth_error_msg = "authentication failed; please check `VERTA_EMAIL` and `VERTA_DEV_KEY`"
+            six.raise_from(requests.HTTPError(auth_error_msg), None)
+
         response.raise_for_status()
         print("connection successfully established")
 
@@ -297,6 +309,51 @@ class Client(object):
         return ExperimentRun(self._conn, self._conf,
                              self.proj.id, self.expt.id, name,
                              desc, tags, attrs)
+
+    # NOTE: dataset visibility cannot be set via a client
+    def set_dataset(self, name=None, type="local",
+                       desc=None, tags=None, attrs=None,
+                       id=None):
+        # Note: If a dataset with `name` already exists,
+        #       there is no way to determine its type/subclass from back end,
+        #       so it is assumed that the user has passed in the correct `type`.
+        if type == "local":
+            DatasetSubclass = _dataset.LocalDataset
+        elif type == "s3":
+            DatasetSubclass = _dataset.S3Dataset
+        elif type == "big query":
+            DatasetSubclass = _dataset.BigQueryDataset
+        elif type == "atlas hive":
+            DatasetSubclass = _dataset.AtlasHiveDataset
+        else:
+            raise ValueError("`type` must be one of {'local', 's3', 'big query', 'atlas hive'}")
+
+        return DatasetSubclass(self._conn, self._conf,
+                       name=name, desc=desc, tags=tags, attrs=attrs,
+                       _dataset_id=id)
+
+    # TODO: needs a by name after backend implements
+    # def get_dataset(self, id):
+    #     return _dataset.Dataset._get(self._conn, _dataset_id=id)
+
+    # TODO: needs to be paginated, maybe sorted and filtered
+    # def get_all_datasets(self):
+    #     Message = _dataset._DatasetService.GetAllDatasets
+    #     msg = Message()
+    #     data = _utils.proto_to_json(msg)
+    #     response = _utils.make_request("GET",
+    #                                     "{}://{}/v1/dataset/getAllDatasets".format(self._conn.scheme, self._conn.socket),
+    #                                     self._conn, params=data)
+    #     response.raise_for_status()
+
+    #     response_msg = _utils.json_to_proto(response.json(), Message.Response)
+    #     return [_dataset.Dataset(self._conn, self._conf, _dataset_id = dataset.id)
+    #             for dataset in response_msg.datasets]
+
+    # TODO: this should also allow gets based on dataset_id and version, but
+    # not supported by backend yet
+    # def get_dataset_version(self, id):
+    #     return _dataset.DatasetVersion._get(self._conn, _dataset_version_id=id)
 
 
 class _ModelDBEntity(object):
@@ -844,7 +901,7 @@ class Experiment(_ModelDBEntity):
             response.raise_for_status()
 
 
-class ExperimentRuns:
+class ExperimentRuns(object):
     """
     ``list``-like object representing a collection of machine learning Experiment Runs.
 
@@ -1377,7 +1434,7 @@ class ExperimentRun(_ModelDBEntity):
         response.raise_for_status()
         print("upload complete ({})".format(basename))
 
-    def _log_artifact_path(self, key, artifact_path, artifact_type):
+    def _log_artifact_path(self, key, artifact_path, artifact_type, linked_artifact_id=None):
         """
         Logs the filesystem path of an artifact to this Experiment Run.
 
@@ -1389,14 +1446,17 @@ class ExperimentRun(_ModelDBEntity):
             Filesystem path of the artifact.
         artifact_type : int
             Variant of `_CommonService.ArtifactTypeEnum`.
-
+        # TODO: this design might need to be revisited by @miliu
+        linked_artifact_id: string, optional
+            Id of linked artifact
         """
         # log key-path to ModelDB
         Message = _ExperimentRunService.LogArtifact
         artifact_msg = _CommonService.Artifact(key=key,
                                                path=artifact_path,
                                                path_only=True,
-                                               artifact_type=artifact_type)
+                                               artifact_type=artifact_type,
+                                               linked_artifact_id=linked_artifact_id)
         msg = Message(id=self.id, artifact=artifact_msg)
         data = _utils.proto_to_json(msg)
         response = _utils.make_request("POST",
@@ -1451,6 +1511,51 @@ class ExperimentRun(_ModelDBEntity):
             response.raise_for_status()
 
             return response.content, artifact.path_only
+
+    # TODO: fix up get dataset to handle the Dataset class
+    def _get_dataset(self, key):
+        """
+        Gets the dataset with name `key` from this Experiment Run.
+
+        If the dataset was originally logged as just a filesystem path, that path will be returned.
+        Otherwise, bytes representing the dataset object will be returned.
+
+        Parameters
+        ----------
+        key : str
+            Name of the artifact.
+
+        Returns
+        -------
+        str or bytes
+            Filesystem path or bytes representing the artifact.
+        bool
+            True if the artifact was only logged as its filesystem path.
+
+        """
+        # get key-path from ModelDB
+        Message = _ExperimentRunService.GetDatasets
+        msg = Message(id=self.id)
+        data = _utils.proto_to_json(msg)
+        response = _utils.make_request("GET",
+                                       "{}://{}/v1/experiment-run/getDatasets".format(self._conn.scheme, self._conn.socket),
+                                       self._conn, params=data)
+        response.raise_for_status()
+
+        response_msg = _utils.json_to_proto(response.json(), Message.Response)
+        dataset = {dataset.key: dataset for dataset in response_msg.datasets}.get(key)
+        if dataset is None:
+            raise KeyError("no dataset found with key {}".format(key))
+        if dataset.path_only:
+            return dataset.path, dataset.path_only, dataset.linked_artifact_id
+        else:
+            raise NotImplementedError("Temporary hack")
+            # # download dataset from artifact store
+            # url = self._get_url_for_dataset(key, "GET")
+            # response = _utils.make_request("GET", url, self._conn)
+            # response.raise_for_status()
+
+            # return response.content, dataset.path_only, None
 
     def log_tag(self, tag):
         """
@@ -1873,19 +1978,54 @@ class ExperimentRun(_ModelDBEntity):
                 - If str, then it will be interpreted as a filesystem path, its contents read as bytes,
                   and uploaded as an artifact.
                 - If file-like, then the contents will be read as bytes and uploaded as an artifact.
+                - If type is Dataset, then it will log a dataset version
                 - Otherwise, the object will be serialized and uploaded as an artifact.
 
         """
         _utils.validate_flat_key(key)
 
+        if isinstance(dataset, _dataset.Dataset):
+            raise ValueError("directly logging a Dataset is not supported;"
+                             " consider using run.log_dataset_version() instead")
+
+        if isinstance(dataset, _dataset.DatasetVersion):
+            # TODO: maybe raise a warning pointing to log_dataset_version()
+            self.log_dataset_version(key, dataset)
+
+        # log `dataset` as artifact
         try:
             extension = _artifact_utils.get_file_ext(dataset)
         except (TypeError, ValueError):
             extension = None
-
         self._log_artifact(key, dataset, _CommonService.ArtifactTypeEnum.DATA, extension)
 
-    def log_dataset_path(self, key, dataset_path):
+    def log_dataset_version(self, key, dataset_version):
+        if not isinstance(dataset_version, _dataset.DatasetVersion):
+            raise ValueError("`dataset_version` must be of type DatasetVersion")
+
+        # TODO: hack because path_only artifact needs a placeholder path
+        dataset_path = "See attached dataset version"
+
+        # log key-path to ModelDB
+        Message = _ExperimentRunService.LogDataset
+        artifact_msg = _CommonService.Artifact(key=key,
+                                               path=dataset_path,
+                                               path_only=True,
+                                               artifact_type=_CommonService.ArtifactTypeEnum.DATA,
+                                               linked_artifact_id=dataset_version.id)
+        msg = Message(id=self.id, dataset=artifact_msg)
+        data = _utils.proto_to_json(msg)
+        response = _utils.make_request("POST",
+                                       "{}://{}/v1/experiment-run/logDataset".format(self._conn.scheme, self._conn.socket),
+                                       self._conn, json=data)
+        if not response.ok:
+            if response.status_code == 409:
+                raise ValueError("dataset with key {} already exists;"
+                                 " consider using observations instead".format(key))
+            else:
+                response.raise_for_status()
+
+    def log_dataset_path(self, key, path):
         """
         Logs the filesystem path of an dataset to this Experiment Run.
 
@@ -1902,7 +2042,16 @@ class ExperimentRun(_ModelDBEntity):
         """
         _utils.validate_flat_key(key)
 
-        self._log_artifact_path(key, dataset_path, _CommonService.ArtifactTypeEnum.DATA)
+        warnings.warn("`log_dataset_path()` is deprecated and will removed in a later version;"
+                      " consider using `client.set_dataset(..., type=\"local\")`"
+                      " and `run.log_dataset_version()` instead",
+                      category=DeprecationWarning, stacklevel=2)
+
+        # create impromptu DatasetVersion
+        dataset = _dataset.LocalDataset(self._conn, self._conf, name=key)
+        dataset_version = dataset.create_version(path=path)
+
+        self.log_dataset_version(key, dataset_version)
 
     def get_dataset(self, key):
         """
@@ -1920,14 +2069,16 @@ class ExperimentRun(_ModelDBEntity):
         Returns
         -------
         str or object or file-like
+            If of dataset type, then return a version_id
             Filesystem path of the dataset, the dataset object, or a bytestream representing the
             dataset.
 
         """
-        dataset, path_only = self._get_artifact(key)
+        dataset, path_only, linked_id = self._get_dataset(key)
         if path_only:
-            return dataset
+            return dataset, linked_id
         else:
+            # TODO: may need to be updated for raw
             try:
                 return pickle.loads(dataset)
             except pickle.UnpicklingError:
@@ -2212,9 +2363,11 @@ class ExperimentRun(_ModelDBEntity):
         if path_only:
             return image
         else:
+            if PIL is None:  # Pillow not installed
+                return six.BytesIO(image)
             try:
                 return PIL.Image.open(six.BytesIO(image))
-            except IOError:
+            except IOError:  # can't be handled by Pillow
                 return six.BytesIO(image)
 
     def log_artifact(self, key, artifact):

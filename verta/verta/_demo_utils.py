@@ -130,7 +130,7 @@ class DeployedModel:
             Maximum number of times to retry a request on a connection failure.
 
         Returns
-        -------
+        -------s
         prediction : dict or None
             Output returned by the deployed model for `x`. If the prediction request returns an
             error, None is returned instead as a silent failure.

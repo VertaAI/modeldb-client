@@ -70,38 +70,6 @@ class TestArtifacts:
     #             experiment_run.log_artifact(key, artifact)
 
 
-class TestDatasets:
-    def test_path(self, experiment_run):
-        key = utils.gen_str()
-        path = utils.gen_str()
-
-        experiment_run.log_dataset_path(key, path)
-        assert experiment_run.get_dataset(key) == path
-
-    def test_store(self, experiment_run):
-        key = utils.gen_str()
-        dataset = np.random.random(size=(36,6))
-
-        experiment_run.log_dataset(key, dataset)
-        assert np.array_equal(experiment_run.get_dataset(key), dataset)
-
-    # def test_conflict(self, experiment_run):
-    #     artifacts = {
-    #         utils.gen_str(): {utils.gen_str(): utils.gen_str() for _ in range(6)},
-    #         utils.gen_str(): {utils.gen_str(): utils.gen_str() for _ in range(6)},
-    #         utils.gen_str(): {utils.gen_str(): utils.gen_str() for _ in range(6)},
-    #     }
-
-    #     for key, artifact in six.viewitems(artifacts):
-    #         experiment_run.log_dataset(key, artifact)
-    #         with pytest.raises(ValueError):
-    #             experiment_run.log_dataset(key, artifact)
-
-    #     for key, artifact in reversed(list(six.viewitems(artifacts))):
-    #         with pytest.raises(ValueError):
-    #             experiment_run.log_dataset(key, artifact)
-
-
 class TestModels:
     def test_path(self, experiment_run):
         key = utils.gen_str()
