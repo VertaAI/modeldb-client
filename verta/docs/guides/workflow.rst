@@ -22,7 +22,7 @@ First, let's install a machine learning library to work with:
 
 |
 
-We begin with the :py:mod:`~verta.client.Client`:
+We begin with the :class:`~verta.client.Client`:
 
 .. code-block:: python
 

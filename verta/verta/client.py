@@ -1990,7 +1990,7 @@ class ExperimentRun(_ModelDBEntity):
         Parameters
         ----------
         key : str
-        dataset_version : :class:`~_dataset.DatasetVersion`
+        dataset_version : :class:`~verta._dataset.DatasetVersion`
 
         """
         if not isinstance(dataset_version, _dataset.DatasetVersion):
