@@ -2,6 +2,15 @@ Release Notes
 =============
 
 
+v0.13.2 (2019-08-20)
+--------------------
+
+New Features
+^^^^^^^^^^^^
+- `add ExperimentRun.get_dataset_version()
+  <https://github.com/VertaAI/modeldb-client/commit/f8831daabab172d2336a507076c817854d4185b6>`_
+
+
 v0.13.1 (2019-08-20)
 --------------------
 
