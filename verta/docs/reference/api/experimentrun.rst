@@ -1,13 +1,30 @@
+.. currentmodule:: verta.client
+
 ExperimentRun
 =============
 
-.. currentmodule:: verta.client
+Functionality
+-------------
 
-.. autoclass:: ExperimentRun
+- `Basic Metadata`_
 
-.. autosummary::
+  - `Attributes`_
+  - `Hyperparameters`_
+  - `Metrics`_
+  - `Observations`_
+  - `Tags`_
 
-    ExperimentRun.log_attribute
+- `Artifacts`_
+
+  - `General`_
+  - `Datasets`_
+  - `Images`_
+  - `Models`_
+
+- `Advanced Uses`_
+
+  - `Code Versioning`_
+  - `Deployment`_
 
 Basic Metadata
 --------------
@@ -58,8 +75,8 @@ Tags
 Artifacts
 ---------
 
-Artifacts
-^^^^^^^^^
+General
+^^^^^^^
 .. automethod:: ExperimentRun.log_artifact
 .. automethod:: ExperimentRun.log_artifact_path
 .. automethod:: ExperimentRun.get_artifact
