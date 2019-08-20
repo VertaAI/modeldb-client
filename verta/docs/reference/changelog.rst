@@ -2,6 +2,15 @@ Release Notes
 =============
 
 
+v0.13.1 (2019-08-20)
+--------------------
+
+Bug Fixes
+^^^^^^^^^
+- `handle more states in DatasetVersion.__repr__()
+  <https://github.com/VertaAI/modeldb-client/commit/801a3f33ac5103ab05c629baad67bd541faf7824>`_
+
+
 v0.13.0 (2019-08-20)
 --------------------
 
