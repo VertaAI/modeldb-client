@@ -17,13 +17,13 @@ Functionality
 - `Artifacts`_
 
   - `General`_
-  - `Datasets`_
   - `Images`_
   - `Models`_
 
 - `Advanced Uses`_
 
   - `Code Versioning`_
+  - `Data Versioning`_
   - `Deployment`_
 
 Basic Metadata
@@ -106,6 +106,11 @@ Code Versioning
 ^^^^^^^^^^^^^^^
 .. automethod:: ExperimentRun.log_code
 .. automethod:: ExperimentRun.get_code
+
+Data Versioning
+^^^^^^^^^^^^^^^
+.. automethod:: ExperimentRun.log_dataset_version
+.. automethod:: ExperimentRun.get_dataset_version
 
 Deployment
 ^^^^^^^^^^
