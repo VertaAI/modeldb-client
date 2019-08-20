@@ -1986,6 +1986,13 @@ class ExperimentRun(_ModelDBEntity):
         self._log_artifact(key, dataset, _CommonService.ArtifactTypeEnum.DATA, extension)
 
     def log_dataset_version(self, key, dataset_version):
+        """
+        Parameters
+        ----------
+        key : str
+        dataset_version : :class:`~_dataset.DatasetVersion`
+
+        """
         if not isinstance(dataset_version, _dataset.DatasetVersion):
             raise ValueError("`dataset_version` must be of type DatasetVersion")
 
@@ -2055,7 +2062,7 @@ class ExperimentRun(_ModelDBEntity):
         Returns
         -------
         str or object or file-like
-            If of dataset type, then return a version_id
+            DatasetVersion if logged using :meth:`log_dataset_version()`.
             Filesystem path of the dataset, the dataset object, or a bytestream representing the
             dataset.
 
@@ -2072,6 +2079,16 @@ class ExperimentRun(_ModelDBEntity):
                 return pickle.loads(dataset)
             except pickle.UnpicklingError:
                 return six.BytesIO(dataset)
+
+    def get_dataset_version(self, key):
+        """
+        Parameters
+        ----------
+        key : str
+
+
+        """
+        self.get_dataset(key)
 
     def log_model_for_deployment(self, model, model_api, requirements, train_features=None, train_targets=None):
         """
