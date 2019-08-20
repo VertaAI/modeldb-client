@@ -1434,7 +1434,7 @@ class ExperimentRun(_ModelDBEntity):
         response.raise_for_status()
         print("upload complete ({})".format(basename))
 
-    def _log_artifact_path(self, key, artifact_path, artifact_type, linked_artifact_id=None):
+    def _log_artifact_path(self, key, artifact_path, artifact_type):
         """
         Logs the filesystem path of an artifact to this Experiment Run.
 
@@ -1446,17 +1446,13 @@ class ExperimentRun(_ModelDBEntity):
             Filesystem path of the artifact.
         artifact_type : int
             Variant of `_CommonService.ArtifactTypeEnum`.
-        # TODO: this design might need to be revisited by @miliu
-        linked_artifact_id: string, optional
-            Id of linked artifact
         """
         # log key-path to ModelDB
         Message = _ExperimentRunService.LogArtifact
         artifact_msg = _CommonService.Artifact(key=key,
                                                path=artifact_path,
                                                path_only=True,
-                                               artifact_type=artifact_type,
-                                               linked_artifact_id=linked_artifact_id)
+                                               artifact_type=artifact_type)
         msg = Message(id=self.id, artifact=artifact_msg)
         data = _utils.proto_to_json(msg)
         response = _utils.make_request("POST",
