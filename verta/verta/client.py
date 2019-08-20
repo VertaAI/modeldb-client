@@ -1983,16 +1983,19 @@ class ExperimentRun(_ModelDBEntity):
         _utils.validate_flat_key(key)
 
         if isinstance(dataset, _dataset.Dataset):
-            pass
-            # version = self.create_dataset_version()
-            # self._log_dataset(key, dataset, ...)
-        else:
-            try:
-                extension = _artifact_utils.get_file_ext(dataset)
-            except (TypeError, ValueError):
-                extension = None
+            raise ValueError("directly logging a Dataset is not supported;"
+                             " consider using run.log_dataset_version() instead")
 
-            self._log_artifact(key, dataset, _CommonService.ArtifactTypeEnum.DATA, extension)
+        if isinstance(dataset, _dataset.DatasetVersion):
+            # TODO: maybe raise a warning pointing to log_dataset_version()
+            self.log_dataset_version(key, dataset)
+
+        # log `dataset` as artifact
+        try:
+            extension = _artifact_utils.get_file_ext(dataset)
+        except (TypeError, ValueError):
+            extension = None
+        self._log_artifact(key, dataset, _CommonService.ArtifactTypeEnum.DATA, extension)
 
     def log_dataset_version(self, key, dataset_version):
         if not isinstance(dataset_version, _dataset.DatasetVersion):
