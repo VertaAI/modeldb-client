@@ -331,27 +331,27 @@ class Client(object):
                        _dataset_id=id)
 
     # TODO: needs a by name after backend implements
-    def get_dataset(self, id):
-        return _dataset.Dataset._get(self._conn, _dataset_id=id)
+    # def get_dataset(self, id):
+    #     return _dataset.Dataset._get(self._conn, _dataset_id=id)
 
     # TODO: needs to be paginated, maybe sorted and filtered
-    def get_all_datasets(self):
-        Message = _dataset._DatasetService.GetAllDatasets
-        msg = Message()
-        data = _utils.proto_to_json(msg)
-        response = _utils.make_request("GET",
-                                        "{}://{}/v1/dataset/getAllDatasets".format(self._conn.scheme, self._conn.socket),
-                                        self._conn, params=data)
-        response.raise_for_status()
+    # def get_all_datasets(self):
+    #     Message = _dataset._DatasetService.GetAllDatasets
+    #     msg = Message()
+    #     data = _utils.proto_to_json(msg)
+    #     response = _utils.make_request("GET",
+    #                                     "{}://{}/v1/dataset/getAllDatasets".format(self._conn.scheme, self._conn.socket),
+    #                                     self._conn, params=data)
+    #     response.raise_for_status()
 
-        response_msg = _utils.json_to_proto(response.json(), Message.Response)
-        return [_dataset.Dataset(self._conn, self._conf, _dataset_id = dataset.id)
-                for dataset in response_msg.datasets]
+    #     response_msg = _utils.json_to_proto(response.json(), Message.Response)
+    #     return [_dataset.Dataset(self._conn, self._conf, _dataset_id = dataset.id)
+    #             for dataset in response_msg.datasets]
 
     # TODO: this should also allow gets based on dataset_id and version, but
     # not supported by backend yet
-    def get_dataset_version(self, id):
-        return _dataset.DatasetVersion._get(self._conn, _dataset_version_id=id)
+    # def get_dataset_version(self, id):
+    #     return _dataset.DatasetVersion._get(self._conn, _dataset_version_id=id)
 
 
 class _ModelDBEntity(object):
