@@ -21,9 +21,10 @@ First, we'll need to install ``boto3``, the official Python library for Amazon W
     $ pip install boto3
 
 Installing the Verta client did not install ``boto3`` automatically since it's not required for
-core functionality, but it is required for data versioning with S3. Don't worry—Verta doesn't
-download or store the actual S3 object; instead, we take in just enough information for a user to
-identify the snapshot of data that was used.
+core functionality, but it is required for data versioning with S3.
+
+Don't worry—Verta doesn't download or store the actual S3 object; instead, we take in just enough
+information for you to later identify the snapshot of data that was used.
 
 After installation, make sure AWS credentials are set up in your local environment, following their
 `official instructions <https://pypi.org/project/boto3/>`_.
