@@ -516,7 +516,7 @@ class FilesystemDatasetVersionInfo(PathDatasetVersionInfo):
         dataset_part_info.path = path
         dataset_part_info.size = os.path.getsize(path)
         dataset_part_info.checksum = self.compute_file_hash(path)
-        dataset_part_info.last_modified_at_source = int(os.path.getmtime(path))
+        dataset_part_info.last_modified_at_source = _utils.timestamp_to_ms(int(os.path.getmtime(path)))
         return dataset_part_info
 
     def compute_file_hash(self, path):
@@ -564,7 +564,7 @@ class S3DatasetVersionInfo(PathDatasetVersionInfo):
         dataset_part_info.path = object_info['Key'] if key is None else key
         dataset_part_info.size = object_info['Size'] if key is None else object_info['ContentLength']
         dataset_part_info.checksum = object_info['ETag']
-        dataset_part_info.last_modified_at_source = int(object_info['LastModified'].timestamp())
+        dataset_part_info.last_modified_at_source = _utils.timestamp_to_ms(int(object_info['LastModified'].timestamp()))
         return dataset_part_info
 
 
@@ -597,7 +597,7 @@ class AtlasHiveDatasetVersionInfo(QueryDatasetVersionInfo):
             if table_obj['typeName'] != 'hive_table':
                 raise NotImplementedError("Atlas dataset currently supported only for Hive tables")
             #TODO: what is the execution timestamp? Should the user log this later
-            self.execution_timestamp = int(time.time())
+            self.execution_timestamp = _utils.now()
             self.data_source_uri = atlas_url + "/index.html#!/detailPage/" + guid
             self.query = self.generate_query(table_obj)
             #TODO: extract the query template
@@ -674,7 +674,7 @@ class BigQueryDatasetVersionInfo(QueryDatasetVersionInfo):
         if job_id is not None and location:
             self.job_id = job_id
             job = self.get_bq_job(job_id, location)
-            self.execution_timestamp = int(job.started.timestamp())
+            self.execution_timestamp = _utils.timestamp_to_ms(int(job.started.timestamp()))
             self.data_source_uri = job.self_link
             self.query = job.query
             #TODO: extract the query template
