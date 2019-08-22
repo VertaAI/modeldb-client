@@ -14,9 +14,9 @@ DEFAULT_PORT = None
 DEFAULT_EMAIL = None
 DEFAULT_DEV_KEY = None
 
-DEFAULT_S3_TEST_BUCKET = None
-DEFAULT_S3_TEST_OBJECT = None
-DEFAULT_GOOGLE_APPLICATION_CREDENTIALS = None
+DEFAULT_S3_TEST_BUCKET = "bucket"
+DEFAULT_S3_TEST_OBJECT = "object"
+DEFAULT_GOOGLE_APPLICATION_CREDENTIALS = "credentials.json"
 
 
 @pytest.fixture(scope='session')
@@ -42,9 +42,12 @@ def dev_key():
 @pytest.fixture(scope='session')
 def output_path():
     dirpath = ".outputs"
-    while os.path.exists(dirpath):  # avoid name collisions
+    try:  # avoid name collisions
+        os.mkdir(dirpath)
+    except OSError:
         dirpath += '_'
-    yield os.path.join(dirpath, "{}")
+    else:
+        yield os.path.join(dirpath, "{}")
     shutil.rmtree(dirpath)
 
 
