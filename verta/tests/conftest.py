@@ -42,12 +42,16 @@ def dev_key():
 @pytest.fixture(scope='session')
 def output_path():
     dirpath = ".outputs"
-    try:  # avoid name collisions
-        os.mkdir(dirpath)
-    except OSError:
-        dirpath += '_'
+    while len(dirpath) < 1024:
+        try:  # avoid name collisions
+            os.mkdir(dirpath)
+        except OSError:
+            dirpath += '_'
+        else:
+            yield os.path.join(dirpath, "{}")
+            break
     else:
-        yield os.path.join(dirpath, "{}")
+        raise RuntimeError("dirpath length exceeded 1024")
     shutil.rmtree(dirpath)
 
 
@@ -76,15 +80,6 @@ def s3_bucket():
 @pytest.fixture(scope='session')
 def s3_object():
     return os.environ.get("S3_TEST_OBJECT", DEFAULT_S3_TEST_OBJECT)
-
-
-@pytest.fixture(scope='session')
-def path_dataset_dir():
-    dirpath = ".path-dataset"
-    while os.path.exists(dirpath):  # avoid name collisions
-        dirpath += '_'
-    yield os.path.join(dirpath, "{}")
-    shutil.rmtree(dirpath)
 
 
 @pytest.fixture(scope="session")
