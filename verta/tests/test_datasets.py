@@ -191,6 +191,21 @@ class TestClientDatasetVersionFunctions:
         version = dataset.get_latest_version(ascending=True)
         assert version.id == version1.id
 
+    def test_reincarnation(self, client):
+        """Consecutive identical versions are assigned the same ID."""
+        name = utils.gen_str()
+        dataset = client.set_dataset(name=name, type="local")
+
+        version1 = dataset.create_version(path=__file__)
+        version2 = dataset.create_version(path=__file__)
+        assert version1.id == version2.id
+
+        versions = dataset.get_all_versions()
+        assert len(versions) == 1
+
+        version = dataset.get_latest_version(ascending=True)
+        assert version.id == version1.id
+
 
 class TestPathBasedDatasetVersions:
     def test_creation_from_scratch(self, client):
