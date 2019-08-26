@@ -221,15 +221,14 @@ class Client(object):
         if self.proj is not None:
             self.expt = None
 
-        proj = Project(self._conn, self._conf,
-                       name,
-                       desc, tags, attrs,
-                       id)
+        self.proj = Project(self._conn, self._conf,
+                            name,
+                            desc, tags, attrs,
+                            id)
 
-        self.proj = proj
-        return proj
+        return self.proj
 
-    def set_experiment(self, name=None, desc=None, tags=None, attrs=None):
+    def set_experiment(self, name=None, desc=None, tags=None, attrs=None, id=None):
         """
         Attaches an Experiment under the currently active Project to this Client.
 
@@ -261,17 +260,33 @@ class Client(object):
             If a Project is not yet in progress.
 
         """
-        if self.proj is None:
-            raise AttributeError("a project must first be in progress")
+        if name is not None and id is not None:
+            raise ValueError("cannot specify both `name` and `id`")
+        elif id is not None:
+            # find Experiment by ID
+            expt_msg = Experiment._get(self._conn, _expt_id=id)
+            if expt_msg is None:
+                raise ValueError("no Experiment found with ID {}".format(id))
+            # set parent Project by ID
+            try:
+                self.proj = Project(self._conn, self._conf, _proj_id=expt_msg.project_id)
+            except ValueError:  # parent Project not found
+                raise RuntimeError("unable to find parent Project of Experiment with ID {};"
+                                   " this should only ever occur due to a back end error".format(id))
+            # set Experiment
+            self.expt = Experiment(self._conn, self._conf,
+                                   _expt_id=id)
+        else:
+            # set Experiment by name under current Project
+            if self.proj is None:
+                raise AttributeError("a Project must first be in progress")
+            self.expt = Experiment(self._conn, self._conf,
+                                   self.proj.id, name,
+                                   desc, tags, attrs)
 
-        expt = Experiment(self._conn, self._conf,
-                          self.proj.id, name,
-                          desc, tags, attrs)
+        return self.expt
 
-        self.expt = expt
-        return expt
-
-    def set_experiment_run(self, name=None, desc=None, tags=None, attrs=None):
+    def set_experiment_run(self, name=None, desc=None, tags=None, attrs=None, id=None):
         """
         Attaches an Experiment Run under the currently active Experiment to this Client.
 
@@ -303,12 +318,37 @@ class Client(object):
             If an Experiment is not yet in progress.
 
         """
-        if self.expt is None:
-            raise AttributeError("an experiment must first be in progress")
+        if name is not None and id is not None:
+            raise ValueError("cannot specify both `name` and `id`")
+        elif id is not None:
+            # find ExperimentRun by ID
+            expt_run_msg = ExperimentRun._get(self._conn, _expt_run_id=id)
+            if expt_run_msg is None:
+                raise ValueError("no ExperimentRun found with ID {}".format(id))
+            # set parent Project by ID
+            try:
+                self.proj = Project(self._conn, self._conf, _proj_id=expt_run_msg.project_id)
+            except ValueError:  # parent Project not found
+                raise RuntimeError("unable to find parent Project of ExperimentRun with ID {};"
+                                   " this should only ever occur due to a back end error".format(id))
+            # set parent Experiment by ID
+            try:
+                self.expt = Experiment(self._conn, self._conf, _expt_id=expt_run_msg.experiment_id)
+            except ValueError:  # parent Experiment not found
+                raise RuntimeError("unable to find parent Experiment of ExperimentRun with ID {};"
+                                   " this should only ever occur due to a back end error".format(id))
+            # set ExperimentRun
+            expt_run = ExperimentRun(self._conn, self._conf,
+                                     _expt_run_id=id)
+        else:
+            # set ExperimentRun by name under current Experiment
+            if self.expt is None:
+                raise AttributeError("an Experiment must first be in progress")
+            expt_run = ExperimentRun(self._conn, self._conf,
+                                   self.proj.id, self.expt.id, name,
+                                   desc, tags, attrs)
 
-        return ExperimentRun(self._conn, self._conf,
-                             self.proj.id, self.expt.id, name,
-                             desc, tags, attrs)
+        return expt_run
 
     # NOTE: dataset visibility cannot be set via a client
     def set_dataset(self, name=None, type="local",
