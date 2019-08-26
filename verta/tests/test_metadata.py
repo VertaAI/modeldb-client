@@ -4,9 +4,6 @@ import pytest
 import utils
 
 
-if six.PY2: FileNotFoundError = IOError
-
-
 class TestTags:
     tags = [utils.gen_str() for _ in range(3)]
 
