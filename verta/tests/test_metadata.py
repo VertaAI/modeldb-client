@@ -5,25 +5,36 @@ import utils
 
 
 class TestTags:
-    tags = [utils.gen_str() for _ in range(3)]
-
-    def test_single(self, experiment_run):
-        for tag in self.tags:
+    def test_log_single(self, experiment_run, strs):
+        for tag in strs:
             experiment_run.log_tag(tag)
 
-        assert set(experiment_run.get_tags()) == set(self.tags)
+        assert set(experiment_run.get_tags()) == set(strs)
 
-    def test_multiple(self, experiment_run):
-        experiment_run.log_tags(self.tags)
+    def test_log_batch(self, experiment_run, strs):
+        experiment_run.log_tags(strs)
 
-        assert set(experiment_run.get_tags()) == set(self.tags)
+        assert set(experiment_run.get_tags()) == set(strs)
 
-    def test_duplicates(self, experiment_run):
-        experiment_run.log_tags(self.tags)
-        for tag in self.tags:
+    def test_ignore_duplicates(self, experiment_run, strs):
+        """duplicate tags do not raise an error, and instead are ignored"""
+        experiment_run.log_tags(strs*2)
+
+        assert set(experiment_run.get_tags()) == set(strs)
+
+        for tag in strs:
             experiment_run.log_tag(tag)
 
-        assert set(experiment_run.get_tags()) == set(self.tags)
+        assert set(experiment_run.get_tags()) == set(strs)
+
+        experiment_run.log_tags(strs)
+
+        assert set(experiment_run.get_tags()) == set(strs)
+
+    def test_log_nonstring_error(self, experiment_run, all_values):
+        for value in (value for value in all_values if not isinstance(value, str)):
+            with pytest.raises(TypeError):
+                experiment_run.log_tag(value)
 
 
 class TestHyperparameters:
