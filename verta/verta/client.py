@@ -2641,7 +2641,7 @@ class ExperimentRun(_ModelDBEntity):
                     "",
                     "sys.path = sys.path[:1] + {} + sys.path[1:]".format(list(search_paths)),
                     "",
-                    "os.makedirs(\"{}\")".format(working_dir),
+                    "os.makedirs(\"{}\", exist_ok=True)".format(working_dir),
                     "os.chdir(\"{}\")".format(working_dir),
                 ]))
             )
