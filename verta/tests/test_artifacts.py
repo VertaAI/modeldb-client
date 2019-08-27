@@ -142,11 +142,11 @@ class TestImages:
 
     def test_store_pil(self, experiment_run):
         key = utils.gen_str()
-        img = PIL.Image.new('RGB', (64, 64), 'white')
+        img = PIL.Image.new('RGB', (64, 64), 'gray')
         PIL.ImageDraw.Draw(img).arc(np.r_[np.random.randint(32, size=(2)),
                                           np.random.randint(32, 64, size=(2))].tolist(),
                                     np.random.randint(360), np.random.randint(360),
-                                    'black')
+                                    'white')
 
         experiment_run.log_image(key, img)
         assert(np.array_equal(np.asarray(experiment_run.get_image(key).getdata()),
@@ -154,7 +154,7 @@ class TestImages:
 
     def test_conflict(self, experiment_run):
         images = {
-            utils.gen_str(): PIL.Image.new('RGB', (64, 64), 'white'),
+            utils.gen_str(): PIL.Image.new('RGB', (64, 64), 'gray'),
             utils.gen_str(): PIL.Image.new('RGB', (64, 64), 'purple'),
             utils.gen_str(): PIL.Image.new('RGB', (64, 64), 'green'),
         }
