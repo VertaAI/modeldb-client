@@ -1,5 +1,9 @@
 import six
 
+import string
+
+import verta
+
 import pytest
 import utils
 
@@ -38,6 +42,12 @@ class TestTags:
 
 
 class TestHyperparameters:
+    def test_keys(self, experiment_run):
+        keys = (c for c in string.printable if c not in verta._utils._VALID_FLAT_KEY_CHARS)
+        for key in keys:
+            with pytest.raises(ValueError):
+                experiment_run.log_hyperparameter(key, 'key test')
+
     def test_single(self, experiment_run, strs, scalar_values):
         strs, holdout = strs[:-1], strs[-1]  # reserve last key
         hyperparameters = dict(zip(strs, scalar_values))
@@ -107,6 +117,12 @@ class TestHyperparameters:
 
 
 class TestAttributes:
+    def test_keys(self, experiment_run):
+        keys = (c for c in string.printable if c not in verta._utils._VALID_FLAT_KEY_CHARS)
+        for key in keys:
+            with pytest.raises(ValueError):
+                experiment_run.log_attribute(key, 'key test')
+
     def test_single(self, experiment_run, strs, all_values):
         strs, holdout = strs[:-1], strs[-1]  # reserve last key
         attributes = dict(zip(strs, all_values))
@@ -171,6 +187,12 @@ class TestAttributes:
 
 
 class TestMetrics:
+    def test_keys(self, experiment_run):
+        keys = (c for c in string.printable if c not in verta._utils._VALID_FLAT_KEY_CHARS)
+        for key in keys:
+            with pytest.raises(ValueError):
+                experiment_run.log_metric(key, 'key test')
+
     def test_single(self, experiment_run, strs, scalar_values):
         strs, holdout = strs[:-1], strs[-1]  # reserve last key
         metrics = dict(zip(strs, scalar_values))
@@ -240,6 +262,12 @@ class TestMetrics:
 
 
 class TestObservations:
+    def test_keys(self, experiment_run):
+        keys = (c for c in string.printable if c not in verta._utils._VALID_FLAT_KEY_CHARS)
+        for key in keys:
+            with pytest.raises(ValueError):
+                experiment_run.log_observation(key, 'key test')
+
     def test_single(self, experiment_run, strs, scalar_values):
         strs, holdout = strs[:-1], strs[-1]  # reserve last key
         observations = {
