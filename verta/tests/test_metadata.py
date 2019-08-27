@@ -171,70 +171,72 @@ class TestAttributes:
 
 
 class TestMetrics:
-    metrics = {
-        utils.gen_str(): utils.gen_str(),
-        utils.gen_str(): utils.gen_int(),
-        utils.gen_str(): utils.gen_float(),
-    }
+    def test_single(self, experiment_run, strs, scalar_values):
+        strs, holdout = strs[:-1], strs[-1]  # reserve last key
+        metrics = dict(zip(strs, scalar_values))
 
-    def test_single(self, experiment_run):
-        for key, val in six.viewitems(self.metrics):
+        for key, val in six.viewitems(metrics):
             experiment_run.log_metric(key, val)
 
         with pytest.raises(KeyError):
-            experiment_run.get_metric(utils.gen_str())
+            experiment_run.get_metric(holdout)
 
-        for key, val in six.viewitems(self.metrics):
+        for key, val in six.viewitems(metrics):
             assert experiment_run.get_metric(key) == val
 
-        assert experiment_run.get_metrics() == self.metrics
+        assert experiment_run.get_metrics() == metrics
 
-    def test_batch(self, experiment_run):
-        experiment_run.log_metrics(self.metrics)
+    def test_batch(self, experiment_run, strs, scalar_values):
+        strs, holdout = strs[:-1], strs[-1]  # reserve last key
+        metrics = dict(zip(strs, scalar_values))
+
+        experiment_run.log_metrics(metrics)
 
         with pytest.raises(KeyError):
-            experiment_run.get_metric(utils.gen_str())
+            experiment_run.get_metric(holdout)
 
-        for key, val in six.viewitems(self.metrics):
+        for key, val in six.viewitems(metrics):
             assert experiment_run.get_metric(key) == val
 
-        assert experiment_run.get_metrics() == self.metrics
+        assert experiment_run.get_metrics() == metrics
 
-    def test_conflict(self, experiment_run):
-        for key, val in six.viewitems(self.metrics):
+    def test_conflict(self, experiment_run, strs, scalar_values):
+        metrics = dict(zip(strs, scalar_values))
+
+        for key, val in six.viewitems(metrics):
             experiment_run.log_metric(key, val)
             with pytest.raises(ValueError):
                 experiment_run.log_metric(key, val)
 
-        for key, val in reversed(list(six.viewitems(self.metrics))):
+        # try it backwards, too
+        for key, val in reversed(list(six.viewitems(metrics))):
             with pytest.raises(ValueError):
                 experiment_run.log_metric(key, val)
 
-    def test_atomic(self, experiment_run):
+    def test_atomic(self, experiment_run, strs, scalar_values):
         """batch completely fails even if only a single key conflicts"""
-        experiment_run.log_metrics(self.metrics)
+        metrics = dict(zip(strs, scalar_values))
+        first_metric = (strs[0], scalar_values[0])
 
-        for key, val in six.viewitems(self.metrics):
-            with pytest.raises(ValueError):
-                experiment_run.log_metrics({
-                    key: val,
-                    utils.gen_str(): utils.gen_str(),
-                })
+        experiment_run.log_metric(*first_metric)
 
-        assert experiment_run.get_metrics() == self.metrics
+        with pytest.raises(ValueError):
+            experiment_run.log_metrics(metrics)
 
-    def test_log_collection(self, experiment_run):
-        with pytest.raises(TypeError):  # single fn, list
-            experiment_run.log_metric(utils.gen_str(), utils.gen_list())
+        assert experiment_run.get_metrics() == dict([first_metric])
 
-        with pytest.raises(TypeError):  # batch fn, list
-            experiment_run.log_metrics({utils.gen_str(): utils.gen_list()})
+    def test_collection_error(self, experiment_run, strs, collection_values):
+        """do not permit logging lists or dicts"""
+        metrics = dict(zip(strs, collection_values))
 
-        with pytest.raises(TypeError):  # single fn, dict
-            experiment_run.log_metric(utils.gen_str(), utils.gen_dict())
+        # single
+        for key, val in six.viewitems(metrics):
+            with pytest.raises(TypeError):
+                experiment_run.log_metric(key, val)
 
-        with pytest.raises(TypeError):  # batch fn, dict
-            experiment_run.log_metrics({utils.gen_str(): utils.gen_dict()})
+        # batch
+        with pytest.raises(TypeError):
+            experiment_run.log_metrics(metrics)
 
 
 class TestObservations:
