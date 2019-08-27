@@ -38,71 +38,72 @@ class TestTags:
 
 
 class TestHyperparameters:
-    hyperparameters = {
-        utils.gen_str(): utils.gen_str(),
-        utils.gen_str(): utils.gen_int(),
-        utils.gen_str(): utils.gen_float(),
-    }
+    def test_single(self, experiment_run, strs, scalar_values):
+        strs, holdout = strs[:-1], strs[-1]  # reserve last key
+        hyperparameters = dict(zip(strs, scalar_values))
 
-    def test_single(self, experiment_run):
-        for key, val in six.viewitems(self.hyperparameters):
+        for key, val in six.viewitems(hyperparameters):
             experiment_run.log_hyperparameter(key, val)
 
         with pytest.raises(KeyError):
-            experiment_run.get_hyperparameter(utils.gen_str())
+            experiment_run.get_hyperparameter(holdout)
 
-        for key, val in six.viewitems(self.hyperparameters):
+        for key, val in six.viewitems(hyperparameters):
             assert experiment_run.get_hyperparameter(key) == val
 
-        assert experiment_run.get_hyperparameters() == self.hyperparameters
+        assert experiment_run.get_hyperparameters() == hyperparameters
 
-    def test_batch(self, experiment_run):
-        experiment_run.log_hyperparameters(self.hyperparameters)
+    def test_batch(self, experiment_run, strs, scalar_values):
+        strs, holdout = strs[:-1], strs[-1]  # reserve last key
+        hyperparameters = dict(zip(strs, scalar_values))
+
+        experiment_run.log_hyperparameters(hyperparameters)
 
         with pytest.raises(KeyError):
-            experiment_run.get_hyperparameter(utils.gen_str())
+            experiment_run.get_hyperparameter(holdout)
 
-        for key, val in six.viewitems(self.hyperparameters):
+        for key, val in six.viewitems(hyperparameters):
             assert experiment_run.get_hyperparameter(key) == val
 
-        assert experiment_run.get_hyperparameters() == self.hyperparameters
+        assert experiment_run.get_hyperparameters() == hyperparameters
 
-    def test_conflict(self, experiment_run):
-        for key, val in six.viewitems(self.hyperparameters):
+    def test_conflict(self, experiment_run, strs, scalar_values):
+        hyperparameters = dict(zip(strs, scalar_values))
+
+        for key, val in six.viewitems(hyperparameters):
             experiment_run.log_hyperparameter(key, val)
             with pytest.raises(ValueError):
                 experiment_run.log_hyperparameter(key, val)
 
-        for key, val in reversed(list(six.viewitems(self.hyperparameters))):
+        # try it backwards, too
+        for key, val in reversed(list(six.viewitems(hyperparameters))):
             with pytest.raises(ValueError):
                 experiment_run.log_hyperparameter(key, val)
 
-    def test_atomic(self, experiment_run):
+    def test_atomic(self, experiment_run, strs, scalar_values):
         """batch completely fails even if only a single key conflicts"""
-        experiment_run.log_hyperparameters(self.hyperparameters)
+        hyperparameters = dict(zip(strs, scalar_values))
+        first_hyperparameter = (strs[0], scalar_values[0])
 
-        for key, val in six.viewitems(self.hyperparameters):
-            with pytest.raises(ValueError):
-                experiment_run.log_hyperparameters({
-                    key: val,
-                    utils.gen_str(): utils.gen_str(),
-                })
+        experiment_run.log_hyperparameter(*first_hyperparameter)
 
-        assert experiment_run.get_hyperparameters() == self.hyperparameters
+        with pytest.raises(ValueError):
+            experiment_run.log_hyperparameters(hyperparameters)
 
-    def test_log_collection(self, experiment_run):
-        with pytest.raises(TypeError):  # single fn, list
-            experiment_run.log_hyperparameter(utils.gen_str(), utils.gen_list())
+        assert experiment_run.get_hyperparameters() == dict([first_hyperparameter])
 
-        with pytest.raises(TypeError):  # batch fn, list
-            experiment_run.log_hyperparameters({utils.gen_str(): utils.gen_list()})
+    def test_collection_error(self, experiment_run, strs, collection_values):
+        """do not permit logging lists or dicts"""
+        hyperparameters = dict(zip(strs, collection_values))
 
-        with pytest.raises(TypeError):  # single fn, dict
-            experiment_run.log_hyperparameter(utils.gen_str(), utils.gen_dict())
+        # single
+        for key, val in six.viewitems(hyperparameters):
+            with pytest.raises(TypeError):
+                experiment_run.log_hyperparameter(key, val)
 
-        with pytest.raises(TypeError):  # batch fn, dict
-            experiment_run.log_hyperparameters({utils.gen_str(): utils.gen_dict()})
-
+        # batch
+        with pytest.raises(TypeError):
+            experiment_run.log_hyperparameters(hyperparameters)
 
 
 class TestAttributes:
