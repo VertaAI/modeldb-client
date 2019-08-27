@@ -78,7 +78,7 @@ class TestHyperparameters:
                 experiment_run.log_hyperparameter(key, val)
 
     def test_atomic(self, experiment_run):
-        """Test if batch completely fails even if only a single key conflicts."""
+        """batch completely fails even if only a single key conflicts"""
         experiment_run.log_hyperparameters(self.hyperparameters)
 
         for key, val in six.viewitems(self.hyperparameters):
@@ -106,78 +106,67 @@ class TestHyperparameters:
 
 
 class TestAttributes:
-    attributes = {
-        utils.gen_str(): utils.gen_str(),
-        utils.gen_str(): utils.gen_int(),
-        utils.gen_str(): utils.gen_float(),
-    }
+    def test_single(self, experiment_run, strs, all_values):
+        strs, holdout = strs[:-1], strs[-1]  # reserve last key
+        attributes = dict(zip(strs, all_values))
 
-    def test_single(self, experiment_run):
-        for key, val in six.viewitems(self.attributes):
+        for key, val in six.viewitems(attributes):
             experiment_run.log_attribute(key, val)
 
         with pytest.raises(KeyError):
-            experiment_run.get_attribute(utils.gen_str())
+            experiment_run.get_attribute(holdout)
 
-        for key, val in six.viewitems(self.attributes):
+        for key, val in six.viewitems(attributes):
             assert experiment_run.get_attribute(key) == val
 
-        assert experiment_run.get_attributes() == self.attributes
+        assert experiment_run.get_attributes() == attributes
 
-    def test_batch(self, experiment_run):
-        experiment_run.log_attributes(self.attributes)
+    def test_batch(self, experiment_run, strs, all_values):
+        strs, holdout = strs[:-1], strs[-1]  # reserve last key
+        attributes = dict(zip(strs, all_values))
+
+        experiment_run.log_attributes(attributes)
 
         with pytest.raises(KeyError):
-            experiment_run.get_attribute(utils.gen_str())
+            experiment_run.get_attribute(holdout)
 
-        for key, val in six.viewitems(self.attributes):
+        for key, val in six.viewitems(attributes):
             assert experiment_run.get_attribute(key) == val
 
-        assert experiment_run.get_attributes() == self.attributes
+        assert experiment_run.get_attributes() == attributes
 
-    def test_conflict(self, experiment_run):
-        for key, val in six.viewitems(self.attributes):
+    def test_conflict(self, experiment_run, strs, all_values):
+        attributes = dict(zip(strs, all_values))
+
+        for key, val in six.viewitems(attributes):
             experiment_run.log_attribute(key, val)
             with pytest.raises(ValueError):
                 experiment_run.log_attribute(key, val)
 
-        for key, val in reversed(list(six.viewitems(self.attributes))):
+        # try it backwards, too
+        for key, val in reversed(list(six.viewitems(attributes))):
             with pytest.raises(ValueError):
                 experiment_run.log_attribute(key, val)
 
-    def test_atomic(self, experiment_run):
-        """Test if batch completely fails even if only a single key conflicts."""
-        experiment_run.log_attributes(self.attributes)
+    def test_atomic(self, experiment_run, strs, all_values):
+        """batch completely fails even if only a single key conflicts"""
+        attributes = dict(zip(strs, all_values))
+        first_attribute = (strs[0], all_values[0])
 
-        for key, val in six.viewitems(self.attributes):
-            with pytest.raises(ValueError):
-                experiment_run.log_attributes({
-                    key: val,
-                    utils.gen_str(): utils.gen_str(),
-                })
+        experiment_run.log_attribute(*first_attribute)
 
-        assert experiment_run.get_attributes() == self.attributes
+        with pytest.raises(ValueError):
+            experiment_run.log_attributes(attributes)
 
-    def test_log_collection(self, experiment_run):
-        # single fn, list
-        key, value = utils.gen_str(), utils.gen_list()
-        experiment_run.log_attribute(key, value)
-        assert experiment_run.get_attribute(key) == value
+        assert experiment_run.get_attributes() == dict([first_attribute])
 
-        # batch fn, list
-        key, value = utils.gen_str(), utils.gen_list()
-        experiment_run.log_attributes({key: value})
-        assert experiment_run.get_attribute(key) == value
+    def test_nonstring_key_error(self, experiment_run, scalar_values):
+        scalar_values = (value for value in scalar_values if not isinstance(value, str))  # rm str
+        attributes = dict(zip(scalar_values, scalar_values))
 
-        # single fn, dict
-        key, value = utils.gen_str(), utils.gen_dict()
-        experiment_run.log_attribute(key, value)
-        assert experiment_run.get_attribute(key) == value
-
-        # batch fn, dict
-        key, value = utils.gen_str(), utils.gen_dict()
-        experiment_run.log_attributes({key: value})
-        assert experiment_run.get_attribute(key) == value
+        for key, val in six.viewitems(attributes):
+            with pytest.raises(TypeError):
+                experiment_run.log_attribute(key, val)
 
 
 class TestMetrics:
@@ -221,7 +210,7 @@ class TestMetrics:
                 experiment_run.log_metric(key, val)
 
     def test_atomic(self, experiment_run):
-        """Test if batch completely fails even if only a single key conflicts."""
+        """batch completely fails even if only a single key conflicts"""
         experiment_run.log_metrics(self.metrics)
 
         for key, val in six.viewitems(self.metrics):
