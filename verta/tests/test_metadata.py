@@ -240,29 +240,34 @@ class TestMetrics:
 
 
 class TestObservations:
-    observations = {
-        utils.gen_str(): [utils.gen_str(), utils.gen_str()],
-        utils.gen_str(): [utils.gen_int(), utils.gen_int()],
-        utils.gen_str(): [utils.gen_float(), utils.gen_float()],
-    }
+    def test_single(self, experiment_run, strs, scalar_values):
+        strs, holdout = strs[:-1], strs[-1]  # reserve last key
+        observations = {
+            key: [scalar_value]*3
+            for key, scalar_value in zip(strs, scalar_values)
+        }
 
-    def test_single(self, experiment_run):
-        for key, vals in six.viewitems(self.observations):
+        for key, vals in six.viewitems(observations):
             for val in vals:
                 experiment_run.log_observation(key, val)
 
         with pytest.raises(KeyError):
-            experiment_run.get_observation(utils.gen_str())
+            experiment_run.get_observation(holdout)
 
-        for key, val in six.viewitems(self.observations):
+        for key, val in six.viewitems(observations):
             assert [obs_val for obs_val, _ in experiment_run.get_observation(key)] == val
 
         assert {key: [obs_val for obs_val, _ in obs_seq]
-                for key, obs_seq in experiment_run.get_observations().items()} == self.observations
+                for key, obs_seq in experiment_run.get_observations().items()} == observations
 
-    def test_log_collection(self, experiment_run):
-        with pytest.raises(TypeError):  # single fn, list
-            experiment_run.log_observation(utils.gen_str(), utils.gen_list())
+    def test_collection_error(self, experiment_run, strs, collection_values):
+        """do not permit logging lists or dicts"""
+        observations = {
+            key: [collection_value]*3
+            for key, collection_value in zip(strs, collection_values)
+        }
 
-        with pytest.raises(TypeError):  # single fn, dict
-            experiment_run.log_observation(utils.gen_str(), utils.gen_dict())
+        for key, vals in six.viewitems(observations):
+            for val in vals:
+                with pytest.raises(TypeError):
+                    experiment_run.log_observation(key, val)
