@@ -120,30 +120,35 @@ class TestImages:
         fig.savefig(bytestream)
         return PIL.Image.open(bytestream)
 
-    def test_path(self, experiment_run):
-        key = utils.gen_str()
-        path = utils.gen_str()
+    def test_log_path(self, experiment_run, strs):
+        strs, holdout = strs[:-1], strs[-1]  # reserve last key
 
-        experiment_run.log_image_path(key, path)
-        assert experiment_run.get_image(key) == path
+        for key, image_path in zip(strs, strs):
+            experiment_run.log_image_path(key, image_path)
 
-    def test_store_blank_warning(self, experiment_run):
-        key = utils.gen_str()
+        for key, image_path in zip(strs, strs):
+            assert experiment_run.get_image(key) == image_path
+
+        with pytest.raises(KeyError):
+            experiment_run.get_image(holdout)
+
+    def test_upload_blank_warning(self, experiment_run, strs):
+        key = strs[0]
         img = PIL.Image.new('RGB', (64, 64), 'white')
 
         with pytest.warns(UserWarning):
             experiment_run.log_image(key, img)
 
-    def test_store_plt(self, experiment_run):
-        key = utils.gen_str()
+    def test_upload_plt(self, experiment_run, strs):
+        key = strs[0]
         plt.scatter(*np.random.random((2, 10)))
 
         experiment_run.log_image(key, plt)
         assert np.array_equal(np.asarray(experiment_run.get_image(key).getdata()),
                               np.asarray(self.matplotlib_to_pil(plt).getdata()))
 
-    def test_store_fig(self, experiment_run):
-        key = utils.gen_str()
+    def test_upload_fig(self, experiment_run, strs):
+        key = strs[0]
         fig, ax = plt.subplots()
         ax.scatter(*np.random.random((2, 10)))
 
@@ -151,8 +156,8 @@ class TestImages:
         assert np.array_equal(np.asarray(experiment_run.get_image(key).getdata()),
                               np.asarray(self.matplotlib_to_pil(fig).getdata()))
 
-    def test_store_pil(self, experiment_run):
-        key = utils.gen_str()
+    def test_upload_pil(self, experiment_run, strs):
+        key = strs[0]
         img = PIL.Image.new('RGB', (64, 64), 'gray')
         PIL.ImageDraw.Draw(img).arc(np.r_[np.random.randint(32, size=(2)),
                                           np.random.randint(32, 64, size=(2))].tolist(),
@@ -163,12 +168,8 @@ class TestImages:
         assert(np.array_equal(np.asarray(experiment_run.get_image(key).getdata()),
                               np.asarray(img.getdata())))
 
-    def test_conflict(self, experiment_run):
-        images = {
-            utils.gen_str(): PIL.Image.new('RGB', (64, 64), 'gray'),
-            utils.gen_str(): PIL.Image.new('RGB', (64, 64), 'purple'),
-            utils.gen_str(): PIL.Image.new('RGB', (64, 64), 'green'),
-        }
+    def test_conflict(self, experiment_run, strs):
+        images = dict(zip(strs, [PIL.Image.new('RGB', (64, 64), 'gray')]*3))
 
         for key, image in six.viewitems(images):
             experiment_run.log_image(key, image)
