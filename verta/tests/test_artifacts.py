@@ -1,5 +1,6 @@
 import six
 
+import os
 import sys
 
 if sys.platform == "darwin":  # https://stackoverflow.com/q/21784641
@@ -16,56 +17,66 @@ import utils
 
 
 class TestArtifacts:
-    def test_path(self, experiment_run):
-        key = utils.gen_str()
-        path = utils.gen_str()
+    def test_log_path(self, experiment_run, strs):
+        strs, holdout = strs[:-1], strs[-1]  # reserve last key
 
-        experiment_run.log_artifact_path(key, path)
-        assert experiment_run.get_artifact(key) == path
+        for key, artifact_path in zip(strs, strs):
+            experiment_run.log_artifact_path(key, artifact_path)
 
-    def test_store(self, experiment_run):
-        key = utils.gen_str()
-        artifact = {utils.gen_str(): utils.gen_str() for _ in range(6)}
+        for key, artifact_path in zip(strs, strs):
+            assert experiment_run.get_artifact(key) == artifact_path
 
-        experiment_run.log_artifact(key, artifact)
-        assert experiment_run.get_artifact(key) == artifact
-
-    def test_empty(self, experiment_run):
-        artifacts = {
-            utils.gen_str(): six.BytesIO(),
-        }
-
-        for key, artifact in six.viewitems(artifacts):
-            with pytest.raises(ValueError):
-                experiment_run.log_artifact(key, artifact)
-
-    def test_get(self, experiment_run):
-        artifacts = {
-            utils.gen_str(): {utils.gen_str(): utils.gen_str() for _ in range(6)},
-            utils.gen_str(): {utils.gen_str(): utils.gen_str() for _ in range(6)},
-            utils.gen_str(): {utils.gen_str(): utils.gen_str() for _ in range(6)},
-        }
-
-        for key, artifact in six.viewitems(artifacts):
-            experiment_run.log_artifact(key, artifact)
-        for key, artifact in six.viewitems(artifacts):
-            assert experiment_run.get_artifact(key) == artifact
         with pytest.raises(KeyError):
-            experiment_run.get_artifact(utils.gen_str())
+            experiment_run.get_artifact(holdout)
 
-    def test_conflict(self, experiment_run):
-        artifacts = {
-            utils.gen_str(): {utils.gen_str(): utils.gen_str() for _ in range(6)},
-            utils.gen_str(): {utils.gen_str(): utils.gen_str() for _ in range(6)},
-            utils.gen_str(): {utils.gen_str(): utils.gen_str() for _ in range(6)},
-        }
+    def test_upload_object(self, experiment_run, strs, all_values):
+        strs, holdout = strs[:-1], strs[-1]  # reserve last key
+        all_values = (value  # log_artifact treats str value as filepath to open
+                      for value in all_values if not isinstance(value, str))
 
-        for key, artifact in six.viewitems(artifacts):
+        for key, artifact in zip(strs, all_values):
+            experiment_run.log_artifact(key, artifact)
+
+        for key, artifact in zip(strs, all_values):
+            assert experiment_run.get_artifact(key) == artifact
+
+        with pytest.raises(KeyError):
+            experiment_run.get_artifact(holdout)
+
+    def test_upload_file(self, experiment_run, strs):
+        filepaths = (filepath for filepath in os.listdir() if filepath.endswith('.py'))
+        artifacts = list(zip(strs, filepaths))
+
+        # log using file handle
+        for key, artifact_filepath in artifacts[:len(artifacts)//2]:
+            with open(artifact_filepath, 'r') as artifact_file:  # does not need to be 'rb'
+                experiment_run.log_artifact(key, artifact_file)
+
+        # log using filepath
+        for key, artifact_filepath in artifacts[len(artifacts)//2:]:
+            experiment_run.log_artifact(key, artifact_filepath)
+
+        # get
+        for key, artifact_filepath in artifacts:
+            with open(artifact_filepath, 'rb') as artifact_file:
+                assert experiment_run.get_artifact(key).read() == artifact_file.read()
+
+    def test_empty(self, experiment_run, strs):
+        """uploading empty data, e.g. an empty file, raises an error"""
+
+        with pytest.raises(ValueError):
+            experiment_run.log_artifact(strs[0], six.BytesIO())
+
+    def test_conflict(self, experiment_run, strs, all_values):
+        all_values = (value  # log_artifact treats str value as filepath to open
+                      for value in all_values if not isinstance(value, str))
+
+        for key, artifact in zip(strs, all_values):
             experiment_run.log_artifact(key, artifact)
             with pytest.raises(ValueError):
                 experiment_run.log_artifact(key, artifact)
 
-        for key, artifact in reversed(list(six.viewitems(artifacts))):
+        for key, artifact in reversed(list(zip(strs, all_values))):
             with pytest.raises(ValueError):
                 experiment_run.log_artifact(key, artifact)
 
@@ -109,30 +120,35 @@ class TestImages:
         fig.savefig(bytestream)
         return PIL.Image.open(bytestream)
 
-    def test_path(self, experiment_run):
-        key = utils.gen_str()
-        path = utils.gen_str()
+    def test_log_path(self, experiment_run, strs):
+        strs, holdout = strs[:-1], strs[-1]  # reserve last key
 
-        experiment_run.log_image_path(key, path)
-        assert experiment_run.get_image(key) == path
+        for key, image_path in zip(strs, strs):
+            experiment_run.log_image_path(key, image_path)
 
-    def test_store_blank_warning(self, experiment_run):
-        key = utils.gen_str()
+        for key, image_path in zip(strs, strs):
+            assert experiment_run.get_image(key) == image_path
+
+        with pytest.raises(KeyError):
+            experiment_run.get_image(holdout)
+
+    def test_upload_blank_warning(self, experiment_run, strs):
+        key = strs[0]
         img = PIL.Image.new('RGB', (64, 64), 'white')
 
         with pytest.warns(UserWarning):
             experiment_run.log_image(key, img)
 
-    def test_store_plt(self, experiment_run):
-        key = utils.gen_str()
+    def test_upload_plt(self, experiment_run, strs):
+        key = strs[0]
         plt.scatter(*np.random.random((2, 10)))
 
         experiment_run.log_image(key, plt)
         assert np.array_equal(np.asarray(experiment_run.get_image(key).getdata()),
                               np.asarray(self.matplotlib_to_pil(plt).getdata()))
 
-    def test_store_fig(self, experiment_run):
-        key = utils.gen_str()
+    def test_upload_fig(self, experiment_run, strs):
+        key = strs[0]
         fig, ax = plt.subplots()
         ax.scatter(*np.random.random((2, 10)))
 
@@ -140,24 +156,20 @@ class TestImages:
         assert np.array_equal(np.asarray(experiment_run.get_image(key).getdata()),
                               np.asarray(self.matplotlib_to_pil(fig).getdata()))
 
-    def test_store_pil(self, experiment_run):
-        key = utils.gen_str()
-        img = PIL.Image.new('RGB', (64, 64), 'white')
+    def test_upload_pil(self, experiment_run, strs):
+        key = strs[0]
+        img = PIL.Image.new('RGB', (64, 64), 'gray')
         PIL.ImageDraw.Draw(img).arc(np.r_[np.random.randint(32, size=(2)),
                                           np.random.randint(32, 64, size=(2))].tolist(),
                                     np.random.randint(360), np.random.randint(360),
-                                    'black')
+                                    'white')
 
         experiment_run.log_image(key, img)
         assert(np.array_equal(np.asarray(experiment_run.get_image(key).getdata()),
                               np.asarray(img.getdata())))
 
-    def test_conflict(self, experiment_run):
-        images = {
-            utils.gen_str(): PIL.Image.new('RGB', (64, 64), 'white'),
-            utils.gen_str(): PIL.Image.new('RGB', (64, 64), 'purple'),
-            utils.gen_str(): PIL.Image.new('RGB', (64, 64), 'green'),
-        }
+    def test_conflict(self, experiment_run, strs):
+        images = dict(zip(strs, [PIL.Image.new('RGB', (64, 64), 'gray')]*3))
 
         for key, image in six.viewitems(images):
             experiment_run.log_image(key, image)
