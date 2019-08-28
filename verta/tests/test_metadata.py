@@ -1,268 +1,301 @@
 import six
 
+import string
+
+import verta
+
 import pytest
 import utils
 
 
-if six.PY2: FileNotFoundError = IOError
-
-
 class TestTags:
-    tags = [utils.gen_str() for _ in range(3)]
-
-    def test_single(self, experiment_run):
-        for tag in self.tags:
+    def test_log_single(self, experiment_run, strs):
+        for tag in strs:
             experiment_run.log_tag(tag)
 
-        assert set(experiment_run.get_tags()) == set(self.tags)
+        assert set(experiment_run.get_tags()) == set(strs)
 
-    def test_multiple(self, experiment_run):
-        experiment_run.log_tags(self.tags)
+    def test_log_batch(self, experiment_run, strs):
+        experiment_run.log_tags(strs)
 
-        assert set(experiment_run.get_tags()) == set(self.tags)
+        assert set(experiment_run.get_tags()) == set(strs)
 
-    def test_duplicates(self, experiment_run):
-        experiment_run.log_tags(self.tags)
-        for tag in self.tags:
+    def test_ignore_duplicates(self, experiment_run, strs):
+        """duplicate tags do not raise an error, and instead are ignored"""
+        experiment_run.log_tags(strs*2)
+
+        assert set(experiment_run.get_tags()) == set(strs)
+
+        for tag in strs:
             experiment_run.log_tag(tag)
 
-        assert set(experiment_run.get_tags()) == set(self.tags)
+        assert set(experiment_run.get_tags()) == set(strs)
+
+        experiment_run.log_tags(strs)
+
+        assert set(experiment_run.get_tags()) == set(strs)
+
+    def test_log_nonstring_error(self, experiment_run, all_values):
+        for value in (value for value in all_values if not isinstance(value, str)):
+            with pytest.raises(TypeError):
+                experiment_run.log_tag(value)
 
 
 class TestHyperparameters:
-    hyperparameters = {
-        utils.gen_str(): utils.gen_str(),
-        utils.gen_str(): utils.gen_int(),
-        utils.gen_str(): utils.gen_float(),
-    }
+    def test_keys(self, experiment_run):
+        keys = (c for c in string.printable if c not in verta._utils._VALID_FLAT_KEY_CHARS)
+        for key in keys:
+            with pytest.raises(ValueError):
+                experiment_run.log_hyperparameter(key, 'key test')
 
-    def test_single(self, experiment_run):
-        for key, val in six.viewitems(self.hyperparameters):
+    def test_single(self, experiment_run, strs, scalar_values):
+        strs, holdout = strs[:-1], strs[-1]  # reserve last key
+        hyperparameters = dict(zip(strs, scalar_values))
+
+        for key, val in six.viewitems(hyperparameters):
             experiment_run.log_hyperparameter(key, val)
 
         with pytest.raises(KeyError):
-            experiment_run.get_hyperparameter(utils.gen_str())
+            experiment_run.get_hyperparameter(holdout)
 
-        for key, val in six.viewitems(self.hyperparameters):
+        for key, val in six.viewitems(hyperparameters):
             assert experiment_run.get_hyperparameter(key) == val
 
-        assert experiment_run.get_hyperparameters() == self.hyperparameters
+        assert experiment_run.get_hyperparameters() == hyperparameters
 
-    def test_batch(self, experiment_run):
-        experiment_run.log_hyperparameters(self.hyperparameters)
+    def test_batch(self, experiment_run, strs, scalar_values):
+        strs, holdout = strs[:-1], strs[-1]  # reserve last key
+        hyperparameters = dict(zip(strs, scalar_values))
+
+        experiment_run.log_hyperparameters(hyperparameters)
 
         with pytest.raises(KeyError):
-            experiment_run.get_hyperparameter(utils.gen_str())
+            experiment_run.get_hyperparameter(holdout)
 
-        for key, val in six.viewitems(self.hyperparameters):
+        for key, val in six.viewitems(hyperparameters):
             assert experiment_run.get_hyperparameter(key) == val
 
-        assert experiment_run.get_hyperparameters() == self.hyperparameters
+        assert experiment_run.get_hyperparameters() == hyperparameters
 
-    def test_conflict(self, experiment_run):
-        for key, val in six.viewitems(self.hyperparameters):
+    def test_conflict(self, experiment_run, strs, scalar_values):
+        hyperparameters = dict(zip(strs, scalar_values))
+
+        for key, val in six.viewitems(hyperparameters):
             experiment_run.log_hyperparameter(key, val)
             with pytest.raises(ValueError):
                 experiment_run.log_hyperparameter(key, val)
 
-        for key, val in reversed(list(six.viewitems(self.hyperparameters))):
+        # try it backwards, too
+        for key, val in reversed(list(six.viewitems(hyperparameters))):
             with pytest.raises(ValueError):
                 experiment_run.log_hyperparameter(key, val)
 
-    def test_atomic(self, experiment_run):
-        """Test if batch completely fails even if only a single key conflicts."""
-        experiment_run.log_hyperparameters(self.hyperparameters)
+    def test_atomic(self, experiment_run, strs, scalar_values):
+        """batch completely fails even if only a single key conflicts"""
+        hyperparameters = dict(zip(strs, scalar_values))
+        first_hyperparameter = (strs[0], scalar_values[0])
 
-        for key, val in six.viewitems(self.hyperparameters):
-            with pytest.raises(ValueError):
-                experiment_run.log_hyperparameters({
-                    key: val,
-                    utils.gen_str(): utils.gen_str(),
-                })
+        experiment_run.log_hyperparameter(*first_hyperparameter)
 
-        assert experiment_run.get_hyperparameters() == self.hyperparameters
+        with pytest.raises(ValueError):
+            experiment_run.log_hyperparameters(hyperparameters)
 
-    def test_log_collection(self, experiment_run):
-        with pytest.raises(TypeError):  # single fn, list
-            experiment_run.log_hyperparameter(utils.gen_str(), utils.gen_list())
+        assert experiment_run.get_hyperparameters() == dict([first_hyperparameter])
 
-        with pytest.raises(TypeError):  # batch fn, list
-            experiment_run.log_hyperparameters({utils.gen_str(): utils.gen_list()})
+    def test_collection_error(self, experiment_run, strs, collection_values):
+        """do not permit logging lists or dicts"""
+        hyperparameters = dict(zip(strs, collection_values))
 
-        with pytest.raises(TypeError):  # single fn, dict
-            experiment_run.log_hyperparameter(utils.gen_str(), utils.gen_dict())
+        # single
+        for key, val in six.viewitems(hyperparameters):
+            with pytest.raises(TypeError):
+                experiment_run.log_hyperparameter(key, val)
 
-        with pytest.raises(TypeError):  # batch fn, dict
-            experiment_run.log_hyperparameters({utils.gen_str(): utils.gen_dict()})
-
+        # batch
+        with pytest.raises(TypeError):
+            experiment_run.log_hyperparameters(hyperparameters)
 
 
 class TestAttributes:
-    attributes = {
-        utils.gen_str(): utils.gen_str(),
-        utils.gen_str(): utils.gen_int(),
-        utils.gen_str(): utils.gen_float(),
-    }
+    def test_keys(self, experiment_run):
+        keys = (c for c in string.printable if c not in verta._utils._VALID_FLAT_KEY_CHARS)
+        for key in keys:
+            with pytest.raises(ValueError):
+                experiment_run.log_attribute(key, 'key test')
 
-    def test_single(self, experiment_run):
-        for key, val in six.viewitems(self.attributes):
+    def test_single(self, experiment_run, strs, all_values):
+        strs, holdout = strs[:-1], strs[-1]  # reserve last key
+        attributes = dict(zip(strs, all_values))
+
+        for key, val in six.viewitems(attributes):
             experiment_run.log_attribute(key, val)
 
         with pytest.raises(KeyError):
-            experiment_run.get_attribute(utils.gen_str())
+            experiment_run.get_attribute(holdout)
 
-        for key, val in six.viewitems(self.attributes):
+        for key, val in six.viewitems(attributes):
             assert experiment_run.get_attribute(key) == val
 
-        assert experiment_run.get_attributes() == self.attributes
+        assert experiment_run.get_attributes() == attributes
 
-    def test_batch(self, experiment_run):
-        experiment_run.log_attributes(self.attributes)
+    def test_batch(self, experiment_run, strs, all_values):
+        strs, holdout = strs[:-1], strs[-1]  # reserve last key
+        attributes = dict(zip(strs, all_values))
+
+        experiment_run.log_attributes(attributes)
 
         with pytest.raises(KeyError):
-            experiment_run.get_attribute(utils.gen_str())
+            experiment_run.get_attribute(holdout)
 
-        for key, val in six.viewitems(self.attributes):
+        for key, val in six.viewitems(attributes):
             assert experiment_run.get_attribute(key) == val
 
-        assert experiment_run.get_attributes() == self.attributes
+        assert experiment_run.get_attributes() == attributes
 
-    def test_conflict(self, experiment_run):
-        for key, val in six.viewitems(self.attributes):
+    def test_conflict(self, experiment_run, strs, all_values):
+        attributes = dict(zip(strs, all_values))
+
+        for key, val in six.viewitems(attributes):
             experiment_run.log_attribute(key, val)
             with pytest.raises(ValueError):
                 experiment_run.log_attribute(key, val)
 
-        for key, val in reversed(list(six.viewitems(self.attributes))):
+        # try it backwards, too
+        for key, val in reversed(list(six.viewitems(attributes))):
             with pytest.raises(ValueError):
                 experiment_run.log_attribute(key, val)
 
-    def test_atomic(self, experiment_run):
-        """Test if batch completely fails even if only a single key conflicts."""
-        experiment_run.log_attributes(self.attributes)
+    def test_atomic(self, experiment_run, strs, all_values):
+        """batch completely fails even if only a single key conflicts"""
+        attributes = dict(zip(strs, all_values))
+        first_attribute = (strs[0], all_values[0])
 
-        for key, val in six.viewitems(self.attributes):
-            with pytest.raises(ValueError):
-                experiment_run.log_attributes({
-                    key: val,
-                    utils.gen_str(): utils.gen_str(),
-                })
+        experiment_run.log_attribute(*first_attribute)
 
-        assert experiment_run.get_attributes() == self.attributes
+        with pytest.raises(ValueError):
+            experiment_run.log_attributes(attributes)
 
-    def test_log_collection(self, experiment_run):
-        # single fn, list
-        key, value = utils.gen_str(), utils.gen_list()
-        experiment_run.log_attribute(key, value)
-        assert experiment_run.get_attribute(key) == value
+        assert experiment_run.get_attributes() == dict([first_attribute])
 
-        # batch fn, list
-        key, value = utils.gen_str(), utils.gen_list()
-        experiment_run.log_attributes({key: value})
-        assert experiment_run.get_attribute(key) == value
+    def test_nonstring_key_error(self, experiment_run, scalar_values):
+        scalar_values = (value for value in scalar_values if not isinstance(value, str))  # rm str
+        attributes = dict(zip(scalar_values, scalar_values))
 
-        # single fn, dict
-        key, value = utils.gen_str(), utils.gen_dict()
-        experiment_run.log_attribute(key, value)
-        assert experiment_run.get_attribute(key) == value
-
-        # batch fn, dict
-        key, value = utils.gen_str(), utils.gen_dict()
-        experiment_run.log_attributes({key: value})
-        assert experiment_run.get_attribute(key) == value
+        for key, val in six.viewitems(attributes):
+            with pytest.raises(TypeError):
+                experiment_run.log_attribute(key, val)
 
 
 class TestMetrics:
-    metrics = {
-        utils.gen_str(): utils.gen_str(),
-        utils.gen_str(): utils.gen_int(),
-        utils.gen_str(): utils.gen_float(),
-    }
+    def test_keys(self, experiment_run):
+        keys = (c for c in string.printable if c not in verta._utils._VALID_FLAT_KEY_CHARS)
+        for key in keys:
+            with pytest.raises(ValueError):
+                experiment_run.log_metric(key, 'key test')
 
-    def test_single(self, experiment_run):
-        for key, val in six.viewitems(self.metrics):
+    def test_single(self, experiment_run, strs, scalar_values):
+        strs, holdout = strs[:-1], strs[-1]  # reserve last key
+        metrics = dict(zip(strs, scalar_values))
+
+        for key, val in six.viewitems(metrics):
             experiment_run.log_metric(key, val)
 
         with pytest.raises(KeyError):
-            experiment_run.get_metric(utils.gen_str())
+            experiment_run.get_metric(holdout)
 
-        for key, val in six.viewitems(self.metrics):
+        for key, val in six.viewitems(metrics):
             assert experiment_run.get_metric(key) == val
 
-        assert experiment_run.get_metrics() == self.metrics
+        assert experiment_run.get_metrics() == metrics
 
-    def test_batch(self, experiment_run):
-        experiment_run.log_metrics(self.metrics)
+    def test_batch(self, experiment_run, strs, scalar_values):
+        strs, holdout = strs[:-1], strs[-1]  # reserve last key
+        metrics = dict(zip(strs, scalar_values))
+
+        experiment_run.log_metrics(metrics)
 
         with pytest.raises(KeyError):
-            experiment_run.get_metric(utils.gen_str())
+            experiment_run.get_metric(holdout)
 
-        for key, val in six.viewitems(self.metrics):
+        for key, val in six.viewitems(metrics):
             assert experiment_run.get_metric(key) == val
 
-        assert experiment_run.get_metrics() == self.metrics
+        assert experiment_run.get_metrics() == metrics
 
-    def test_conflict(self, experiment_run):
-        for key, val in six.viewitems(self.metrics):
+    def test_conflict(self, experiment_run, strs, scalar_values):
+        metrics = dict(zip(strs, scalar_values))
+
+        for key, val in six.viewitems(metrics):
             experiment_run.log_metric(key, val)
             with pytest.raises(ValueError):
                 experiment_run.log_metric(key, val)
 
-        for key, val in reversed(list(six.viewitems(self.metrics))):
+        # try it backwards, too
+        for key, val in reversed(list(six.viewitems(metrics))):
             with pytest.raises(ValueError):
                 experiment_run.log_metric(key, val)
 
-    def test_atomic(self, experiment_run):
-        """Test if batch completely fails even if only a single key conflicts."""
-        experiment_run.log_metrics(self.metrics)
+    def test_atomic(self, experiment_run, strs, scalar_values):
+        """batch completely fails even if only a single key conflicts"""
+        metrics = dict(zip(strs, scalar_values))
+        first_metric = (strs[0], scalar_values[0])
 
-        for key, val in six.viewitems(self.metrics):
-            with pytest.raises(ValueError):
-                experiment_run.log_metrics({
-                    key: val,
-                    utils.gen_str(): utils.gen_str(),
-                })
+        experiment_run.log_metric(*first_metric)
 
-        assert experiment_run.get_metrics() == self.metrics
+        with pytest.raises(ValueError):
+            experiment_run.log_metrics(metrics)
 
-    def test_log_collection(self, experiment_run):
-        with pytest.raises(TypeError):  # single fn, list
-            experiment_run.log_metric(utils.gen_str(), utils.gen_list())
+        assert experiment_run.get_metrics() == dict([first_metric])
 
-        with pytest.raises(TypeError):  # batch fn, list
-            experiment_run.log_metrics({utils.gen_str(): utils.gen_list()})
+    def test_collection_error(self, experiment_run, strs, collection_values):
+        """do not permit logging lists or dicts"""
+        metrics = dict(zip(strs, collection_values))
 
-        with pytest.raises(TypeError):  # single fn, dict
-            experiment_run.log_metric(utils.gen_str(), utils.gen_dict())
+        # single
+        for key, val in six.viewitems(metrics):
+            with pytest.raises(TypeError):
+                experiment_run.log_metric(key, val)
 
-        with pytest.raises(TypeError):  # batch fn, dict
-            experiment_run.log_metrics({utils.gen_str(): utils.gen_dict()})
+        # batch
+        with pytest.raises(TypeError):
+            experiment_run.log_metrics(metrics)
 
 
 class TestObservations:
-    observations = {
-        utils.gen_str(): [utils.gen_str(), utils.gen_str()],
-        utils.gen_str(): [utils.gen_int(), utils.gen_int()],
-        utils.gen_str(): [utils.gen_float(), utils.gen_float()],
-    }
+    def test_keys(self, experiment_run):
+        keys = (c for c in string.printable if c not in verta._utils._VALID_FLAT_KEY_CHARS)
+        for key in keys:
+            with pytest.raises(ValueError):
+                experiment_run.log_observation(key, 'key test')
 
-    def test_single(self, experiment_run):
-        for key, vals in six.viewitems(self.observations):
+    def test_single(self, experiment_run, strs, scalar_values):
+        strs, holdout = strs[:-1], strs[-1]  # reserve last key
+        observations = {
+            key: [scalar_value]*3
+            for key, scalar_value in zip(strs, scalar_values)
+        }
+
+        for key, vals in six.viewitems(observations):
             for val in vals:
                 experiment_run.log_observation(key, val)
 
         with pytest.raises(KeyError):
-            experiment_run.get_observation(utils.gen_str())
+            experiment_run.get_observation(holdout)
 
-        for key, val in six.viewitems(self.observations):
+        for key, val in six.viewitems(observations):
             assert [obs_val for obs_val, _ in experiment_run.get_observation(key)] == val
 
         assert {key: [obs_val for obs_val, _ in obs_seq]
-                for key, obs_seq in experiment_run.get_observations().items()} == self.observations
+                for key, obs_seq in experiment_run.get_observations().items()} == observations
 
-    def test_log_collection(self, experiment_run):
-        with pytest.raises(TypeError):  # single fn, list
-            experiment_run.log_observation(utils.gen_str(), utils.gen_list())
+    def test_collection_error(self, experiment_run, strs, collection_values):
+        """do not permit logging lists or dicts"""
+        observations = {
+            key: [collection_value]*3
+            for key, collection_value in zip(strs, collection_values)
+        }
 
-        with pytest.raises(TypeError):  # single fn, dict
-            experiment_run.log_observation(utils.gen_str(), utils.gen_dict())
+        for key, vals in six.viewitems(observations):
+            for val in vals:
+                with pytest.raises(TypeError):
+                    experiment_run.log_observation(key, val)
