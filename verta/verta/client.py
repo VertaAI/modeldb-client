@@ -2641,7 +2641,10 @@ class ExperimentRun(_ModelDBEntity):
                     "",
                     "sys.path = sys.path[:1] + {} + sys.path[1:]".format(list(search_paths)),
                     "",
-                    "os.makedirs(\"{}\", exist_ok=True)".format(working_dir),
+                    "try:",
+                    "    os.makedirs(\"{}\")".format(working_dir),
+                    "except OSError:  # already exists",
+                    "    pass",
                     "os.chdir(\"{}\")".format(working_dir),
                 ]))
             )
