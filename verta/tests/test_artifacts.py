@@ -10,7 +10,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import PIL
 import PIL.ImageDraw
-import sklearn.linear_model
+import sklearn
+from sklearn import cluster, naive_bayes, pipeline, preprocessing
 
 import pytest
 import utils
@@ -82,35 +83,49 @@ class TestArtifacts:
 
 
 class TestModels:
-    def test_path(self, experiment_run):
-        key = utils.gen_str()
-        path = utils.gen_str()
+    def test_sklearn(self, seed, experiment_run, strs):
+        np.random.seed(seed)
+        key = strs[0]
+        num_data_rows = 36
+        X = np.random.random((num_data_rows, 2))
+        y = np.random.randint(10, size=num_data_rows)
 
-        experiment_run.log_model_path(key, path)
-        assert experiment_run.get_model(key) == path
+        pipeline = sklearn.pipeline.make_pipeline(
+            sklearn.preprocessing.StandardScaler(),
+            sklearn.cluster.KMeans(),
+            sklearn.naive_bayes.GaussianNB(),
+        )
+        pipeline.fit(X, y)
 
-    def test_store(self, experiment_run):
-        key = utils.gen_str()
-        model = sklearn.linear_model.LogisticRegression()
+        experiment_run.log_model(key, pipeline)
+        retrieved_pipeline = experiment_run.get_model(key)
 
-        experiment_run.log_model(key, model)
-        assert experiment_run.get_model(key).get_params() == model.get_params()
+        assert np.allclose(pipeline.predict(X), retrieved_pipeline.predict(X))
 
-    def test_conflict(self, experiment_run):
-        models = {
-            utils.gen_str(): sklearn.linear_model.LogisticRegression(),
-            utils.gen_str(): sklearn.linear_model.LogisticRegression(),
-            utils.gen_str(): sklearn.linear_model.LogisticRegression(),
-        }
+        assert len(pipeline.steps) == len(retrieved_pipeline.steps)
+        for step, retrieved_step in zip(pipeline.steps, retrieved_pipeline.steps):
+            assert step[0] == retrieved_step[0]  # step name
+            assert step[1].get_params() == retrieved_step[1].get_params()  # step model
 
-        for key, model in six.viewitems(models):
-            experiment_run.log_model(key, model)
-            with pytest.raises(ValueError):
-                experiment_run.log_model(key, model)
+    def test_torch(self, experiment_run, strs):
+        raise NotImplementedError
+        key = strs[0]
 
-        for key, model in reversed(list(six.viewitems(models))):
-            with pytest.raises(ValueError):
-                experiment_run.log_model(key, model)
+    def test_keras(self, experiment_run, strs):
+        raise NotImplementedError
+        key = strs[0]
+
+    def test_no_tensorflow(self, experiment_run, strs):
+        raise NotImplementedError
+        key = strs[0]
+
+    def test_function(self, experiment_run, strs, flat_lists, flat_dicts):
+        raise NotImplementedError
+        key = strs[0]
+
+    def test_custom_class(self, experiment_run, strs, flat_lists, flat_dicts):
+        raise NotImplementedError
+        key = strs[0]
 
 
 class TestImages:
