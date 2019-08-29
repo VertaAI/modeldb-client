@@ -74,8 +74,6 @@ class Client(object):
         Currently active Project.
     expt : :class:`Experiment` or None
         Currently active Experiment.
-    expt_runs : :class:`ExperimentRuns` or None
-        ExperimentRuns under the currently active Experiment.
 
     """
     _GRPC_PREFIX = "Grpc-Metadata-"
@@ -166,6 +164,10 @@ class Client(object):
 
     @property
     def expt_runs(self):
+        warnings.warn("`client.expt_runs` is deprecated and will removed in a later version;"
+                      " consider using `proj.expt_runs` and `expt.expt_runs` instead",
+                      category=DeprecationWarning, stacklevel=2)
+
         if self.expt is None:
             return None
         else:
@@ -1038,13 +1040,10 @@ class ExperimentRuns(object):
         ----------
         where : str or list of str
             Predicates specifying Experiment Runs to get.
-        ret_all_info : bool, default False
-            If False, return an :class:`ExperimentRuns`. Otherwise, return an iterable of `protobuf`
-            `Message`\ s.
 
         Returns
         -------
-        :class:`ExperimentRuns` or iterable of google.protobuf.message.Message
+        :class:`ExperimentRuns`
 
         Examples
         --------
@@ -1053,6 +1052,10 @@ class ExperimentRuns(object):
         <ExperimentRuns containing 3 runs>
 
         """
+        if ret_all_info:
+            warnings.warn("`ret_all_info` is deprecated and will removed in a later version;",
+                          category=DeprecationWarning, stacklevel=2)
+
         if _proj_id is not None and _expt_id is not None:
             raise ValueError("cannot specify both `_proj_id` and `_expt_id`")
         elif _proj_id is None and _expt_id is None:
