@@ -12,6 +12,10 @@ import PIL
 import PIL.ImageDraw
 import sklearn
 from sklearn import cluster, naive_bayes, pipeline, preprocessing
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
 
 import pytest
 import utils
@@ -107,9 +111,41 @@ class TestModels:
             assert step[0] == retrieved_step[0]  # step name
             assert step[1].get_params() == retrieved_step[1].get_params()  # step model
 
-    def test_torch(self, experiment_run, strs):
-        raise NotImplementedError
+    def test_torch(self, seed, experiment_run, strs):
+        np.random.seed(seed)
         key = strs[0]
+        num_data_rows = 36
+        X = torch.tensor(np.random.random((num_data_rows, 3, 32, 32)), dtype=torch.float)
+
+        class Model(nn.Module):
+            def __init__(self):
+                super(Model, self).__init__()
+                self.conv1 = nn.Conv2d(3, 6, 5)
+                self.pool = nn.MaxPool2d(2, 2)
+                self.conv2 = nn.Conv2d(6, 16, 5)
+                self.fc1 = nn.Linear(16 * 5 * 5, 120)
+                self.fc2 = nn.Linear(120, 84)
+                self.fc3 = nn.Linear(84, 10)
+
+            def forward(self, x):
+                x = self.pool(F.relu(self.conv1(x)))
+                x = self.pool(F.relu(self.conv2(x)))
+                x = x.view(-1, 16 * 5 * 5)
+                x = F.relu(self.fc1(x))
+                x = F.relu(self.fc2(x))
+                x = self.fc3(x)
+                return x
+
+        net = Model()
+
+        experiment_run.log_model(key, net)
+        retrieved_net = experiment_run.get_model(key)
+
+        assert torch.allclose(net(X), retrieved_net(X))
+
+        assert net.state_dict().keys() == retrieved_net.state_dict().keys()
+        for key, weight in net.state_dict().items():
+            assert torch.allclose(weight, retrieved_net.state_dict()[key])
 
     def test_keras(self, experiment_run, strs):
         raise NotImplementedError
