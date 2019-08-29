@@ -12,6 +12,7 @@ import PIL
 import PIL.ImageDraw
 import sklearn
 from sklearn import cluster, naive_bayes, pipeline, preprocessing
+from tensorflow import keras
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -147,9 +148,36 @@ class TestModels:
         for key, weight in net.state_dict().items():
             assert torch.allclose(weight, retrieved_net.state_dict()[key])
 
-    def test_keras(self, experiment_run, strs):
-        raise NotImplementedError
+    def test_keras(self, seed, experiment_run, strs):
+        np.random.seed(seed)
         key = strs[0]
+        num_data_rows = 36
+        X = np.random.random((num_data_rows, 28, 28))
+        y = np.random.random(num_data_rows)
+
+        net = keras.models.Sequential([
+            keras.layers.Flatten(input_shape=(28, 28)),
+            keras.layers.Dense(128, activation='relu'),
+            keras.layers.Dropout(0.2),
+            keras.layers.Dense(10, activation='softmax')
+        ])
+        net.compile(
+            optimizer='adam',
+            loss='sparse_categorical_crossentropy',
+            metrics=['accuracy']
+        )
+        net.fit(X, y, epochs=5)
+
+        experiment_run.log_model(key, net)
+        retrieved_net = experiment_run.get_model(key)
+
+        assert np.allclose(net.predict(X), retrieved_net.predict(X))
+        # NOTE: history is purged when model is saved
+        # assert np.allclose(net.history.history, retrieved_net.history.history)
+
+        assert len(net.weights) == len(retrieved_net.weights)
+        # NOTE: weight states have weird shenanigans when model is saved
+        # for weight, retrieved_weight in zip(net.weights, retrieved_net.weights):
 
     def test_no_tensorflow(self, experiment_run, strs):
         raise NotImplementedError
