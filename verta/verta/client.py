@@ -1743,10 +1743,11 @@ class ExperimentRun(_ModelDBEntity):
         response.raise_for_status()
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
-        attribute =  _utils.unravel_key_values(response_msg.attributes).get(key)
-        if attribute is None:
-            raise KeyError("no attribute found with key {}".format(key))
-        return attribute
+        attributes = _utils.unravel_key_values(response_msg.attributes)
+        try:
+            return attributes[key]
+        except KeyError:
+            six.raise_from(KeyError("no attribute found with key {}".format(key)), None)
 
     def get_attributes(self):
         """
@@ -1855,10 +1856,11 @@ class ExperimentRun(_ModelDBEntity):
         response.raise_for_status()
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
-        metric = _utils.unravel_key_values(response_msg.metrics).get(key)
-        if metric is None:
-            raise KeyError("no metric found with key {}".format(key))
-        return metric
+        metrics = _utils.unravel_key_values(response_msg.metrics)
+        try:
+            return metrics[key]
+        except KeyError:
+            six.raise_from(KeyError("no metric found with key {}".format(key)), None)
 
     def get_metrics(self):
         """
@@ -1965,10 +1967,11 @@ class ExperimentRun(_ModelDBEntity):
         response.raise_for_status()
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
-        hyperparameter = _utils.unravel_key_values(response_msg.hyperparameters).get(key)
-        if hyperparameter is None:
-            raise KeyError("no hyperparameter found with key {}".format(key))
-        return hyperparameter
+        hyperparameters = _utils.unravel_key_values(response_msg.hyperparameters)
+        try:
+            return hyperparameters[key]
+        except KeyError:
+            six.raise_from(KeyError("no hyperparameter found with key {}".format(key)), None)
 
     def get_hyperparameters(self):
         """
