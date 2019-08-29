@@ -179,10 +179,6 @@ class TestModels:
         # NOTE: weight states have weird shenanigans when model is saved
         # for weight, retrieved_weight in zip(net.weights, retrieved_net.weights):
 
-    def test_no_tensorflow(self, experiment_run, strs):
-        raise NotImplementedError
-        key = strs[0]
-
     def test_function(self, experiment_run, strs, flat_lists, flat_dicts):
         key = strs[0]
         func_args = flat_lists[0]
