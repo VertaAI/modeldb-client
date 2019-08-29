@@ -165,21 +165,21 @@ class RawDataset(Dataset):
     TYPE = _DatasetService.DatasetTypeEnum.RAW
 
     def __init__(self, *args, **kwargs):
-        super(RawDataset, self).__init__(*args, **kwargs, dataset_type=self.TYPE)
+        super(RawDataset, self).__init__(dataset_type=self.TYPE, *args, **kwargs)
 
 
 class PathDataset(Dataset):
     TYPE = _DatasetService.DatasetTypeEnum.PATH
 
     def __init__(self, *args, **kwargs):
-        super(PathDataset, self).__init__(*args, **kwargs, dataset_type=self.TYPE)
+        super(PathDataset, self).__init__(dataset_type=self.TYPE, *args, **kwargs)
 
 
 class QueryDataset(Dataset):
     TYPE = _DatasetService.DatasetTypeEnum.QUERY
 
     def __init__(self, *args, **kwargs):
-        super(QueryDataset, self).__init__(*args, **kwargs, dataset_type=self.TYPE)
+        super(QueryDataset, self).__init__(dataset_type=self.TYPE, *args, **kwargs)
 
 
 class S3Dataset(PathDataset):
