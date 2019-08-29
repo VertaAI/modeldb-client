@@ -120,12 +120,35 @@ class TestModels:
         key = strs[0]
 
     def test_function(self, experiment_run, strs, flat_lists, flat_dicts):
-        raise NotImplementedError
         key = strs[0]
+        func_args = flat_lists[0]
+        func_kwargs = flat_dicts[0]
+
+        def func(is_func=True, _cache=set([1, 2, 3]), *args, **kwargs):
+            return (args, kwargs)
+
+        experiment_run.log_model(key, func)
+        assert experiment_run.get_model(key).__defaults__ == func.__defaults__
+        assert experiment_run.get_model(key)(*func_args, **func_kwargs) == func(*func_args, **func_kwargs)
 
     def test_custom_class(self, experiment_run, strs, flat_lists, flat_dicts):
-        raise NotImplementedError
         key = strs[0]
+        init_args = flat_lists[0]
+        init_kwargs = flat_dicts[0]
+
+        class Custom:
+            def __init__(self, *args, **kwargs):
+                self.args = args
+                self.kwargs = kwargs
+
+            def predict(self, data):
+                return (self.args, self.kwargs)
+
+        custom = Custom(*init_args, **init_kwargs)
+
+        experiment_run.log_model(key, custom)
+        assert experiment_run.get_model(key).__dict__ == custom.__dict__
+        assert experiment_run.get_model(key).predict(strs) == custom.predict(strs)
 
 
 class TestImages:
