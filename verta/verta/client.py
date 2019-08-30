@@ -1057,7 +1057,7 @@ class ExperimentRuns(object):
             raise ValueError("cannot specify both `_proj_id` and `_expt_id`")
         elif _proj_id is None and _expt_id is None:
             if self.__len__() == 0:
-                return self.__class__(self._conn)
+                return self.__class__(self._conn, self._conf)
             else:
                 expt_run_ids = self._ids
         else:
@@ -1138,7 +1138,7 @@ class ExperimentRuns(object):
 
         """
         if self.__len__() == 0:
-            return self.__class__(self._conn)
+            return self.__class__(self._conn, self._conf)
 
         Message = _ExperimentRunService.SortExperimentRuns
         msg = Message(experiment_run_ids=self._ids,
@@ -1187,7 +1187,7 @@ class ExperimentRuns(object):
             raise ValueError("cannot specify both `_proj_id` and `_expt_id`")
         elif _proj_id is None and _expt_id is None:
             if self.__len__() == 0:
-                return self.__class__(self._conn)
+                return self.__class__(self._conn, self._conf)
             else:
                 expt_run_ids = self._ids
         else:
@@ -1238,7 +1238,7 @@ class ExperimentRuns(object):
             raise ValueError("cannot specify both `_proj_id` and `_expt_id`")
         elif _proj_id is None and _expt_id is None:
             if self.__len__() == 0:
-                return self.__class__(self._conn)
+                return self.__class__(self._conn, self._conf)
             else:
                 expt_run_ids = self._ids
         else:
