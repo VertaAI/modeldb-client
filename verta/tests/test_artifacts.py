@@ -117,6 +117,7 @@ class TestModels:
         key = strs[0]
         num_data_rows = 36
         X = torch.tensor(np.random.random((num_data_rows, 3, 32, 32)), dtype=torch.float)
+        y = torch.tensor(np.random.randint(10, size=num_data_rows), dtype=torch.long)
 
         class Model(nn.Module):
             def __init__(self):
@@ -138,6 +139,13 @@ class TestModels:
                 return x
 
         net = Model()
+        criterion = torch.nn.CrossEntropyLoss()
+        optimizer = torch.optim.Adam(net.parameters())
+        for epoch in range(5):
+            y_pred = net(X)
+            loss = criterion(y_pred, y)
+            loss.backward()
+            optimizer.step()
 
         experiment_run.log_model(key, net)
         retrieved_net = experiment_run.get_model(key)
