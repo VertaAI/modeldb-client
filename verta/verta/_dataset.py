@@ -91,7 +91,7 @@ class Dataset(object):
                 if response.status_code == 404 and response.json()['code'] == 5:
                     return None
                 else:
-                    response.raise_for_status()
+                    _utils.raise_for_http_error(response)
         elif dataset_name is not None:
             Message = _DatasetService.GetDatasetByName
             msg = Message(name=dataset_name)
@@ -107,7 +107,7 @@ class Dataset(object):
                 if response.status_code == 404 and response.json()['code'] == 5:
                     return None
                 else:
-                    response.raise_for_status()
+                    _utils.raise_for_http_error(response)
         else:
             raise ValueError("insufficient arguments")
 
@@ -129,7 +129,7 @@ class Dataset(object):
             dataset = _utils.json_to_proto(response.json(), Message.Response).dataset
             return dataset
         else:
-            response.raise_for_status()
+            _utils.raise_for_http_error(response)
 
     def create_version(self):
         raise NotImplementedError('this function must be implemented by subclasses')
@@ -141,7 +141,7 @@ class Dataset(object):
         response = _utils.make_request("GET",
                                         "{}://{}/v1/dataset-version/getAllDatasetVersionsByDatasetId".format(self._conn.scheme, self._conn.socket),
                                         self._conn, params=data)
-        response.raise_for_status()
+        _utils.raise_for_http_error(response)
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
         return [DatasetVersion(self._conn, self._conf, _dataset_version_id = dataset_version.id)
@@ -155,7 +155,7 @@ class Dataset(object):
         response = _utils.make_request("GET",
                                         "{}://{}/v1/dataset-version/getLatestDatasetVersionByDatasetId".format(self._conn.scheme, self._conn.socket),
                                         self._conn, params=data)
-        response.raise_for_status()
+        _utils.raise_for_http_error(response)
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
         return response_msg.dataset_version
@@ -331,7 +331,7 @@ class DatasetVersion(object):
                 if response.status_code == 404 and response.json()['code'] == 5:
                     return None
                 else:
-                    response.raise_for_status()
+                    _utils.raise_for_http_error(response)
         else:
             raise ValueError("insufficient arguments")
 
@@ -381,7 +381,7 @@ class DatasetVersion(object):
                                                    _DatasetVersionService.CreateDatasetVersion.Response).dataset_version
             return dataset_version
         else:
-            response.raise_for_status()
+            _utils.raise_for_http_error(response)
 
     @staticmethod
     def make_create_message(dataset_id, dataset_type,

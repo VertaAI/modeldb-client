@@ -129,7 +129,7 @@ class Client(object):
             auth_error_msg = "authentication failed; please check `VERTA_EMAIL` and `VERTA_DEV_KEY`"
             six.raise_from(requests.HTTPError(auth_error_msg), None)
 
-        response.raise_for_status()
+        _utils.raise_for_http_error(response)
         print("connection successfully established")
 
         self._conn = conn
@@ -177,7 +177,7 @@ class Client(object):
             response = _utils.make_request("GET",
                                            "{}://{}/v1/experiment-run/getExperimentRunsInProject".format(self._conn.scheme, self._conn.socket),
                                            self._conn, params=data)
-            response.raise_for_status()
+            _utils.raise_for_http_error(response)
 
             response_msg = _utils.json_to_proto(response.json(), Message.Response)
             expt_run_ids = [expt_run.id
@@ -386,7 +386,7 @@ class Client(object):
     #     response = _utils.make_request("GET",
     #                                     "{}://{}/v1/dataset/getAllDatasets".format(self._conn.scheme, self._conn.socket),
     #                                     self._conn, params=data)
-    #     response.raise_for_status()
+    #     _utils.raise_for_http_error(response)
 
     #     response_msg = _utils.json_to_proto(response.json(), Message.Response)
     #     return [_dataset.Dataset(self._conn, self._conf, _dataset_id = dataset.id)
@@ -440,7 +440,7 @@ class _ModelDBEntity(object):
         response = _utils.make_request("POST",
                                        self._request_url.format("getUrlForArtifact"),
                                        self._conn, json=data)
-        response.raise_for_status()
+        _utils.raise_for_http_error(response)
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
         return response_msg.url
@@ -591,13 +591,13 @@ class _ModelDBEntity(object):
             if response.status_code == 409:
                 raise ValueError("a code version has already been logged")
             else:
-                response.raise_for_status()
+                _utils.raise_for_http_error(response)
 
         if msg.code_version.WhichOneof("code") == 'code_archive':
             # upload artifact to artifact store
             url = self._get_url_for_artifact("verta_code_archive", "PUT", msg.code_version.code_archive.artifact_type)
             response = _utils.make_request("PUT", url, self._conn, data=zipstream)
-            response.raise_for_status()
+            _utils.raise_for_http_error(response)
 
     def get_code(self):
         """
@@ -630,7 +630,7 @@ class _ModelDBEntity(object):
         response = _utils.make_request("GET",
                                         self._request_url.format(endpoint),
                                         self._conn, params=data)
-        response.raise_for_status()
+        _utils.raise_for_http_error(response)
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
         code_ver_msg = response_msg.code_version
@@ -651,7 +651,7 @@ class _ModelDBEntity(object):
             # download artifact from artifact store
             url = self._get_url_for_artifact("verta_code_archive", "GET", code_ver_msg.code_archive.artifact_type)
             response = _utils.make_request("GET", url, self._conn)
-            response.raise_for_status()
+            _utils.raise_for_http_error(response)
 
             code_archive = six.BytesIO(response.content)
             return zipfile.ZipFile(code_archive, 'r')  # TODO: return a util class instead, maybe
@@ -722,7 +722,7 @@ class Project(_ModelDBEntity):
         response = _utils.make_request("GET",
                                        "{}://{}/v1/project/getProjectById".format(self._conn.scheme, self._conn.socket),
                                        self._conn, params=data)
-        response.raise_for_status()
+        _utils.raise_for_http_error(response)
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
         return response_msg.project.name
@@ -736,7 +736,7 @@ class Project(_ModelDBEntity):
         response = _utils.make_request("GET",
                                        "{}://{}/v1/experiment-run/getExperimentRunsInProject".format(self._conn.scheme, self._conn.socket),
                                        self._conn, params=data)
-        response.raise_for_status()
+        _utils.raise_for_http_error(response)
 
         expt_run_ids = [expt_run.id
                         for expt_run
@@ -764,7 +764,7 @@ class Project(_ModelDBEntity):
                 if response.status_code == 404 and response.json()['code'] == 5:
                     return None
                 else:
-                    response.raise_for_status()
+                    _utils.raise_for_http_error(response)
         elif proj_name is not None:
             Message = _ProjectService.GetProjectByName
             msg = Message(name=proj_name)
@@ -780,7 +780,7 @@ class Project(_ModelDBEntity):
                 if response.status_code == 404 and response.json()['code'] == 5:
                     return None
                 else:
-                    response.raise_for_status()
+                    _utils.raise_for_http_error(response)
         else:
             raise ValueError("insufficient arguments")
 
@@ -801,7 +801,7 @@ class Project(_ModelDBEntity):
             response_msg = _utils.json_to_proto(response.json(), Message.Response)
             return response_msg.project
         else:
-            response.raise_for_status()
+            _utils.raise_for_http_error(response)
 
 
 class Experiment(_ModelDBEntity):
@@ -869,7 +869,7 @@ class Experiment(_ModelDBEntity):
         response = _utils.make_request("GET",
                                        "{}://{}/v1/experiment/getExperimentById".format(self._conn.scheme, self._conn.socket),
                                        self._conn, params=data)
-        response.raise_for_status()
+        _utils.raise_for_http_error(response)
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
         return response_msg.experiment.name
@@ -883,7 +883,7 @@ class Experiment(_ModelDBEntity):
         response = _utils.make_request("GET",
                                        "{}://{}/v1/experiment-run/getExperimentRunsInExperiment".format(self._conn.scheme, self._conn.socket),
                                        self._conn, params=data)
-        response.raise_for_status()
+        _utils.raise_for_http_error(response)
 
         expt_run_ids = [expt_run.id
                         for expt_run
@@ -920,7 +920,7 @@ class Experiment(_ModelDBEntity):
             if response.status_code == 404 and response.json()['code'] == 5:
                 return None
             else:
-                response.raise_for_status()
+                _utils.raise_for_http_error(response)
 
     @staticmethod
     def _create(conn, proj_id, expt_name, desc=None, tags=None, attrs=None):
@@ -940,7 +940,7 @@ class Experiment(_ModelDBEntity):
             response_msg = _utils.json_to_proto(response.json(), Message.Response)
             return response_msg.experiment
         else:
-            response.raise_for_status()
+            _utils.raise_for_http_error(response)
 
 
 class ExperimentRuns(object):
@@ -1105,7 +1105,7 @@ class ExperimentRuns(object):
         response = _utils.make_request("POST",
                                        "{}://{}/v1/experiment-run/findExperimentRuns".format(self._conn.scheme, self._conn.socket),
                                        self._conn, json=data)
-        response.raise_for_status()
+        _utils.raise_for_http_error(response)
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
         if ret_all_info:
@@ -1151,7 +1151,7 @@ class ExperimentRuns(object):
                                        "{}://{}/v1/experiment-run/sortExperimentRuns".format(self._conn.scheme, self._conn.socket),
                                        self._conn,
                                        params=data)
-        response.raise_for_status()
+        _utils.raise_for_http_error(response)
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
         if ret_all_info:
@@ -1203,7 +1203,7 @@ class ExperimentRuns(object):
         response = _utils.make_request("GET",
                                        "{}://{}/v1/experiment-run/getTopExperimentRuns".format(self._conn.scheme, self._conn.socket),
                                        self._conn, params=data)
-        response.raise_for_status()
+        _utils.raise_for_http_error(response)
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
         if ret_all_info:
@@ -1254,7 +1254,7 @@ class ExperimentRuns(object):
         response = _utils.make_request("GET",
                                        "{}://{}/v1/experiment-run/getTopExperimentRuns".format(self._conn.scheme, self._conn.socket),
                                        self._conn, params=data)
-        response.raise_for_status()
+        _utils.raise_for_http_error(response)
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
         if ret_all_info:
@@ -1321,7 +1321,7 @@ class ExperimentRun(_ModelDBEntity):
         response = _utils.make_request("GET",
                                        "{}://{}/v1/experiment-run/getExperimentRunById".format(self._conn.scheme, self._conn.socket),
                                        self._conn, params=data)
-        response.raise_for_status()
+        _utils.raise_for_http_error(response)
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
         run_msg = response_msg.experiment_run
@@ -1349,7 +1349,7 @@ class ExperimentRun(_ModelDBEntity):
         response = _utils.make_request("GET",
                                        "{}://{}/v1/experiment-run/getExperimentRunById".format(self._conn.scheme, self._conn.socket),
                                        self._conn, params=data)
-        response.raise_for_status()
+        _utils.raise_for_http_error(response)
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
         return response_msg.experiment_run.name
@@ -1384,7 +1384,7 @@ class ExperimentRun(_ModelDBEntity):
             if response.status_code == 404 and response.json()['code'] == 5:
                 return None
             else:
-                response.raise_for_status()
+                _utils.raise_for_http_error(response)
 
     @staticmethod
     def _create(conn, proj_id, expt_id, expt_run_name, desc=None, tags=None, attrs=None):
@@ -1404,7 +1404,7 @@ class ExperimentRun(_ModelDBEntity):
             response_msg = _utils.json_to_proto(response.json(), Message.Response)
             return response_msg.experiment_run
         else:
-            response.raise_for_status()
+            _utils.raise_for_http_error(response)
 
     def _log_artifact(self, key, artifact, artifact_type, extension=None):
         """
@@ -1466,7 +1466,7 @@ class ExperimentRun(_ModelDBEntity):
                 raise ValueError("artifact with key {} already exists;"
                                  " consider using observations instead".format(key))
             else:
-                response.raise_for_status()
+                _utils.raise_for_http_error(response)
 
         # upload artifact to artifact store
         url = self._get_url_for_artifact(key, "PUT")
@@ -1475,7 +1475,7 @@ class ExperimentRun(_ModelDBEntity):
             print("[DEBUG] uploading {} bytes ({})".format(len(artifact_stream.read()), basename))
             artifact_stream.seek(0)
         response = _utils.make_request("PUT", url, self._conn, data=artifact_stream)
-        response.raise_for_status()
+        _utils.raise_for_http_error(response)
         print("upload complete ({})".format(basename))
 
     def _log_artifact_path(self, key, artifact_path, artifact_type):
@@ -1507,7 +1507,7 @@ class ExperimentRun(_ModelDBEntity):
                 raise ValueError("artifact with key {} already exists;"
                                  " consider using observations instead".format(key))
             else:
-                response.raise_for_status()
+                _utils.raise_for_http_error(response)
 
     def _get_artifact(self, key):
         """
@@ -1536,7 +1536,7 @@ class ExperimentRun(_ModelDBEntity):
         response = _utils.make_request("GET",
                                        "{}://{}/v1/experiment-run/getArtifacts".format(self._conn.scheme, self._conn.socket),
                                        self._conn, params=data)
-        response.raise_for_status()
+        _utils.raise_for_http_error(response)
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
         artifact = {artifact.key: artifact for artifact in response_msg.artifacts}.get(key)
@@ -1548,7 +1548,7 @@ class ExperimentRun(_ModelDBEntity):
             # download artifact from artifact store
             url = self._get_url_for_artifact(key, "GET")
             response = _utils.make_request("GET", url, self._conn)
-            response.raise_for_status()
+            _utils.raise_for_http_error(response)
 
             return response.content, artifact.path_only
 
@@ -1580,7 +1580,7 @@ class ExperimentRun(_ModelDBEntity):
         response = _utils.make_request("GET",
                                        "{}://{}/v1/experiment-run/getDatasets".format(self._conn.scheme, self._conn.socket),
                                        self._conn, params=data)
-        response.raise_for_status()
+        _utils.raise_for_http_error(response)
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
         dataset = {dataset.key: dataset for dataset in response_msg.datasets}.get(key)
@@ -1615,7 +1615,7 @@ class ExperimentRun(_ModelDBEntity):
         response = _utils.make_request("POST",
                                        "{}://{}/v1/experiment-run/addExperimentRunTags".format(self._conn.scheme, self._conn.socket),
                                        self._conn, json=data)
-        response.raise_for_status()
+        _utils.raise_for_http_error(response)
 
     def log_tags(self, tags):
         """
@@ -1639,7 +1639,7 @@ class ExperimentRun(_ModelDBEntity):
         response = _utils.make_request("POST",
                                        "{}://{}/v1/experiment-run/addExperimentRunTags".format(self._conn.scheme, self._conn.socket),
                                        self._conn, json=data)
-        response.raise_for_status()
+        _utils.raise_for_http_error(response)
 
     def get_tags(self):
         """
@@ -1657,7 +1657,7 @@ class ExperimentRun(_ModelDBEntity):
         response = _utils.make_request("GET",
                                        "{}://{}/v1/experiment-run/getExperimentRunTags".format(self._conn.scheme, self._conn.socket),
                                        self._conn, params=data)
-        response.raise_for_status()
+        _utils.raise_for_http_error(response)
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
         return response_msg.tags
@@ -1687,7 +1687,7 @@ class ExperimentRun(_ModelDBEntity):
                 raise ValueError("attribute with key {} already exists;"
                                  " consider using observations instead".format(key))
             else:
-                response.raise_for_status()
+                _utils.raise_for_http_error(response)
 
     def log_attributes(self, attributes):
         """
@@ -1718,7 +1718,7 @@ class ExperimentRun(_ModelDBEntity):
                 raise ValueError("some attribute with some input key already exists;"
                                  " consider using observations instead")
             else:
-                response.raise_for_status()
+                _utils.raise_for_http_error(response)
 
     def get_attribute(self, key):
         """
@@ -1743,7 +1743,7 @@ class ExperimentRun(_ModelDBEntity):
         response = _utils.make_request("GET",
                                        "{}://{}/v1/experiment-run/getAttributes".format(self._conn.scheme, self._conn.socket),
                                        self._conn, params=data)
-        response.raise_for_status()
+        _utils.raise_for_http_error(response)
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
         attributes = _utils.unravel_key_values(response_msg.attributes)
@@ -1768,7 +1768,7 @@ class ExperimentRun(_ModelDBEntity):
         response = _utils.make_request("GET",
                                        "{}://{}/v1/experiment-run/getAttributes".format(self._conn.scheme, self._conn.socket),
                                        self._conn, params=data)
-        response.raise_for_status()
+        _utils.raise_for_http_error(response)
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
         return _utils.unravel_key_values(response_msg.attributes)
@@ -1800,7 +1800,7 @@ class ExperimentRun(_ModelDBEntity):
                 raise ValueError("metric with key {} already exists;"
                                  " consider using observations instead".format(key))
             else:
-                response.raise_for_status()
+                _utils.raise_for_http_error(response)
 
     def log_metrics(self, metrics):
         """
@@ -1831,7 +1831,7 @@ class ExperimentRun(_ModelDBEntity):
                 raise ValueError("some metric with some input key already exists;"
                                  " consider using observations instead")
             else:
-                response.raise_for_status()
+                _utils.raise_for_http_error(response)
 
     def get_metric(self, key):
         """
@@ -1856,7 +1856,7 @@ class ExperimentRun(_ModelDBEntity):
         response = _utils.make_request("GET",
                                        "{}://{}/v1/experiment-run/getMetrics".format(self._conn.scheme, self._conn.socket),
                                        self._conn, params=data)
-        response.raise_for_status()
+        _utils.raise_for_http_error(response)
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
         metrics = _utils.unravel_key_values(response_msg.metrics)
@@ -1881,7 +1881,7 @@ class ExperimentRun(_ModelDBEntity):
         response = _utils.make_request("GET",
                                        "{}://{}/v1/experiment-run/getMetrics".format(self._conn.scheme, self._conn.socket),
                                        self._conn, params=data)
-        response.raise_for_status()
+        _utils.raise_for_http_error(response)
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
         return _utils.unravel_key_values(response_msg.metrics)
@@ -1911,7 +1911,7 @@ class ExperimentRun(_ModelDBEntity):
                 raise ValueError("hyperparameter with key {} already exists;"
                                  " consider using observations instead".format(key))
             else:
-                response.raise_for_status()
+                _utils.raise_for_http_error(response)
 
     def log_hyperparameters(self, hyperparams):
         """
@@ -1942,7 +1942,7 @@ class ExperimentRun(_ModelDBEntity):
                 raise ValueError("some hyperparameter with some input key already exists;"
                                  " consider using observations instead")
             else:
-                response.raise_for_status()
+                _utils.raise_for_http_error(response)
 
     def get_hyperparameter(self, key):
         """
@@ -1967,7 +1967,7 @@ class ExperimentRun(_ModelDBEntity):
         response = _utils.make_request("GET",
                                        "{}://{}/v1/experiment-run/getHyperparameters".format(self._conn.scheme, self._conn.socket),
                                        self._conn, params=data)
-        response.raise_for_status()
+        _utils.raise_for_http_error(response)
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
         hyperparameters = _utils.unravel_key_values(response_msg.hyperparameters)
@@ -1992,7 +1992,7 @@ class ExperimentRun(_ModelDBEntity):
         response = _utils.make_request("GET",
                                        "{}://{}/v1/experiment-run/getHyperparameters".format(self._conn.scheme, self._conn.socket),
                                        self._conn, params=data)
-        response.raise_for_status()
+        _utils.raise_for_http_error(response)
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
         return _utils.unravel_key_values(response_msg.hyperparameters)
@@ -2062,7 +2062,7 @@ class ExperimentRun(_ModelDBEntity):
                 raise ValueError("dataset with key {} already exists;"
                                  " consider using observations instead".format(key))
             else:
-                response.raise_for_status()
+                _utils.raise_for_http_error(response)
 
     def log_dataset_path(self, key, path):
         """
@@ -2529,7 +2529,7 @@ class ExperimentRun(_ModelDBEntity):
         response = _utils.make_request("POST",
                                        "{}://{}/v1/experiment-run/logObservation".format(self._conn.scheme, self._conn.socket),
                                        self._conn, json=data)
-        response.raise_for_status()
+        _utils.raise_for_http_error(response)
 
     def get_observation(self, key):
         """
@@ -2554,7 +2554,7 @@ class ExperimentRun(_ModelDBEntity):
         response = _utils.make_request("GET",
                                        "{}://{}/v1/experiment-run/getObservations".format(self._conn.scheme, self._conn.socket),
                                        self._conn, params=data)
-        response.raise_for_status()
+        _utils.raise_for_http_error(response)
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
         if len(response_msg.observations) == 0:
@@ -2579,7 +2579,7 @@ class ExperimentRun(_ModelDBEntity):
         response = _utils.make_request("GET",
                                        "{}://{}/v1/experiment-run/getExperimentRunById".format(self._conn.scheme, self._conn.socket),
                                        self._conn, params=data)
-        response.raise_for_status()
+        _utils.raise_for_http_error(response)
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
         return _utils.unravel_observations(response_msg.experiment_run.observations)
