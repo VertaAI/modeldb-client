@@ -171,8 +171,8 @@ def raise_for_http_error(response):
                 cause = "Client"
             elif 500 <= response.status_code < 600:
                 cause = "Server"
-            else:  # not an error, which should be impossible here but okay
-                return
+            else:  # should be impossible here, but sure okay
+                cause = "Unexpected"
             message = "{} {} Error: {} for url: {}".format(response.status_code, cause, reason, response.url)
             six.raise_from(requests.HTTPError(message, response=response), None)
 
