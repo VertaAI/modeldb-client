@@ -10,6 +10,8 @@ import time
 
 import requests
 
+from . import _utils
+
 
 class DeployedModel:
     """
@@ -78,7 +80,7 @@ class DeployedModel:
 
     def _set_token_and_url(self):
         response = self._session.get(self._status_url)
-        response.raise_for_status()
+        _utils.raise_for_http_error(response)
         status = response.json()
         if status['status'] == 'error':
             raise RuntimeError(status['message'])
@@ -151,4 +153,4 @@ class DeployedModel:
                 time.sleep(sleep)
             else:
                 break
-        response.raise_for_status()
+        _utils.raise_for_http_error(response)

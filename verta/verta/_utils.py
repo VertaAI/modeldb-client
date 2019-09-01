@@ -142,6 +142,41 @@ def make_request(method, url, conn, **kwargs):
         return response
 
 
+def raise_for_http_error(response):
+    """
+    Raises a potential HTTP error with a back end message if provided, or a default error message otherwise.
+
+    Parameters
+    ----------
+    response : :class:`requests.Response`
+        Response object returned from a `requests`-module HTTP request.
+
+    Raises
+    ------
+    :class:`requests.HTTPError`
+        If an HTTP error occured.
+
+    """
+    try:
+        response.raise_for_status()
+    except requests.HTTPError as e:
+        try:
+            reason = response.json()['message']
+        except (json.JSONDecodeError,  # not JSON response
+                KeyError):  # no 'message' from back end
+            six.raise_from(e, None)  # use default reason
+        else:
+            # replicate https://github.com/psf/requests/blob/428f7a/requests/models.py#L954
+            if 400 <= response.status_code < 500:
+                cause = "Client"
+            elif 500 <= response.status_code < 600:
+                cause = "Server"
+            else:  # should be impossible here, but sure okay
+                cause = "Unexpected"
+            message = "{} {} Error: {} for url: {}".format(response.status_code, cause, reason, response.url)
+            six.raise_from(requests.HTTPError(message, response=response), None)
+
+
 def is_hidden(path):  # to avoid "./".startswith('.')
     return os.path.basename(path.rstrip('/')).startswith('.') and path != "."
 
