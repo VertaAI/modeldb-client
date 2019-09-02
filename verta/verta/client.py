@@ -997,6 +997,13 @@ class ExperimentRuns(object):
                '<=': _CommonService.OperatorEnum.LTE}
     _OP_PATTERN = re.compile(r"({})".format('|'.join(sorted(six.viewkeys(_OP_MAP), key=lambda s: len(s), reverse=True))))
 
+    # keys that yield predictable, sensible results
+    _VALID_QUERY_KEYS = {
+        'id', 'project_id', 'experiment_id',
+        'date_created', 'date_updated', 'start_time', 'end_time',
+        'tags', 'attributes', 'hyperparameters', 'metrics',
+    }
+
     def __init__(self, conn, conf, expt_run_ids=None):
         self._conn = conn
         self._conf = conf
@@ -1077,6 +1084,10 @@ class ExperimentRuns(object):
                 six.raise_from(ValueError("predicate `{}` must be a two-operand comparison".format(predicate)),
                                None)
 
+            if key not in self._VALID_QUERY_KEYS:
+                raise ValueError("key `{}` is not a valid key for querying;"
+                                 " currently supported keys are: {}".format(key, self._VALID_QUERY_KEYS))
+
             # cast operator into protobuf enum variant
             operator = self._OP_MAP[operator]
 
@@ -1140,6 +1151,9 @@ class ExperimentRuns(object):
         <ExperimentRuns containing 3 runs>
 
         """
+        if key not in self._VALID_QUERY_KEYS:
+            raise ValueError("key `{}` is not a valid key for querying;"
+                             " currently supported keys are: {}".format(key, self._VALID_QUERY_KEYS))
         if self.__len__() == 0:
             return self.__class__(self._conn, self._conf)
 
@@ -1186,6 +1200,9 @@ class ExperimentRuns(object):
         <ExperimentRuns containing 3 runs>
 
         """
+        if key not in self._VALID_QUERY_KEYS:
+            raise ValueError("key `{}` is not a valid key for querying;"
+                             " currently supported keys are: {}".format(key, self._VALID_QUERY_KEYS))
         if _proj_id is not None and _expt_id is not None:
             raise ValueError("cannot specify both `_proj_id` and `_expt_id`")
         elif _proj_id is None and _expt_id is None:
@@ -1237,6 +1254,9 @@ class ExperimentRuns(object):
         <ExperimentRuns containing 3 runs>
 
         """
+        if key not in self._VALID_QUERY_KEYS:
+            raise ValueError("key `{}` is not a valid key for querying;"
+                             " currently supported keys are: {}".format(key, self._VALID_QUERY_KEYS))
         if _proj_id is not None and _expt_id is not None:
             raise ValueError("cannot specify both `_proj_id` and `_expt_id`")
         elif _proj_id is None and _expt_id is None:
