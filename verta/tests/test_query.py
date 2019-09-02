@@ -92,9 +92,26 @@ class TestFind:
     def test_end_time(self, client):
         key = "end_time"
 
-    @pytest.mark.skip(reason="not implemented")
-    def test_tags(self, client):
-        key = "tags"
+    def test_tags(self, client, seed, strs):
+        tags = strs[:5]
+        proj = client.set_project()
+        client.set_experiment()
+
+        for i in range(1, len(tags)+1):
+            client.set_experiment_run(tags=tags[:i])
+        expt_runs = proj.expt_runs
+
+        for tag in tags:
+            # contains tag
+            result = expt_runs.find("tags == '{}'".format(tag))
+            runs = [run for run in expt_runs if tag in run.get_tags()]
+            assert set(run.id for run in result) == set(run.id for run in runs)
+
+            # does not contain tag
+            result = expt_runs.find("tags != '{}'".format(tag))
+            runs = [run for run in expt_runs if tag not in run.get_tags()]
+            assert set(run.id for run in result) == set(run.id for run in runs)
+
 
     @pytest.mark.skip(reason="not implemented")
     def test_attributes(self, client):
