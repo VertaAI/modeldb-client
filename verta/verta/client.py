@@ -1089,7 +1089,7 @@ class ExperimentRuns(object):
                 six.raise_from(ValueError("predicate `{}` must be a two-operand comparison".format(predicate)),
                                None)
 
-            if key not in self._VALID_QUERY_KEYS:
+            if key.split('.')[0] not in self._VALID_QUERY_KEYS:
                 raise ValueError("key `{}` is not a valid key for querying;"
                                  " currently supported keys are: {}".format(key, self._VALID_QUERY_KEYS))
 
@@ -1162,7 +1162,7 @@ class ExperimentRuns(object):
             warnings.warn("`ret_all_info` is deprecated and will removed in a later version;",
                           category=DeprecationWarning, stacklevel=2)
 
-        if key not in self._VALID_QUERY_KEYS:
+        if key.split('.')[0] not in self._VALID_QUERY_KEYS:
             raise ValueError("key `{}` is not a valid key for querying;"
                              " currently supported keys are: {}".format(key, self._VALID_QUERY_KEYS))
         if self.__len__() == 0:
@@ -1217,7 +1217,7 @@ class ExperimentRuns(object):
             warnings.warn("`ret_all_info` is deprecated and will removed in a later version;",
                           category=DeprecationWarning, stacklevel=2)
 
-        if key not in self._VALID_QUERY_KEYS:
+        if key.split('.')[0] not in self._VALID_QUERY_KEYS:
             raise ValueError("key `{}` is not a valid key for querying;"
                              " currently supported keys are: {}".format(key, self._VALID_QUERY_KEYS))
         if _proj_id is not None and _expt_id is not None:
@@ -1277,7 +1277,7 @@ class ExperimentRuns(object):
             warnings.warn("`ret_all_info` is deprecated and will removed in a later version;",
                           category=DeprecationWarning, stacklevel=2)
 
-        if key not in self._VALID_QUERY_KEYS:
+        if key.split('.')[0] not in self._VALID_QUERY_KEYS:
             raise ValueError("key `{}` is not a valid key for querying;"
                              " currently supported keys are: {}".format(key, self._VALID_QUERY_KEYS))
         if _proj_id is not None and _expt_id is not None:
