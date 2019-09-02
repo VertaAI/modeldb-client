@@ -997,6 +997,13 @@ class ExperimentRuns(object):
                '<=': _CommonService.OperatorEnum.LTE}
     _OP_PATTERN = re.compile(r"({})".format('|'.join(sorted(six.viewkeys(_OP_MAP), key=lambda s: len(s), reverse=True))))
 
+    # keys that yield predictable, sensible results
+    _VALID_QUERY_KEYS = {
+        'id', 'project_id', 'experiment_id',
+        'date_created', 'date_updated', 'start_time', 'end_time',
+        'tags', 'attributes', 'hyperparameters', 'metrics',
+    }
+
     def __init__(self, conn, conf, expt_run_ids=None):
         self._conn = conn
         self._conf = conf
@@ -1045,6 +1052,11 @@ class ExperimentRuns(object):
         -------
         :class:`ExperimentRuns`
 
+        Warnings
+        --------
+        This feature is still in active development. It is completely safe to use, but may exhibit
+        unintuitive behavior. Please report any oddities to the Verta team!
+
         Examples
         --------
         >>> runs.find(["hyperparameters.hidden_size == 256",
@@ -1076,6 +1088,10 @@ class ExperimentRuns(object):
             except ValueError:
                 six.raise_from(ValueError("predicate `{}` must be a two-operand comparison".format(predicate)),
                                None)
+
+            if key not in self._VALID_QUERY_KEYS:
+                raise ValueError("key `{}` is not a valid key for querying;"
+                                 " currently supported keys are: {}".format(key, self._VALID_QUERY_KEYS))
 
             # cast operator into protobuf enum variant
             operator = self._OP_MAP[operator]
@@ -1134,12 +1150,20 @@ class ExperimentRuns(object):
         -------
         :class:`ExperimentRuns` or iterable of google.protobuf.message.Message
 
+        Warnings
+        --------
+        This feature is still in active development. It is completely safe to use, but may exhibit
+        unintuitive behavior. Please report any oddities to the Verta team!
+
         Examples
         --------
         >>> runs.sort("metrics.accuracy")
         <ExperimentRuns containing 3 runs>
 
         """
+        if key not in self._VALID_QUERY_KEYS:
+            raise ValueError("key `{}` is not a valid key for querying;"
+                             " currently supported keys are: {}".format(key, self._VALID_QUERY_KEYS))
         if self.__len__() == 0:
             return self.__class__(self._conn, self._conf)
 
@@ -1180,12 +1204,20 @@ class ExperimentRuns(object):
         -------
         :class:`ExperimentRuns` or iterable of google.protobuf.message.Message
 
+        Warnings
+        --------
+        This feature is still in active development. It is completely safe to use, but may exhibit
+        unintuitive behavior. Please report any oddities to the Verta team!
+
         Examples
         --------
         >>> runs.top_k("metrics.accuracy", 3)
         <ExperimentRuns containing 3 runs>
 
         """
+        if key not in self._VALID_QUERY_KEYS:
+            raise ValueError("key `{}` is not a valid key for querying;"
+                             " currently supported keys are: {}".format(key, self._VALID_QUERY_KEYS))
         if _proj_id is not None and _expt_id is not None:
             raise ValueError("cannot specify both `_proj_id` and `_expt_id`")
         elif _proj_id is None and _expt_id is None:
@@ -1231,12 +1263,20 @@ class ExperimentRuns(object):
         -------
         :class:`ExperimentRuns` or iterable of google.protobuf.message.Message
 
+        Warnings
+        --------
+        This feature is still in active development. It is completely safe to use, but may exhibit
+        unintuitive behavior. Please report any oddities to the Verta team!
+
         Examples
         --------
         >>> runs.bottom_k("metrics.loss", 3)
         <ExperimentRuns containing 3 runs>
 
         """
+        if key not in self._VALID_QUERY_KEYS:
+            raise ValueError("key `{}` is not a valid key for querying;"
+                             " currently supported keys are: {}".format(key, self._VALID_QUERY_KEYS))
         if _proj_id is not None and _expt_id is not None:
             raise ValueError("cannot specify both `_proj_id` and `_expt_id`")
         elif _proj_id is None and _expt_id is None:
