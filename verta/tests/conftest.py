@@ -47,32 +47,37 @@ def dev_key():
 
 
 @pytest.fixture
+def seed():
+    return RANDOM_SEED
+
+
+@pytest.fixture
 def nones():
     return [None]*INPUT_LENGTH
 
 
 @pytest.fixture
-def bools():
-    np.random.seed(RANDOM_SEED)
+def bools(seed):
+    np.random.seed(seed)
     return np.random.randint(0, 2, INPUT_LENGTH).astype(bool).tolist()
 
 
 @pytest.fixture
-def floats():
-    np.random.seed(RANDOM_SEED)
+def floats(seed):
+    np.random.seed(seed)
     return np.linspace(-3**2, 3**3, num=INPUT_LENGTH).tolist()
 
 
 @pytest.fixture
-def ints():
-    np.random.seed(RANDOM_SEED)
+def ints(seed):
+    np.random.seed(seed)
     return np.linspace(-3**4, 3**5, num=INPUT_LENGTH).astype(int).tolist()
 
 
 @pytest.fixture
-def strs():
+def strs(seed):
     """no duplicates"""
-    np.random.seed(RANDOM_SEED)
+    np.random.seed(seed)
     gen_str = lambda: ''.join(np.random.choice(list(string.ascii_letters), size=INPUT_LENGTH))
     result = set()
     while len(result) < INPUT_LENGTH:
@@ -85,8 +90,8 @@ def strs():
 
 
 @pytest.fixture
-def flat_lists(nones, bools, floats, ints, strs):
-    np.random.seed(RANDOM_SEED)
+def flat_lists(seed, nones, bools, floats, ints, strs):
+    np.random.seed(seed)
     values = (nones, bools, floats, ints, strs)
     return [
         [
@@ -98,8 +103,8 @@ def flat_lists(nones, bools, floats, ints, strs):
 
 
 @pytest.fixture
-def flat_dicts(nones, bools, floats, ints, strs):
-    np.random.seed(RANDOM_SEED)
+def flat_dicts(seed, nones, bools, floats, ints, strs):
+    np.random.seed(seed)
     values = (nones, bools, floats, ints, strs)
     return [
         {
@@ -111,8 +116,8 @@ def flat_dicts(nones, bools, floats, ints, strs):
 
 
 @pytest.fixture
-def nested_lists(nones, bools, floats, ints, strs):
-    np.random.seed(RANDOM_SEED)
+def nested_lists(seed, nones, bools, floats, ints, strs):
+    np.random.seed(seed)
     values = (nones, bools, floats, ints, strs)
     flat_values = [value for type_values in values for value in type_values]
     def gen_value(p=1):
@@ -133,8 +138,8 @@ def nested_lists(nones, bools, floats, ints, strs):
 
 
 @pytest.fixture
-def nested_dicts(nones, bools, floats, ints, strs):
-    np.random.seed(RANDOM_SEED)
+def nested_dicts(seed, nones, bools, floats, ints, strs):
+    np.random.seed(seed)
     values = (nones, bools, floats, ints, strs)
     flat_values = [value for type_values in values for value in type_values]
     def gen_value(p=1):

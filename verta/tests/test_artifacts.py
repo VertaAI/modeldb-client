@@ -10,7 +10,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import PIL
 import PIL.ImageDraw
-import sklearn.linear_model
+import sklearn
+from sklearn import cluster, naive_bayes, pipeline, preprocessing
+from tensorflow import keras
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
 
 import pytest
 import utils
@@ -82,35 +88,135 @@ class TestArtifacts:
 
 
 class TestModels:
-    def test_path(self, experiment_run):
-        key = utils.gen_str()
-        path = utils.gen_str()
+    def test_sklearn(self, seed, experiment_run, strs):
+        np.random.seed(seed)
+        key = strs[0]
+        num_data_rows = 36
+        X = np.random.random((num_data_rows, 2))
+        y = np.random.randint(10, size=num_data_rows)
 
-        experiment_run.log_model_path(key, path)
-        assert experiment_run.get_model(key) == path
+        pipeline = sklearn.pipeline.make_pipeline(
+            sklearn.preprocessing.StandardScaler(),
+            sklearn.cluster.KMeans(),
+            sklearn.naive_bayes.GaussianNB(),
+        )
+        pipeline.fit(X, y)
 
-    def test_store(self, experiment_run):
-        key = utils.gen_str()
-        model = sklearn.linear_model.LogisticRegression()
+        experiment_run.log_model(key, pipeline)
+        retrieved_pipeline = experiment_run.get_model(key)
 
-        experiment_run.log_model(key, model)
-        assert experiment_run.get_model(key).get_params() == model.get_params()
+        assert np.allclose(pipeline.predict(X), retrieved_pipeline.predict(X))
 
-    def test_conflict(self, experiment_run):
-        models = {
-            utils.gen_str(): sklearn.linear_model.LogisticRegression(),
-            utils.gen_str(): sklearn.linear_model.LogisticRegression(),
-            utils.gen_str(): sklearn.linear_model.LogisticRegression(),
-        }
+        assert len(pipeline.steps) == len(retrieved_pipeline.steps)
+        for step, retrieved_step in zip(pipeline.steps, retrieved_pipeline.steps):
+            assert step[0] == retrieved_step[0]  # step name
+            assert step[1].get_params() == retrieved_step[1].get_params()  # step model
 
-        for key, model in six.viewitems(models):
-            experiment_run.log_model(key, model)
-            with pytest.raises(ValueError):
-                experiment_run.log_model(key, model)
+    def test_torch(self, seed, experiment_run, strs):
+        np.random.seed(seed)
+        key = strs[0]
+        num_data_rows = 36
+        X = torch.tensor(np.random.random((num_data_rows, 3, 32, 32)), dtype=torch.float)
+        y = torch.tensor(np.random.randint(10, size=num_data_rows), dtype=torch.long)
 
-        for key, model in reversed(list(six.viewitems(models))):
-            with pytest.raises(ValueError):
-                experiment_run.log_model(key, model)
+        class Model(nn.Module):
+            def __init__(self):
+                super(Model, self).__init__()
+                self.conv1 = nn.Conv2d(3, 6, 5)
+                self.pool = nn.MaxPool2d(2, 2)
+                self.conv2 = nn.Conv2d(6, 16, 5)
+                self.fc1 = nn.Linear(16 * 5 * 5, 120)
+                self.fc2 = nn.Linear(120, 84)
+                self.fc3 = nn.Linear(84, 10)
+
+            def forward(self, x):
+                x = self.pool(F.relu(self.conv1(x)))
+                x = self.pool(F.relu(self.conv2(x)))
+                x = x.view(-1, 16 * 5 * 5)
+                x = F.relu(self.fc1(x))
+                x = F.relu(self.fc2(x))
+                x = self.fc3(x)
+                return x
+
+        net = Model()
+        criterion = torch.nn.CrossEntropyLoss()
+        optimizer = torch.optim.Adam(net.parameters())
+        for epoch in range(5):
+            y_pred = net(X)
+            loss = criterion(y_pred, y)
+            loss.backward()
+            optimizer.step()
+
+        experiment_run.log_model(key, net)
+        retrieved_net = experiment_run.get_model(key)
+
+        assert torch.allclose(net(X), retrieved_net(X))
+
+        assert net.state_dict().keys() == retrieved_net.state_dict().keys()
+        for key, weight in net.state_dict().items():
+            assert torch.allclose(weight, retrieved_net.state_dict()[key])
+
+    def test_keras(self, seed, experiment_run, strs):
+        np.random.seed(seed)
+        key = strs[0]
+        num_data_rows = 36
+        X = np.random.random((num_data_rows, 28, 28))
+        y = np.random.random(num_data_rows)
+
+        net = keras.models.Sequential([
+            keras.layers.Flatten(input_shape=(28, 28)),
+            keras.layers.Dense(128, activation='relu'),
+            keras.layers.Dropout(0.2),
+            keras.layers.Dense(10, activation='softmax')
+        ])
+        net.compile(
+            optimizer='adam',
+            loss='sparse_categorical_crossentropy',
+            metrics=['accuracy']
+        )
+        net.fit(X, y, epochs=5)
+
+        experiment_run.log_model(key, net)
+        retrieved_net = experiment_run.get_model(key)
+
+        assert np.allclose(net.predict(X), retrieved_net.predict(X))
+        # NOTE: history is purged when model is saved
+        # assert np.allclose(net.history.history, retrieved_net.history.history)
+
+        assert len(net.weights) == len(retrieved_net.weights)
+        # NOTE: weight states have weird shenanigans when model is saved
+        # for weight, retrieved_weight in zip(net.weights, retrieved_net.weights):
+
+    def test_function(self, experiment_run, strs, flat_lists, flat_dicts):
+        key = strs[0]
+        func_args = flat_lists[0]
+        func_kwargs = flat_dicts[0]
+
+        def func(is_func=True, _cache=set([1, 2, 3]), *args, **kwargs):
+            return (args, kwargs)
+
+        experiment_run.log_model(key, func)
+        assert experiment_run.get_model(key).__defaults__ == func.__defaults__
+        assert experiment_run.get_model(key)(*func_args, **func_kwargs) == func(*func_args, **func_kwargs)
+
+    def test_custom_class(self, experiment_run, strs, flat_lists, flat_dicts):
+        key = strs[0]
+        init_args = flat_lists[0]
+        init_kwargs = flat_dicts[0]
+
+        class Custom:
+            def __init__(self, *args, **kwargs):
+                self.args = args
+                self.kwargs = kwargs
+
+            def predict(self, data):
+                return (self.args, self.kwargs)
+
+        custom = Custom(*init_args, **init_kwargs)
+
+        experiment_run.log_model(key, custom)
+        assert experiment_run.get_model(key).__dict__ == custom.__dict__
+        assert experiment_run.get_model(key).predict(strs) == custom.predict(strs)
 
 
 class TestImages:
