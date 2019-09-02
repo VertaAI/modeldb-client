@@ -1052,6 +1052,11 @@ class ExperimentRuns(object):
         -------
         :class:`ExperimentRuns`
 
+        Warnings
+        --------
+        This feature is still in active development. It is completely safe to use, but may exhibit
+        unintuitive behavior. Please report any oddities to the Verta team!
+
         Examples
         --------
         >>> runs.find(["hyperparameters.hidden_size == 256",
@@ -1145,6 +1150,11 @@ class ExperimentRuns(object):
         -------
         :class:`ExperimentRuns` or iterable of google.protobuf.message.Message
 
+        Warnings
+        --------
+        This feature is still in active development. It is completely safe to use, but may exhibit
+        unintuitive behavior. Please report any oddities to the Verta team!
+
         Examples
         --------
         >>> runs.sort("metrics.accuracy")
@@ -1193,6 +1203,11 @@ class ExperimentRuns(object):
         Returns
         -------
         :class:`ExperimentRuns` or iterable of google.protobuf.message.Message
+
+        Warnings
+        --------
+        This feature is still in active development. It is completely safe to use, but may exhibit
+        unintuitive behavior. Please report any oddities to the Verta team!
 
         Examples
         --------
@@ -1247,6 +1262,11 @@ class ExperimentRuns(object):
         Returns
         -------
         :class:`ExperimentRuns` or iterable of google.protobuf.message.Message
+
+        Warnings
+        --------
+        This feature is still in active development. It is completely safe to use, but may exhibit
+        unintuitive behavior. Please report any oddities to the Verta team!
 
         Examples
         --------
