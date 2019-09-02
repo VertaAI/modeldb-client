@@ -1,8 +1,99 @@
+import six
+
 import numpy as np
 
 import pytest
 
+import verta
 
+
+OPERATORS = six.viewkeys(verta.client.ExperimentRuns._OP_MAP)
+
+
+class TestFind:
+    def test_reject_unsupported_keys(self, client, floats):
+        keys = (
+            'name', 'description',
+            'code_version', 'code_version_snapshot',
+            'parent_id',
+            'artifacts', 'datasets',
+            'observations', 'features',
+            'job_id', 'owner',
+        )
+        proj = client.set_project()
+        expt = client.set_experiment()
+
+        for _ in range(3):
+            client.set_experiment_run()
+
+        # known unsupported keys
+        for expt_runs in (proj.expt_runs, expt.expt_runs):
+            for key in keys:
+                for op, val in zip(OPERATORS, floats):
+                    with pytest.raises(ValueError):
+                        expt_runs.find("{} {} {}".format(key, op, val))
+
+    def test_reject_random_keys(self, client, strs, floats):
+        proj = client.set_project()
+        expt = client.set_experiment()
+
+        for _ in range(3):
+            client.set_experiment_run()
+
+        for expt_runs in (proj.expt_runs, expt.expt_runs):
+            for key in strs:
+                for op, val in zip(OPERATORS, floats):
+                    with pytest.raises(ValueError):
+                        expt_runs.find("{} {} {}".format(key, op, val))
+
+    @pytest.mark.skip(reason="not implemented")
+    def test_id(self, client):
+        key = "id"
+
+    @pytest.mark.skip(reason="not implemented")
+    def test_experiment_id(self, client):
+        key = "project_id"
+
+    @pytest.mark.skip(reason="not implemented")
+    def test_project_id(self, client):
+        key = "experiment_id"
+
+    @pytest.mark.skip(reason="not implemented")
+    def test_date_created(self, client):
+        key = "date_created"
+
+    @pytest.mark.skip(reason="not implemented")
+    def test_date_updated(self, client):
+        key = "date_updated"
+
+    @pytest.mark.skip(reason="not implemented")
+    def test_start_time(self, client):
+        key = "start_time"
+
+    @pytest.mark.skip(reason="not implemented")
+    def test_end_time(self, client):
+        key = "end_time"
+
+    @pytest.mark.skip(reason="not implemented")
+    def test_tags(self, client):
+        key = "tags"
+
+    @pytest.mark.skip(reason="not implemented")
+    def test_attributes(self, client):
+        key = "attributes"
+
+    @pytest.mark.skip(reason="not implemented")
+    def test_hyperparameters(self, client):
+        key = "hyperparameters"
+
+    @pytest.mark.skip(reason="not implemented")
+    def test_metrics(self, client, strs, bools, floats):
+        key = "metrics"
+        proj = client.set_project()
+        expt = client.set_experiment()
+
+
+@pytest.mark.skip(reason="obsolete")
 class TestQuery:
     def test_find(self, client):
         client.set_project()
