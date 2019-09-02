@@ -1142,13 +1142,10 @@ class ExperimentRuns(object):
             Dot-delimited Experiment Run property.
         descending : bool, default False
             Order in which to return sorted Experiment Runs.
-        ret_all_info : bool, default False
-            If False, return an :class:`ExperimentRuns`. Otherwise, return an iterable of `protobuf`
-            `Message`\ s.
 
         Returns
         -------
-        :class:`ExperimentRuns` or iterable of google.protobuf.message.Message
+        :class:`ExperimentRuns`
 
         Warnings
         --------
@@ -1161,6 +1158,10 @@ class ExperimentRuns(object):
         <ExperimentRuns containing 3 runs>
 
         """
+        if ret_all_info:
+            warnings.warn("`ret_all_info` is deprecated and will removed in a later version;",
+                          category=DeprecationWarning, stacklevel=2)
+
         if key not in self._VALID_QUERY_KEYS:
             raise ValueError("key `{}` is not a valid key for querying;"
                              " currently supported keys are: {}".format(key, self._VALID_QUERY_KEYS))
@@ -1196,13 +1197,10 @@ class ExperimentRuns(object):
             Dot-delimited Experiment Run property.
         k : int
             Number of Experiment Runs to get.
-        ret_all_info : bool, default False
-            If False, return an :class:`ExperimentRuns`. Otherwise, return an iterable of `protobuf`
-            `Message`\ s.
 
         Returns
         -------
-        :class:`ExperimentRuns` or iterable of google.protobuf.message.Message
+        :class:`ExperimentRuns`
 
         Warnings
         --------
@@ -1215,6 +1213,10 @@ class ExperimentRuns(object):
         <ExperimentRuns containing 3 runs>
 
         """
+        if ret_all_info:
+            warnings.warn("`ret_all_info` is deprecated and will removed in a later version;",
+                          category=DeprecationWarning, stacklevel=2)
+
         if key not in self._VALID_QUERY_KEYS:
             raise ValueError("key `{}` is not a valid key for querying;"
                              " currently supported keys are: {}".format(key, self._VALID_QUERY_KEYS))
@@ -1255,13 +1257,10 @@ class ExperimentRuns(object):
             Dot-delimited Experiment Run property.
         k : int
             Number of Experiment Runs to get.
-        ret_all_info : bool, default False
-            If False, return an :class:`ExperimentRuns`. Otherwise, return an iterable of `protobuf`
-            `Message`\ s.
 
         Returns
         -------
-        :class:`ExperimentRuns` or iterable of google.protobuf.message.Message
+        :class:`ExperimentRuns`
 
         Warnings
         --------
@@ -1274,6 +1273,10 @@ class ExperimentRuns(object):
         <ExperimentRuns containing 3 runs>
 
         """
+        if ret_all_info:
+            warnings.warn("`ret_all_info` is deprecated and will removed in a later version;",
+                          category=DeprecationWarning, stacklevel=2)
+
         if key not in self._VALID_QUERY_KEYS:
             raise ValueError("key `{}` is not a valid key for querying;"
                              " currently supported keys are: {}".format(key, self._VALID_QUERY_KEYS))
