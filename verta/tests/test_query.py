@@ -46,17 +46,35 @@ class TestFind:
                     with pytest.raises(ValueError):
                         expt_runs.find("{} {} {}".format(key, op, val))
 
-    @pytest.mark.skip(reason="not implemented")
     def test_id(self, client):
-        key = "id"
+        proj = client.set_project()
+        client.set_experiment()
+        runs = [client.set_experiment_run() for _ in range(3)]
 
-    @pytest.mark.skip(reason="not implemented")
-    def test_experiment_id(self, client):
-        key = "project_id"
+        for run_id in (run.id for run in runs):
+            result = proj.expt_runs.find("id == '{}'".format(run_id))
+            assert len(result) == 1
+            assert result[0].id == run_id
 
-    @pytest.mark.skip(reason="not implemented")
     def test_project_id(self, client):
-        key = "experiment_id"
+        proj = client.set_project()
+        client.set_experiment()
+        runs = [client.set_experiment_run() for _ in range(3)]
+        client.set_experiment()
+        runs.extend([client.set_experiment_run() for _ in range(3)])
+
+        result = proj.expt_runs.find("project_id == '{}'".format(proj.id))
+        assert set(run.id for run in result) == set(run.id for run in runs)
+
+    def test_experiment_id(self, client):
+        proj = client.set_project()
+        client.set_experiment()
+        [client.set_experiment_run() for _ in range(3)]
+        expt = client.set_experiment()
+        runs = [client.set_experiment_run() for _ in range(3)]
+
+        result = proj.expt_runs.find("experiment_id == '{}'".format(expt.id))
+        assert set(run.id for run in result) == set(run.id for run in runs)
 
     @pytest.mark.skip(reason="not implemented")
     def test_date_created(self, client):
