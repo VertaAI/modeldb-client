@@ -29,6 +29,10 @@ information for you to later identify the snapshot of data that was used.
 After installation, make sure AWS credentials are set up in your local environment, following their
 `official instructions <https://pypi.org/project/boto3/>`_.
 
+
+Version Logging
+---------------
+
 Now, in Python, we'll instantiate the :class:`~verta.client.Client`:
 
 .. code-block:: python
@@ -59,3 +63,21 @@ As we track our data science workflow, we can log this dataset version:
 .. code-block:: python
 
     >>> run.log_dataset_version("training_data", dataset_version)
+
+
+Version Viewing
+---------------
+
+Once a dataset version is logged, it can be viewed in the Verta Web App.
+
+You'll find the dataset version in the **Datasets** section of the ExperimentRun page:
+
+.. image:: /_static/images/dataset-version-section.png
+
+Clicking on *training_data* will direct you to the DatasetVersion page:
+
+.. image:: /_static/images/dataset-version-popup.png
+
+And there, you'll find information about your dataset version:
+
+.. image:: /_static/images/dataset-version-page.png

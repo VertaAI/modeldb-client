@@ -51,6 +51,7 @@ autodoc_mock_imports = [
     'google',
     'joblib',
     'pathlib2',
+    'tensorflow',
     'verta._protos',
 ]
 
