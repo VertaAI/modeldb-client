@@ -4,6 +4,14 @@ Logging a Data Version
 We'll walk briefly through the concept of data versioning, and how it can be handled by the Verta
 client!
 
+Datasets are a key part of how Verta versions models; as a result, our Verta supports datasets as a first-class citizen of the sytem. This means that datasets (and dataset versions) can be created independent of models and experiments and they can be reused across multiple models.
+
+Abstractions
+------------
+
+In Verta, a dataset is assumed to be a collection of *dataset versions* where every dataset version contains metadata about the dataset. The metadata stored for a dataset depends on the type of dataset (e.g., RDBMS, file system, blob store) and a new version of a dataset is created *only* if the system detects a change in the underlying metadata. For instance, if a dataset is of type S3, then the version information consists of metadata about every object in the relevant S3 bucket.
+
+The client library provides APIs to perform CRUD operations on datasets and dataset versions. Every experiment run can be associated with one or more dataset versions using the `log_dataset_version` call described below. As with all other client functions, datasets versions also follow key-value schema.
 
 Setup
 -----
