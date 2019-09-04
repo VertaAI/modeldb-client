@@ -12,6 +12,13 @@ Creation and Logging
     :noindex:
 
 
+Querying Datasets
+^^^^^^^^^^^^^^^^^
+.. automethod:: verta.cleint.get_dataset
+.. automethod:: verta.cleint.get_dataset_version
+.. automethod:: verta.cleint.find_datasets
+
+
 Object APIs
 ^^^^^^^^^^^
 
