@@ -408,28 +408,87 @@ class Client(object):
                        name=name, desc=desc, tags=tags, attrs=attrs,
                        _dataset_id=id)
 
-    # TODO: needs a by name after backend implements
-    # def get_dataset(self, id):
-    #     return _dataset.Dataset._get(self._conn, _dataset_id=id)
+    def get_dataset(self, name=None, id=None):
+        """
+        Retrieve an already created Dataset. Only one of name or id can be provided.
 
-    # TODO: needs to be paginated, maybe sorted and filtered
-    # def get_all_datasets(self):
-    #     Message = _dataset._DatasetService.GetAllDatasets
-    #     msg = Message()
-    #     data = _utils.proto_to_json(msg)
-    #     response = _utils.make_request("GET",
-    #                                     "{}://{}/v1/dataset/getAllDatasets".format(self._conn.scheme, self._conn.socket),
-    #                                     self._conn, params=data)
-    #     _utils.raise_for_http_error(response)
+        Parameters
+        ----------
+        name : str, optional
+            Name of the Dataset.
+        id : str, optional
+            ID of the Dataset. This parameter cannot be provided alongside `name`.
 
-    #     response_msg = _utils.json_to_proto(response.json(), Message.Response)
-    #     return [_dataset.Dataset(self._conn, self._conf, _dataset_id = dataset.id)
-    #             for dataset in response_msg.datasets]
+        Returns
+        -------
+        :class:`Dataset`
+        """
+        return _dataset.Dataset._get(self._conn, dataset_name=name, _dataset_id=id)
 
-    # TODO: this should also allow gets based on dataset_id and version, but
-    # not supported by backend yet
-    # def get_dataset_version(self, id):
-    #     return _dataset.DatasetVersion._get(self._conn, _dataset_version_id=id)
+
+    def find_datasets(self, dataset_ids=None, tags=None, name=None,
+        sort_key=None, ascending=False):
+        """
+        Gets the Datasets that match the given query parameters. If no parameters
+        are specified, we return all datasets.
+
+        Parameters
+        ----------
+        dataset_ids : list of str, optional
+            IDs of datasets that we wish to retrieve
+        tags: list of str, optional
+            List of tags by which we'd like to query datasets
+        name: str, optional
+            Name of dataset we wish to retrieve. Fuzzy matches supported
+        sort_key: string, optional
+            Key by which the resulting list of datasets should be sorted
+        ascending: bool, default: False
+            Whether to sort returned datasets in ascending or descending order
+
+        Returns
+        -------
+        list of :class:`Dataset`
+
+        """
+        predicates = []
+        if tags is not None:
+            for tag in tags:
+                predicates.append(_CommonService.KeyValueQuery(key="tag",
+                        value=_utils.python_to_val_proto(tag),
+                        operator=_CommonService.OperatorEnum.EQ))
+        if name is not None:
+            predicates.append(_CommonService.KeyValueQuery(key="name",
+                    value=_utils.python_to_val_proto(name),
+                    operator=_CommonService.OperatorEnum.EQ))
+        Message = _dataset._DatasetService.FindDatasets
+        msg = Message(dataset_ids=dataset_ids, predicates=predicates,
+            ascending=ascending, sort_key=sort_key)
+        data = _utils.proto_to_json(msg)
+        response = _utils.make_request("POST",
+                                        "{}://{}/v1/dataset/findDatasets".format(
+                                            self._conn.scheme, self._conn.socket),
+                                            self._conn, params=data)
+        _utils.raise_for_http_error(response)
+
+        response_msg = _utils.json_to_proto(response.json(), Message.Response)
+        return [_dataset.Dataset(self._conn, self._conf, _dataset_id = dataset.id)
+                for dataset in response_msg.datasets]
+
+    def get_dataset_version(self, id):
+        """
+        Retrieve an already created DatasetVersion.
+
+        Parameters
+        ----------
+        id : str
+            ID of the DatasetVersion.
+
+        Returns
+        -------
+        :class:`DatasetVersion`
+        """
+        return _dataset.DatasetVersion._get(self._conn,
+            _dataset_version_id=id)
 
 
 class _ModelDBEntity(object):

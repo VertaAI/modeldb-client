@@ -116,41 +116,49 @@ class TestClientDatasetFunctions:
         assert dataset.dataset_type == _DatasetService.DatasetTypeEnum.PATH
         assert dataset.id
 
-        # same_dataset = client.get_dataset(id=dataset.id)
-        # assert dataset.id == same_dataset.id
-        # assert dataset.name == same_dataset.name
+        same_dataset = client.get_dataset(id=dataset.id)
+        assert dataset.id == same_dataset.id
+        assert dataset.name == same_dataset.name
 
-        # TODO: NOT implemented on backend yet
-        # same_dataset = client.get_dataset(name=dataset.name)
-        # assert dataset.id == same_dataset.id
-        # assert dataset.name == same_dataset.name
+        same_dataset = client.get_dataset(name=dataset.name)
+        assert dataset.id == same_dataset.id
+        assert dataset.name == same_dataset.name
 
-    def test_get_all_datasets_client_api(self, client):
+    def test_find_datasets_client_api(self, client):
         name = utils.gen_str()
-        dataset1 = client.set_dataset(name=name, type="big query")
+        dataset1 = client.set_dataset(name=name, type="big query", tags=["test1", "test2"])
         assert dataset1.dataset_type == _DatasetService.DatasetTypeEnum.QUERY
         assert dataset1.id
 
         name = utils.gen_str()
-        dataset2 = client.set_dataset(name=name, type="s3")
+        dataset2 = client.set_dataset(name=name, type="s3", tags=["test1"])
         assert dataset2.dataset_type == _DatasetService.DatasetTypeEnum.PATH
         assert dataset2.id
 
+        # TODO: update once RAW is supported
         # name = utils.gen_str()
         # dataset3 = client.set_dataset(name=name, type="raw")
         # assert dataset3.dataset_type == _DatasetService.DatasetTypeEnum.RAW
         # assert dataset3.id
 
-        # datasets = client.get_all_datasets()
+        # datasets = client.find_datasets()
         # assert len(datasets) == 3
         # assert datasets[0].id == dataset1.id
         # assert datasets[1].id == dataset2.id
         # assert datasets[2].id == dataset3.id
 
-        # TODO: NOT implemented on backend yet
-        # same_dataset = client.get_dataset(name=dataset.name)
-        # assert dataset.id == same_dataset.id
-        # assert dataset.name == same_dataset.name
+        datasets = client.find_datasets()
+        assert len(datasets) == 2
+        assert datasets[0].id == dataset1.id
+        assert datasets[1].id == dataset2.id
+
+        same_dataset = client.get_dataset(name=dataset1.name)
+        assert dataset1.id == same_dataset.id
+        assert dataset1.name == same_dataset.name
+
+        datasets = client.find_datasets(tags=["test1", "test2"])
+        assert len(datasets) == 1
+        assert datasets[0].id == dataset1.id
 
 
 class TestClientDatasetVersionFunctions:
@@ -170,8 +178,8 @@ class TestClientDatasetVersionFunctions:
         assert version.dataset_type == _DatasetService.DatasetTypeEnum.PATH
         assert version.id
 
-        # same_version = client.get_dataset_version(id=version.id)
-        # assert version.id == same_version.id
+        same_version = client.get_dataset_version(id=version.id)
+        assert version.id == same_version.id
 
     def test_get_versions(self, client):
         name = utils.gen_str()
@@ -187,6 +195,9 @@ class TestClientDatasetVersionFunctions:
 
         versions = dataset.get_all_versions()
         assert len(versions) == 2
+
+        dataset_version1 = client.get_dataset_version(id=version1.id)
+        assert dataset_version1.id == version1.id
 
         version = dataset.get_latest_version(ascending=True)
         assert version.id == version1.id
