@@ -6,6 +6,7 @@ from six.moves.urllib.parse import urlparse
 
 import ast
 import hashlib
+import importlib
 import os
 import pprint
 import re
@@ -443,6 +444,20 @@ class _ModelDBEntity(object):
                                                       '{}')  # endpoint placeholder
 
         self.id = id
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+
+        state['_service_module_name'] = state['_service'].__name__
+        del state['_service']
+
+        return state
+
+    def __setstate__(self, state):
+        state['_service'] = importlib.import_module(state['_service_module_name'])
+        del state['_service_module_name']
+
+        self.__dict__.update(state)
 
     def _get_url_for_artifact(self, key, method, artifact_type=0):
         """
