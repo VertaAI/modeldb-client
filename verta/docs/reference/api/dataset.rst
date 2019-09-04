@@ -14,9 +14,9 @@ Creation and Logging
 
 Querying Datasets
 ^^^^^^^^^^^^^^^^^
-.. automethod:: verta.cleint.get_dataset
-.. automethod:: verta.cleint.get_dataset_version
-.. automethod:: verta.cleint.find_datasets
+.. automethod:: verta.client.get_dataset
+.. automethod:: verta.client.get_dataset_version
+.. automethod:: verta.client.find_datasets
 
 
 Object APIs
