@@ -2110,6 +2110,8 @@ class ExperimentRun(_ModelDBEntity):
 
     def log_dataset_version(self, key, dataset_version):
         """
+        Logs a Verta DatasetVersion to this ExperimentRun with the given key.
+
         Parameters
         ----------
         key : str
@@ -2205,10 +2207,17 @@ class ExperimentRun(_ModelDBEntity):
 
     def get_dataset_version(self, key):
         """
+        Gets the DatasetVersion with name `key` from this Experiment Run.
+
         Parameters
         ----------
         key : str
+            Name of the dataset version.
 
+        Returns
+        -------
+        DatasetVersion
+            DatasetVersion associated with the given key.
 
         """
         self.get_dataset(key)
