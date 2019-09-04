@@ -255,8 +255,6 @@ class LocalDataset(PathDataset):
 
         Parameters
         ----------
-        bucket_name : str
-            Name of the S3 bucketing storing the data.
         path : str
             Path to the local dataset.
         parent_id : str
