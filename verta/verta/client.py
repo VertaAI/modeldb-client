@@ -357,6 +357,39 @@ class Client(object):
     def set_dataset(self, name=None, type="local",
                        desc=None, tags=None, attrs=None,
                        id=None):
+        """
+        Attaches a Dataset to this Client.
+
+        If an accessible Dataset with name `name` does not already exist, it will be created
+        and initialized with specified metadata parameters. If such a Dataset does already exist,
+        it will be retrieved; specifying metadata parameters in this case will raise an exception.
+
+        Parameters
+        ----------
+        name : str, optional
+            Name of the Dataset. If no name is provided, one will be generated.
+        type : str, one of {'local', 's3', 'big query', 'atlas hive'}
+            The type of the dataset so we can collect the right type of metadata
+        desc : str, optional
+            Description of the Dataset.
+        tags : list of str, optional
+            Tags of the Dataset.
+        attrs : dict of str to {None, bool, float, int, str}, optional
+            Attributes of the Dataset.
+        id : str
+            ID of the Dataset. This parameter cannot be provided alongside `name`, and other
+            parameters will be ignored.
+
+        Returns
+        -------
+        :class:`Dataset`
+
+        Raises
+        ------
+        ValueError
+            If a Dataset with `name` already exists, but metadata parameters are passed in.
+
+        """
         # Note: If a dataset with `name` already exists,
         #       there is no way to determine its type/subclass from back end,
         #       so it is assumed that the user has passed in the correct `type`.
@@ -1610,7 +1643,8 @@ class ExperimentRun(_ModelDBEntity):
 
             return response.content, artifact.path_only
 
-    # TODO: fix up get dataset to handle the Dataset class
+    # TODO: Fix up get dataset to handle the Dataset class when logging dataset
+    # version
     def _get_dataset(self, key):
         """
         Gets the dataset with name `key` from this Experiment Run.
@@ -2091,6 +2125,8 @@ class ExperimentRun(_ModelDBEntity):
 
     def log_dataset_version(self, key, dataset_version):
         """
+        Logs a Verta DatasetVersion to this ExperimentRun with the given key.
+
         Parameters
         ----------
         key : str
@@ -2186,10 +2222,17 @@ class ExperimentRun(_ModelDBEntity):
 
     def get_dataset_version(self, key):
         """
+        Gets the DatasetVersion with name `key` from this Experiment Run.
+
         Parameters
         ----------
         key : str
+            Name of the dataset version.
 
+        Returns
+        -------
+        DatasetVersion
+            DatasetVersion associated with the given key.
 
         """
         self.get_dataset(key)

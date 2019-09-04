@@ -135,6 +135,14 @@ class Dataset(object):
         raise NotImplementedError('this function must be implemented by subclasses')
 
     def get_all_versions(self):
+        """
+        Gets all the versions for this Dataset.
+
+        Returns
+        -------
+        list of DatasetVersions for this Dataset
+
+        """
         Message = _DatasetVersionService.GetAllDatasetVersionsByDatasetId
         msg = Message(dataset_id=self.id)
         data = _utils.proto_to_json(msg)
@@ -149,6 +157,23 @@ class Dataset(object):
 
     # TODO: sorting seems to be incorrect
     def get_latest_version(self, ascending=None, sort_key=None):
+        """
+        Gets the latest version for this Dataset.
+
+        Parameters
+        ----------
+        ascending : bool
+            Whether to sort by time in ascending order
+
+        sort_key : str
+            Which key to sort on
+
+        Returns
+        -------
+        Returns the latest version of the Dataset as defined by ascending and the
+        sort_key.
+
+        """
         Message = _DatasetVersionService.GetLatestDatasetVersionByDatasetId
         msg = Message(dataset_id=self.id, ascending=ascending, sort_key=sort_key)
         data = _utils.proto_to_json(msg)
@@ -187,6 +212,31 @@ class S3Dataset(PathDataset):
                        bucket_name, key=None, url_stub=None,
                        parent_id=None,
                        desc=None, tags=None, attrs=None):
+        """
+        Create a version of an S3 dataset.
+
+        Parameters
+        ----------
+        bucket_name : str
+            Name of the S3 bucketing storing the data.
+        key : str, optional
+            Key of the object in S3.
+        url_stub : str, optional
+            Prefix of the S3 URL.
+        parent_id : str
+            Id of the DatasetVersion from which this version was derived.
+        desc : str, optional
+            Description of the DatasetVersion.
+        tags : list of str, optional
+            Tags of the DatasetVersion.
+        attrs : dict of str to {None, bool, float, int, str}, optional
+            Attributes of the DatasetVersion.
+
+        Returns
+        -------
+        DatasetVersion
+            Returns the newly created dataset version
+        """ 
         version_info = S3DatasetVersionInfo(bucket_name, key=key, url_stub=url_stub)
         return PathDatasetVersion(self._conn, self._conf,
                                   dataset_id=self.id, dataset_type=self.TYPE,
@@ -200,6 +250,27 @@ class LocalDataset(PathDataset):
                        path,
                        parent_id=None,
                        desc=None, tags=None, attrs=None):
+        """
+        Create a version of a Local dataset.
+
+        Parameters
+        ----------
+        path : str
+            Path to the local dataset.
+        parent_id : str
+            Id of the DatasetVersion from which this version was derived.
+        desc : str, optional
+            Description of the DatasetVersion.
+        tags : list of str, optional
+            Tags of the DatasetVersion.
+        attrs : dict of str to {None, bool, float, int, str}, optional
+            Attributes of the DatasetVersion.
+
+        Returns
+        -------
+        DatasetVersion
+            Returns the newly created dataset version
+        """ 
         version_info = FilesystemDatasetVersionInfo(path)
         return PathDatasetVersion(self._conn, self._conf,
                                   dataset_id=self.id, dataset_type=self.TYPE,
@@ -213,6 +284,29 @@ class BigQueryDataset(QueryDataset):
                        job_id, location,
                        parent_id=None,
                        desc=None, tags=None, attrs=None):
+        """
+        Create a version of a Big Query dataset.
+
+        Parameters
+        ----------
+        job_id : str
+            Id of the Big Query job that created this Dataset.
+        location : str
+            Big Query location parameter.
+        parent_id : str
+            Id of the DatasetVersion from which this version was derived.
+        desc : str, optional
+            Description of the DatasetVersion.
+        tags : list of str, optional
+            Tags of the DatasetVersion.
+        attrs : dict of str to {None, bool, float, int, str}, optional
+            Attributes of the DatasetVersion.
+
+        Returns
+        -------
+        DatasetVersion
+            Returns the newly created dataset version
+        """ 
         version_info = BigQueryDatasetVersionInfo(job_id=job_id, location=location)
         return QueryDatasetVersion(self._conn, self._conf,
                                    dataset_id=self.id, dataset_type=self.TYPE,
@@ -228,6 +322,35 @@ class AtlasHiveDataset(QueryDataset):
                        atlas_entity_endpoint="/api/atlas/v2/entity/bulk",
                        parent_id=None,
                        desc=None, tags=None, attrs=None):
+        """
+        Create a version of an AtlasHive dataset.
+
+        Parameters
+        ----------
+        guid : str
+            GUID of the table being queried.
+        atlas_url : str
+            Path to the local dataset.
+        atlas_user_name : str
+            Username for Atlas
+        atlas_password : str
+            Password for Atlas
+        atlas_entity_endpoint : str
+            Endpoint for querying Atlas
+        parent_id : str
+            Id of the DatasetVersion from which this version was derived.
+        desc : str, optional
+            Description of the DatasetVersion.
+        tags : list of str, optional
+            Tags of the DatasetVersion.
+        attrs : dict of str to {None, bool, float, int, str}, optional
+            Attributes of the DatasetVersion.
+
+        Returns
+        -------
+        DatasetVersion
+            Returns the newly created dataset version
+        """ 
         version_info = _dataset.AtlasHiveDatasetVersionInfo(
             guid=guid, atlas_url=atlas_url,
             atlas_user_name=atlas_user_name, atlas_password=atlas_password,
