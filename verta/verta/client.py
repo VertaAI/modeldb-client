@@ -368,7 +368,7 @@ class Client(object):
         ----------
         name : str, optional
             Name of the Dataset. If no name is provided, one will be generated.
-        type : str, one of {'local', 's3', 'big query', 'atlas hive'}
+        type : str, one of {'local', 's3', 'big query', 'atlas hive', 'postgres'}
             The type of the dataset so we can collect the right type of metadata
         desc : str, optional
             Description of the Dataset.
@@ -401,8 +401,10 @@ class Client(object):
             DatasetSubclass = _dataset.BigQueryDataset
         elif type == "atlas hive":
             DatasetSubclass = _dataset.AtlasHiveDataset
+        elif type == "postgres":
+            DatasetSubclass = _dataset.RDBMSDataset
         else:
-            raise ValueError("`type` must be one of {'local', 's3', 'big query', 'atlas hive'}")
+            raise ValueError("`type` must be one of {'local', 's3', 'big query', 'atlas hive', 'postgres'}")
 
         return DatasetSubclass(self._conn, self._conf,
                        name=name, desc=desc, tags=tags, attrs=attrs,
@@ -423,8 +425,7 @@ class Client(object):
         -------
         :class:`Dataset`
         """
-        return _dataset.Dataset._get(self._conn, dataset_name=name, _dataset_id=id)
-
+        return _dataset.Dataset(self._conn, self._conf, name=name, _dataset_id=id)
 
     def find_datasets(self, dataset_ids=None, tags=None, name=None,
         sort_key=None, ascending=False):
@@ -487,7 +488,7 @@ class Client(object):
         -------
         :class:`DatasetVersion`
         """
-        return _dataset.DatasetVersion._get(self._conn,
+        return _dataset.DatasetVersion(self._conn,
             _dataset_version_id=id)
 
 

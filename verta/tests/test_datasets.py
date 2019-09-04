@@ -152,10 +152,6 @@ class TestClientDatasetFunctions:
         assert datasets[0].id == dataset1.id
         assert datasets[1].id == dataset2.id
 
-        same_dataset = client.get_dataset(name=dataset1.name)
-        assert dataset1.id == same_dataset.id
-        assert dataset1.name == same_dataset.name
-
         datasets = client.find_datasets(tags=["test1", "test2"])
         assert len(datasets) == 1
         assert datasets[0].id == dataset1.id
@@ -391,6 +387,21 @@ class TestBigQueryDatasetVersionInfo:
 
         assert dataset_version.dataset_version_info.query == big_query_job[2]
 
+class TestRDBMSDatasetVersionInfo:
+    def test_rdbms_dataset(self, client):
+        name = utils.gen_str()
+        dataset = client.set_dataset("pg-" + name, type="postgres")
+        assert dataset.dataset_type == _DatasetService.DatasetTypeEnum.QUERY
+
+    def test_rdbms_version_creation(self, client):
+        name = utils.gen_str()
+        dataset = client.set_dataset("pg-" + name, type="postgres")
+        dataset_version = dataset.create_version(query="SELECT * FROM ner-table", 
+            db_connection_str="localhost:6543", num_records=100)
+
+        assert dataset_version.dataset_version_info.query == "SELECT * FROM ner-table"
+        assert dataset_version.dataset_version_info.data_source_uri == "localhost:6543"
+        assert dataset_version.dataset_version_info.num_records == 100
 
 class TestLogDatasetVersion:
     def test_log_dataset_version(self, client, experiment_run, s3_bucket):
