@@ -686,11 +686,18 @@ class _ModelDBEntity(object):
                 zipf.write(exec_path, os.path.basename(exec_path))  # write as base filename
             zipstream.seek(0)
 
-            msg.code_version.code_archive.path = hashlib.sha256(zipstream.read()).hexdigest()
+            key = 'code'
+            extension = 'zip'
+
+            artifact_hash = hashlib.sha256(zipstream.read()).hexdigest()
             zipstream.seek(0)
+            basename = key + os.extsep + extension
+            artifact_path = os.path.join(artifact_hash, basename)
+
+            msg.code_version.code_archive.path = artifact_path
             msg.code_version.code_archive.path_only = False
             msg.code_version.code_archive.artifact_type = _CommonService.ArtifactTypeEnum.CODE
-            msg.code_version.code_archive.filename_extension = 'zip'
+            msg.code_version.code_archive.filename_extension = extension
         # TODO: check if we actually have any loggable information
         msg.code_version.date_logged = _utils.now()
 
