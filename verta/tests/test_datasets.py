@@ -153,6 +153,17 @@ class TestClientDatasetFunctions:
         assert len(datasets) == 1
         assert datasets[0].id == dataset1.id
 
+        datasets = client.find_datasets(name=name1)
+        assert len(datasets) == 1
+        assert datasets[0].id == dataset1.id
+
+        datasets = client.find_datasets(dataset_ids=[dataset1.id, dataset2.id])
+        assert len(datasets) == 2
+
+        datasets = client.find_datasets(dataset_ids=[dataset1.id, dataset2.id], name=name1)
+        assert len(datasets) == 1
+        assert datasets[0].id == dataset1.id
+
 
 class TestClientDatasetVersionFunctions:
     def test_creation_from_scratch(self, client):
