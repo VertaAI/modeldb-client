@@ -488,7 +488,7 @@ class Client(object):
         -------
         :class:`DatasetVersion`
         """
-        return _dataset.DatasetVersion(self._conn,
+        return _dataset.DatasetVersion._get(self._conn,
             _dataset_version_id=id)
 
 
