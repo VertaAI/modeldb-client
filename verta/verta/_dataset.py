@@ -17,6 +17,7 @@ try:
 except ImportError:  # Boto 3 not installed
     boto3 = None
 
+from ._protos.public.modeldb import CommonService_pb2 as _CommonService
 from ._protos.public.modeldb import DatasetService_pb2 as _DatasetService
 from ._protos.public.modeldb import DatasetVersionService_pb2 as _DatasetVersionService
 from . import _utils
@@ -236,7 +237,7 @@ class S3Dataset(PathDataset):
         -------
         DatasetVersion
             Returns the newly created dataset version
-        """ 
+        """
         version_info = S3DatasetVersionInfo(bucket_name, key=key, url_stub=url_stub)
         return PathDatasetVersion(self._conn, self._conf,
                                   dataset_id=self.id, dataset_type=self.TYPE,
@@ -270,7 +271,7 @@ class LocalDataset(PathDataset):
         -------
         DatasetVersion
             Returns the newly created dataset version
-        """ 
+        """
         version_info = FilesystemDatasetVersionInfo(path)
         return PathDatasetVersion(self._conn, self._conf,
                                   dataset_id=self.id, dataset_type=self.TYPE,
@@ -306,7 +307,7 @@ class BigQueryDataset(QueryDataset):
         -------
         DatasetVersion
             Returns the newly created dataset version
-        """ 
+        """
         version_info = BigQueryDatasetVersionInfo(job_id=job_id, location=location)
         return QueryDatasetVersion(self._conn, self._conf,
                                    dataset_id=self.id, dataset_type=self.TYPE,
@@ -316,8 +317,8 @@ class BigQueryDataset(QueryDataset):
 
 class RDBMSDataset(QueryDataset):
     def create_version(self,
-                       query, db_connection_str, 
-                       execution_timestamp=None, query_template="", 
+                       query, db_connection_str,
+                       execution_timestamp=None, query_template="",
                        query_parameters=[], num_records=0,
                        parent_id=None,
                        desc=None, tags=None, attrs=None):
@@ -351,10 +352,10 @@ class RDBMSDataset(QueryDataset):
         -------
         DatasetVersion
             Returns the newly created dataset version
-        """ 
-        version_info = RDBMSDatasetVersionInfo(query=query, 
-            db_connection_str=db_connection_str, 
-            execution_timestamp=execution_timestamp, 
+        """
+        version_info = RDBMSDatasetVersionInfo(query=query,
+            db_connection_str=db_connection_str,
+            execution_timestamp=execution_timestamp,
             query_template=query_template,
             query_parameters=query_parameters,
             num_records=num_records)
@@ -399,8 +400,8 @@ class AtlasHiveDataset(QueryDataset):
         -------
         DatasetVersion
             Returns the newly created dataset version
-        """ 
-        version_info = _dataset.AtlasHiveDatasetVersionInfo(
+        """
+        version_info = AtlasHiveDatasetVersionInfo(
             guid=guid, atlas_url=atlas_url,
             atlas_user_name=atlas_user_name, atlas_password=atlas_password,
             atlas_entity_endpoint=atlas_entity_endpoint
@@ -482,7 +483,7 @@ class DatasetVersion(object):
             msg_copy.CopyFrom(self.dataset_version_info)
             return msg_copy.__repr__()
         else:
-            return "<DatasetVersion \"{}\">".format(self.name)
+            return "<DatasetVersion \"{}\">".format(self.version)
 
     # TODO: get by dataset_id and version is not supported on the backend
     @staticmethod
@@ -651,7 +652,7 @@ class QueryDatasetVersion(DatasetVersion):
 
 class PathDatasetVersionInfo(object):
     def __init__(self):
-        pass
+        self.dataset_part_infos = []
 
     def compute_dataset_size(self):
         self.size = 0
