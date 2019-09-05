@@ -122,13 +122,14 @@ class TestClientDatasetFunctions:
         assert dataset.name == same_dataset.name
 
     def test_find_datasets_client_api(self, client):
-        name = utils.gen_str()
-        dataset1 = client.set_dataset(name=name, type="big query", tags=["test1", "test2"])
+        name1 = utils.gen_str()
+        dataset1 = client.set_dataset(name=name1, type="big query",
+            tags=["test1-" + name1, "test2-" + name1])
         assert dataset1.dataset_type == _DatasetService.DatasetTypeEnum.QUERY
         assert dataset1.id
 
-        name = utils.gen_str()
-        dataset2 = client.set_dataset(name=name, type="s3", tags=["test1"])
+        name2 = utils.gen_str()
+        dataset2 = client.set_dataset(name=name2, type="s3", tags=["test1"])
         assert dataset2.dataset_type == _DatasetService.DatasetTypeEnum.PATH
         assert dataset2.id
 
@@ -145,11 +146,21 @@ class TestClientDatasetFunctions:
         # assert datasets[2].id == dataset3.id
 
         datasets = client.find_datasets()
-        assert len(datasets) == 2
-        assert datasets[0].id == dataset1.id
-        assert datasets[1].id == dataset2.id
+        assert len(datasets) >= 2 # at least 2 because they were just created. Needs to be updated
 
-        datasets = client.find_datasets(tags=["test1", "test2"])
+        datasets = client.find_datasets(tags=["test1-" + name1,
+            "test2-" + name1])
+        assert len(datasets) == 1
+        assert datasets[0].id == dataset1.id
+
+        datasets = client.find_datasets(name=name1)
+        assert len(datasets) == 1
+        assert datasets[0].id == dataset1.id
+
+        datasets = client.find_datasets(dataset_ids=[dataset1.id, dataset2.id])
+        assert len(datasets) == 2
+
+        datasets = client.find_datasets(dataset_ids=[dataset1.id, dataset2.id], name=name1)
         assert len(datasets) == 1
         assert datasets[0].id == dataset1.id
 

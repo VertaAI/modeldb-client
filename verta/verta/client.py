@@ -457,7 +457,7 @@ class Client(object):
         if tags is not None:
             for tag in tags:
                 predicates.append(
-                    _CommonService.KeyValueQuery(key="tag",
+                    _CommonService.KeyValueQuery(key="tags",
                                                  value=_utils.python_to_val_proto(tag),
                                                  operator=_CommonService.OperatorEnum.EQ))
         if name is not None:
@@ -472,7 +472,7 @@ class Client(object):
         response = _utils.make_request("POST",
                                        "{}://{}/v1/dataset/findDatasets".format(
                                            self._conn.scheme, self._conn.socket),
-                                       self._conn, params=data)
+                                       self._conn, json=data)
         _utils.raise_for_http_error(response)
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
