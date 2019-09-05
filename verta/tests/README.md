@@ -11,6 +11,16 @@ Refer to [this StackOverflow post](https://stackoverflow.com/a/21789908/) for a 
 
 ---
 
+Set the following environment variables:
+
+- `VERTA_HOST`
+- `VERTA_PORT`
+- `VERTA_EMAIL`
+- `VERTA_S3_TEST_BUCKET` (this must exist, the tests will not create it)
+- `VERTA_S3_TEST_OBJECT` (this must exist, the tests will not create it)
+
+---
+
 To execute tests, run:
 
 ```
@@ -28,12 +38,3 @@ Pytest by default captures print statement outputs and only displays them when e
 ```
 pytest -s
 ```
-
----
-
-The test configuration script attempts to read the following environment variables:
-
-- `VERTA_HOST`
-- `VERTA_PORT`
-- `VERTA_EMAIL`
-- `VERTA_DEV_KEY`

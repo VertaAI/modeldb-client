@@ -211,12 +211,12 @@ def experiment_run(client):
 
 @pytest.fixture(scope='session')
 def s3_bucket():
-    return os.environ.get("S3_TEST_BUCKET", DEFAULT_S3_TEST_BUCKET)
+    return os.environ.get("VERTA_S3_TEST_BUCKET", DEFAULT_S3_TEST_BUCKET)
 
 
 @pytest.fixture(scope='session')
 def s3_object():
-    return os.environ.get("S3_TEST_OBJECT", DEFAULT_S3_TEST_OBJECT)
+    return os.environ.get("VERTA_S3_TEST_OBJECT", DEFAULT_S3_TEST_OBJECT)
 
 
 @pytest.fixture(scope="session")

@@ -314,6 +314,55 @@ class BigQueryDataset(QueryDataset):
                                    parent_id=parent_id,
                                    desc=desc, tags=tags, attrs=attrs)
 
+class RDBMSDataset(QueryDataset):
+    def create_version(self,
+                       query, db_connection_str, 
+                       execution_timestamp=None, query_template="", 
+                       query_parameters=[], num_records=0,
+                       parent_id=None,
+                       desc=None, tags=None, attrs=None):
+        """
+        Create a version of a generic RDBMS Query Dataset.
+
+        Parameters
+        ----------
+        query : str
+            Query that was executed.
+        db_connection_str : str
+            Connection string for the DBMS (e.g., localhost:8080).
+        execution_timestamp : int or float, optional
+            Time at which the query was run. Will default to current time.
+        query_template : str, optional
+            Template from which the query was derived.
+        query_parameters : list of str, optional
+            Parameters used with the query template.
+        num_records : int, optional
+            Number of records returned by the query.
+        parent_id : str, optional
+            Id of the DatasetVersion from which this version was derived.
+        desc : str, optional
+            Description of the DatasetVersion.
+        tags : list of str, optional
+            Tags of the DatasetVersion.
+        attrs : dict of str to {None, bool, float, int, str}, optional
+            Attributes of the DatasetVersion.
+
+        Returns
+        -------
+        DatasetVersion
+            Returns the newly created dataset version
+        """ 
+        version_info = RDBMSDatasetVersionInfo(query=query, 
+            db_connection_str=db_connection_str, 
+            execution_timestamp=execution_timestamp, 
+            query_template=query_template,
+            query_parameters=query_parameters,
+            num_records=num_records)
+        return QueryDatasetVersion(self._conn, self._conf,
+                                   dataset_id=self.id, dataset_type=self.TYPE,
+                                   dataset_version_info=version_info,
+                                   parent_id=parent_id,
+                                   desc=desc, tags=tags, attrs=attrs)
 
 class AtlasHiveDataset(QueryDataset):
     def create_version(self,
@@ -788,7 +837,6 @@ class AtlasHiveDatasetVersionInfo(QueryDatasetVersionInfo):
             verta_input_processes.append(atlas_input_process['displayText'])
         return verta_input_processes
 
-
 class BigQueryDatasetVersionInfo(QueryDatasetVersionInfo):
     def __init__(self, job_id=None,
                  query="", location="", execution_timestamp="", data_source_uri="",
@@ -816,3 +864,14 @@ class BigQueryDatasetVersionInfo(QueryDatasetVersionInfo):
 
         client = bigquery.Client()
         return client.get_job(job_id, location=location)
+
+class RDBMSDatasetVersionInfo(QueryDatasetVersionInfo):
+    def __init__(self, query="", db_connection_str="", execution_timestamp=None,
+        query_template="", query_parameters=[], num_records=0):
+        if execution_timestamp is None:
+            self.execution_timestamp = _utils.timestamp_to_ms(time.time())
+        self.data_source_uri = db_connection_str
+        self.query = query
+        self.query_template = query_template
+        self.query_parameters = query_parameters
+        self.num_records = num_records
