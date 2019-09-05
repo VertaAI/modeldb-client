@@ -1684,7 +1684,7 @@ class ExperimentRun(_ModelDBEntity):
 
         """
         # get key-path from ModelDB
-        Message = _ExperimentRunService.GetArtifacts
+        Message = _CommonService.GetArtifacts
         msg = Message(id=self.id, key=key)
         data = _utils.proto_to_json(msg)
         response = _utils.make_request("GET",
