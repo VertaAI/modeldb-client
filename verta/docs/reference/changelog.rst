@@ -2,6 +2,60 @@ Release Notes
 =============
 
 
+v0.13.3 (2019-09-04)
+--------------------
+
+Deprecations
+^^^^^^^^^^^^
+- `client.expt_runs, because its meaning is ambiguous; proj.expt_runs and expt.expt_runs are preferred
+  <https://github.com/VertaAI/modeldb-client/pull/193>`_
+- `ret_all_info parameter in querying methods, because it returns user-unfriendly objects
+  <https://github.com/VertaAI/modeldb-client/pull/201>`_
+
+New Features
+^^^^^^^^^^^^
+- `implement Client.set_experiment_run(id=…)
+  <https://github.com/VertaAI/modeldb-client/pull/184>`_
+- `implement dataset retrieval functions
+  <https://github.com/VertaAI/modeldb-client/pull/205>`_
+- `propagate error messages from the back end
+  <https://github.com/VertaAI/modeldb-client/pull/196>`_
+
+Bug Fixes
+^^^^^^^^^
+- `support run.get_*() when the value is None
+  <https://github.com/VertaAI/modeldb-client/pull/191>`_
+- `fix bug where Project, Experiment, and ExperimentRun objects couldn't be pickled
+  <https://github.com/VertaAI/modeldb-client/pull/201>`_
+- `fix bug when Datasets are created in Python 2
+  <https://github.com/VertaAI/modeldb-client/pull/190>`_
+- `log DatasetVersion timestamps as milliseconds, as expected by the Web App
+  <https://github.com/VertaAI/modeldb-client/pull/182>`_
+- `fix bug when the working directory is captured by run.log_modules()
+  <https://github.com/VertaAI/modeldb-client/pull/187>`_
+- `fix bug when run.log_modules() is used in Python 2
+  <https://github.com/VertaAI/modeldb-client/pull/188>`_
+- `fix bug when querying methods are called from an empty ExperimentRuns
+  <https://github.com/VertaAI/modeldb-client/pull/195>`_
+- `perform basic key validation in querying methods
+  <https://github.com/VertaAI/modeldb-client/pull/194>`_
+
+Internal Changes
+^^^^^^^^^^^^^^^^
+- `create testing fixtures for deterministic input spaces
+  <https://github.com/VertaAI/modeldb-client/pull/185>`_
+- `fix data versioning tests
+  <https://github.com/VertaAI/modeldb-client/pull/183>`_
+- `fix non-artifact tests
+  <https://github.com/VertaAI/modeldb-client/pull/186>`_
+- `fix artifact tests
+  <https://github.com/VertaAI/modeldb-client/pull/189>`_
+- `implement model logging tests
+  <https://github.com/VertaAI/modeldb-client/pull/192>`_
+- `implement basic querying method tests
+  <https://github.com/VertaAI/modeldb-client/pull/199>`_
+
+
 v0.13.2 (2019-08-20)
 --------------------
 
@@ -30,6 +84,11 @@ New Features
 - `support basic data versioning
   <https://github.com/VertaAI/modeldb-client/compare/cfea45e...4bbfcd1>`_
 
+Bug Fixes
+^^^^^^^^^
+- `convert everything to new-style classes for Python 2 compatibility
+  <https://github.com/VertaAI/modeldb-client/pull/147/files>`_
+
 Internal Changes
 ^^^^^^^^^^^^^^^^
 - `support dynamically fetching custom deployment URLs
@@ -38,11 +97,6 @@ Internal Changes
   <https://github.com/VertaAI/modeldb-client/pull/170>`_
 - `support potentially handling a 401 on verifyConnection
   <https://github.com/VertaAI/modeldb-client/pull/152>`_
-
-Bug Fixes
-^^^^^^^^^
-- `convert everything to new-style classes for Python 2 compatibility
-  <https://github.com/VertaAI/modeldb-client/pull/147/files>`_
 
 
 v0.12.9 (2019-08-13)
@@ -219,9 +273,11 @@ New Features
 
 Bug Fixes
 ^^^^^^^^^
-- `enable logging lists, and dictionaries with string keys, as attributes on client.set_*() to match run.log_attribute()
+- `enable logging lists, and dictionaries with string keys, as attributes on client.set_*() to match
+  run.log_attribute()
   <https://github.com/VertaAI/modeldb-client/pull/113>`_
-- `simplify stack traces by suppressing contexts during handling for a remaining handful of raise statements
+- `simplify stack traces by suppressing contexts during handling for a remaining handful of raise
+  statements
   <https://github.com/VertaAI/modeldb-client/commit/886f3bb42f4e841e3d5885d8afaeb0e84cf9754e>`_
 - `add missing error message to get_observation()
   <https://github.com/VertaAI/modeldb-client/commit/4c77343ba2a74f07b7338509ea9850b0106453bc>`_
@@ -243,17 +299,17 @@ v0.11.7 (2019-06-10)
 
 Backwards Incompatibilities
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- `The constructors for Project, Experiment, ExperimentRun, and ExperimentRuns—as well as with their _get() and _create()
-  functions—now take an additional retry parameter, though these functions are all not intended for public use to begin
-  with.
+- `The constructors for Project, Experiment, ExperimentRun, and ExperimentRuns—as well as with their
+  _get() and _create() functions—now take an additional retry parameter, though these functions are
+  all not intended for public use to begin with.
   <https://github.com/VertaAI/modeldb-client/pull/112>`_
 
 New Features
 ^^^^^^^^^^^^
 - `enable logging lists, and dictionaries with string keys, as attributes
   <https://github.com/VertaAI/modeldb-client/pull/109>`_
-- `implement a max_retries parameter and attribute on Client to retry requests with exponential backoff on 403s, 503s,
-  and 504s
+- `implement a max_retries parameter and attribute on Client to retry requests with exponential
+  backoff on 403s, 503s, and 504s
   <https://github.com/VertaAI/modeldb-client/pull/112>`_
 
 Internal Changes
@@ -273,8 +329,8 @@ v0.11.6 (2019-06-07)
 
 Backwards Incompatibilities
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- `Providing a cloudpickle version in the requirements for deployment that doesn't match the version used by the Client
-  now raises an error instead of overwriting the line in the requirements.
+- `Providing a cloudpickle version in the requirements for deployment that doesn't match the version
+  used by the Client now raises an error instead of overwriting the line in the requirements.
   <https://github.com/VertaAI/modeldb-client/commit/871bef8dc92a01e6516ee7d13b5b3035e9bbd5bc>`_
 
 New Features
@@ -300,8 +356,8 @@ v0.11.5 (2019-06-04)
 
 Backwards Incompatibilities
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- `The dataset_csv parameter for log_model_for_deployment() has been replaced with two parameters for feature and target
-  DataFrames.
+- `The dataset_csv parameter for log_model_for_deployment() has been replaced with two parameters
+  for feature and target DataFrames.
   <https://github.com/VertaAI/modeldb-client/commit/4d113552916d3999e220fd0e3964658487df6925>`_
 
 Bug Fixes
@@ -357,7 +413,8 @@ v0.11.2 (2019-05-30)
 
 Backwards Incompatibilities
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- `Parameters for Client.set_* functions have been renamed to name and id, from e.g. proj_name and _proj_id.
+- `Parameters for Client.set_* functions have been renamed to name and id, from e.g. proj_name and
+  _proj_id.
   <https://github.com/VertaAI/modeldb-client/commit/889130d6ccf224b6de085a6a473993c5d9a16765>`_
 - `The _id attribute of Project, Experiment, and ExperimentRun have been renamed to id.
   <https://github.com/VertaAI/modeldb-client/commit/eb832fbf86e1c403a1683b8e02fb8b6a47c06d82>`_
@@ -384,8 +441,8 @@ v0.11.0 (2019-05-29)
 
 Backwards Incompatibilities
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- `log_model_for_deployment() now no longer requires a dataset argument, but requires a model API argument. The order
-  of parameters has changed, and dataset_csv has been renamed to dataset_df.
+- `log_model_for_deployment() now no longer requires a dataset argument, but requires a model API
+  argument. The order of parameters has changed, and dataset_csv has been renamed to dataset_df.
   <https://github.com/VertaAI/modeldb-client/pull/99>`_
 
 New Features
@@ -440,26 +497,27 @@ v0.10.0 (2019-05-16)
 
 Backwards Incompatibilities
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- `log_hyperparameters() now must take a single, whole dictionary as an argument and no longer accepts dictionary
-  unpacking.
+- `log_hyperparameters() now must take a single, whole dictionary as an argument and no longer accepts
+  dictionary unpacking.
   <https://github.com/VertaAI/modeldb-client/pull/96>`_
-- `Getting observations from an ExperimentRun now returns tuples pairing observations with their timestamps.
+- `Getting observations from an ExperimentRun now returns tuples pairing observations with their
+  timestamps.
   <https://github.com/VertaAI/modeldb-client/pull/83>`_
-- `Passing a string into artifact logging functions now attempts to open a file located at the path represented by that
-  string, rather than simply logging the string itself.
+- `Passing a string into artifact logging functions now attempts to open a file located at the path
+  represented by that string, rather than simply logging the string itself.
   <https://github.com/VertaAI/modeldb-client/pull/94>`_
 - `Attempting to log an unsupported datatype now throws a TypeError instead of a ValueError.
   <https://github.com/VertaAI/modeldb-client/pull/90/files>`_
 - `Logging artifacts now uses cloudpickle by default, instead of pickle.
   <https://github.com/VertaAI/modeldb-client/pull/90/files>`_
-- `The internal logic for getting a Project by name has changed, and will be incompatible with old versions of the Verta
-  Back End.
-  <https://github.com/VertaAI/modeldb-client/commit/595b70749b585f13a38afef6b91b4aeae633c5ae>`_
-- `The internal logic for handling uploading custom models for deployment has changed, and will be incompatible with old
+- `The internal logic for getting a Project by name has changed, and will be incompatible with old
   versions of the Verta Back End.
+  <https://github.com/VertaAI/modeldb-client/commit/595b70749b585f13a38afef6b91b4aeae633c5ae>`_
+- `The internal logic for handling uploading custom models for deployment has changed, and will be
+  incompatible with old versions of the Verta Back End.
   <https://github.com/VertaAI/modeldb-client/pull/93>`_
-- `The internal logic for getting an ExperimentRun by name has changed, and may be incompatible with old versions of the
-  Verta Back End.
+- `The internal logic for getting an ExperimentRun by name has changed, and may be incompatible with
+  old versions of the Verta Back End.
   <https://github.com/VertaAI/modeldb-client/pull/89>`_
 
 New Features
@@ -468,7 +526,8 @@ New Features
   <https://github.com/VertaAI/modeldb-client/pull/83>`_
 - `implement methods on ExperimentRun for logging and getting tags
   <https://github.com/VertaAI/modeldb-client/pull/84/files>`_
-- `implement methods on ExperimentRun for logging multiple attributes, metrics, or hyperparameters in a single transaction
+- `implement methods on ExperimentRun for logging multiple attributes, metrics, or hyperparameters
+  in a single transaction
   <https://github.com/VertaAI/modeldb-client/pull/87>`_
 - `enable uploading custom model APIs for deployment
   <https://github.com/VertaAI/modeldb-client/pull/91>`_
@@ -484,8 +543,8 @@ Internal Changes
 ^^^^^^^^^^^^^^^^
 - `convert pandas DataFrames into CSVs when logging for deployment for data monitoring
   <https://github.com/VertaAI/modeldb-client/pull/85>`_
-- `implement a secondary predict function in demo utilities that returns the raw HTML response instead of a formatted
-  response
+- `implement a secondary predict function in demo utilities that returns the raw HTML response instead
+  of a formatted response
   <https://github.com/VertaAI/modeldb-client/pull/92>`_
 - `move our example notebooks from workflows/demos/ to workflows/examples/
   <https://github.com/VertaAI/modeldb-client/commit/de197f6821ccbb904a4cd1e45b66b45e5c7f68a6>`_
@@ -493,7 +552,8 @@ Internal Changes
   <https://github.com/VertaAI/modeldb-client/pull/93>`_
 - `add "keras" deserialization in model API
   <https://github.com/VertaAI/modeldb-client/pull/93>`_
-- `add cloudpickle to requirements with the locally pinned version if it was used when logging for deployment
+- `add cloudpickle to requirements with the locally pinned version if it was used when logging for
+  deployment
   <https://github.com/VertaAI/modeldb-client/pull/95>`_
 - `implement handful of small fixes to maintain Python 2.7 compatibility
   <https://github.com/VertaAI/modeldb-client/pull/97>`_

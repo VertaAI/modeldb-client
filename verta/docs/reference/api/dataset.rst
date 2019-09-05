@@ -2,28 +2,31 @@ Data Versioning
 ===============
 
 
-Creation and Logging
-^^^^^^^^^^^^^^^^^^^^
+Dataset Creation and Logging
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. automethod:: verta.client.Client.set_dataset
+    :noindex:
 .. automethod:: verta.client.ExperimentRun.log_dataset_version
     :noindex:
 .. automethod:: verta.client.ExperimentRun.get_dataset_version
     :noindex:
 
 
-Querying Datasets
+Dataset Retrieval
 ^^^^^^^^^^^^^^^^^
-.. automethod:: verta.client.get_dataset
-.. automethod:: verta.client.get_dataset_version
-.. automethod:: verta.client.find_datasets
+
+.. automethod:: verta.client.Client.get_dataset
+    :noindex:
+.. automethod:: verta.client.Client.get_dataset_version
+    :noindex:
+.. automethod:: verta.client.Client.find_datasets
+    :noindex:
 
 
-Object APIs
-^^^^^^^^^^^
+Dataset Version Creation
+^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. automodule:: verta._dataset
-    :members:
 .. automethod:: verta._dataset.LocalDataset.create_version
     :noindex:
 .. automethod:: verta._dataset.S3Dataset.create_version
