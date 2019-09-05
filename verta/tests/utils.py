@@ -50,6 +50,7 @@ def gen_dict(length=8):
 
 @st.composite
 def st_scalars(draw):
+    # pylint: disable=bad-continuation
     return draw(st.none()
               | st.booleans()
               | st.integers()
@@ -59,6 +60,7 @@ def st_scalars(draw):
 
 @st.composite
 def st_json(draw, max_size=6):
+    # pylint: disable=bad-continuation
     return draw(st.recursive(st_scalars(),
                              lambda children: st.lists(children,
                                                        min_size=1,

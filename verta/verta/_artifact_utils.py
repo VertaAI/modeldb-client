@@ -76,7 +76,7 @@ def ext_from_method(method):
         Filename extension without the leading period.
 
     """
-    if method ==  "keras":
+    if method == "keras":
         return 'hdf5'
     elif method in ("joblib", "cloudpickle", "pickle"):
         return 'pkl'

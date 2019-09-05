@@ -348,15 +348,15 @@ class Client(object):
             if self.expt is None:
                 raise AttributeError("an Experiment must first be in progress")
             expt_run = ExperimentRun(self._conn, self._conf,
-                                   self.proj.id, self.expt.id, name,
-                                   desc, tags, attrs)
+                                     self.proj.id, self.expt.id, name,
+                                     desc, tags, attrs)
 
         return expt_run
 
     # NOTE: dataset visibility cannot be set via a client
     def set_dataset(self, name=None, type="local",
-                       desc=None, tags=None, attrs=None,
-                       id=None):
+                    desc=None, tags=None, attrs=None,
+                    id=None):
         """
         Attaches a Dataset to this Client.
 
@@ -407,8 +407,8 @@ class Client(object):
             raise ValueError("`type` must be one of {'local', 's3', 'big query', 'atlas hive', 'postgres'}")
 
         return DatasetSubclass(self._conn, self._conf,
-                       name=name, desc=desc, tags=tags, attrs=attrs,
-                       _dataset_id=id)
+                               name=name, desc=desc, tags=tags, attrs=attrs,
+                               _dataset_id=id)
 
     def get_dataset(self, name=None, id=None):
         """
@@ -427,8 +427,10 @@ class Client(object):
         """
         return _dataset.Dataset(self._conn, self._conf, name=name, _dataset_id=id)
 
-    def find_datasets(self, dataset_ids=None, tags=None, name=None,
-        sort_key=None, ascending=False):
+    def find_datasets(self,
+                      dataset_ids=None, name=None,
+                      tags=None,
+                      sort_key=None, ascending=False):
         """
         Gets the Datasets that match the given query parameters. If no parameters
         are specified, we return all datasets.
@@ -437,10 +439,10 @@ class Client(object):
         ----------
         dataset_ids : list of str, optional
             IDs of datasets that we wish to retrieve
-        tags: list of str, optional
-            List of tags by which we'd like to query datasets
         name: str, optional
             Name of dataset we wish to retrieve. Fuzzy matches supported
+        tags: list of str, optional
+            List of tags by which we'd like to query datasets
         sort_key: string, optional
             Key by which the resulting list of datasets should be sorted
         ascending: bool, default: False
@@ -454,25 +456,27 @@ class Client(object):
         predicates = []
         if tags is not None:
             for tag in tags:
-                predicates.append(_CommonService.KeyValueQuery(key="tag",
-                        value=_utils.python_to_val_proto(tag),
-                        operator=_CommonService.OperatorEnum.EQ))
+                predicates.append(
+                    _CommonService.KeyValueQuery(key="tag",
+                                                 value=_utils.python_to_val_proto(tag),
+                                                 operator=_CommonService.OperatorEnum.EQ))
         if name is not None:
-            predicates.append(_CommonService.KeyValueQuery(key="name",
-                    value=_utils.python_to_val_proto(name),
-                    operator=_CommonService.OperatorEnum.EQ))
+            predicates.append(
+                _CommonService.KeyValueQuery(key="name",
+                                             value=_utils.python_to_val_proto(name),
+                                             operator=_CommonService.OperatorEnum.EQ))
         Message = _dataset._DatasetService.FindDatasets
         msg = Message(dataset_ids=dataset_ids, predicates=predicates,
-            ascending=ascending, sort_key=sort_key)
+                      ascending=ascending, sort_key=sort_key)
         data = _utils.proto_to_json(msg)
         response = _utils.make_request("POST",
-                                        "{}://{}/v1/dataset/findDatasets".format(
-                                            self._conn.scheme, self._conn.socket),
-                                            self._conn, params=data)
+                                       "{}://{}/v1/dataset/findDatasets".format(
+                                           self._conn.scheme, self._conn.socket),
+                                       self._conn, params=data)
         _utils.raise_for_http_error(response)
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
-        return [_dataset.Dataset(self._conn, self._conf, _dataset_id = dataset.id)
+        return [_dataset.Dataset(self._conn, self._conf, _dataset_id=dataset.id)
                 for dataset in response_msg.datasets]
 
     def get_dataset_version(self, id):
@@ -488,8 +492,7 @@ class Client(object):
         -------
         :class:`DatasetVersion`
         """
-        return _dataset.DatasetVersion(self._conn, self._conf,
-            _dataset_version_id=id)
+        return _dataset.DatasetVersion(self._conn, self._conf, _dataset_version_id=id)
 
 
 class _ModelDBEntity(object):
@@ -693,8 +696,8 @@ class _ModelDBEntity(object):
 
         data = _utils.proto_to_json(msg)
         response = _utils.make_request("POST",
-                                        self._request_url.format(endpoint),
-                                        self._conn, json=data)
+                                       self._request_url.format(endpoint),
+                                       self._conn, json=data)
         if not response.ok:
             if response.status_code == 409:
                 raise ValueError("a code version has already been logged")
@@ -736,8 +739,8 @@ class _ModelDBEntity(object):
         msg = Message(id=self.id)
         data = _utils.proto_to_json(msg)
         response = _utils.make_request("GET",
-                                        self._request_url.format(endpoint),
-                                        self._conn, params=data)
+                                       self._request_url.format(endpoint),
+                                       self._conn, params=data)
         _utils.raise_for_http_error(response)
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
@@ -1052,7 +1055,7 @@ class Experiment(_ModelDBEntity):
 
 
 class ExperimentRuns(object):
-    """
+    r"""
     ``list``-like object representing a collection of machine learning Experiment Runs.
 
     This class provides functionality for filtering and sorting its contents.
@@ -1221,7 +1224,7 @@ class ExperimentRuns(object):
                 raise ValueError("value `{}` must be a number or string literal".format(value))
 
             predicates.append(_CommonService.KeyValueQuery(key=key, value=_utils.python_to_val_proto(value),
-                                                                  operator=operator))
+                                                           operator=operator))
         Message = _ExperimentRunService.FindExperimentRuns
         msg = Message(project_id=_proj_id, experiment_id=_expt_id, experiment_run_ids=expt_run_ids,
                       predicates=predicates, ids_only=not ret_all_info)
@@ -1293,7 +1296,7 @@ class ExperimentRuns(object):
             return self.__class__(self._conn, self._conf, [expt_run.id for expt_run in response_msg.experiment_runs])
 
     def top_k(self, key, k, ret_all_info=False, _proj_id=None, _expt_id=None):
-        """
+        r"""
         Gets the Experiment Runs from this collection with the `k` highest `key`\ s.
 
         A `key` is a string containing a dot-delimited Experiment Run property such as
@@ -1354,7 +1357,7 @@ class ExperimentRuns(object):
             return self.__class__(self._conn, self._conf, [expt_run.id for expt_run in response_msg.experiment_runs])
 
     def bottom_k(self, key, k, ret_all_info=False, _proj_id=None, _expt_id=None):
-        """
+        r"""
         Gets the Experiment Runs from this collection with the `k` lowest `key`\ s.
 
         A `key` is a string containing a dot-delimited Experiment Run property such as ``metrics.accuracy``.

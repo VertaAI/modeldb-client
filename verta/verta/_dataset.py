@@ -120,7 +120,7 @@ class Dataset(object):
 
         Message = _DatasetService.CreateDataset
         msg = Message(name=dataset_name, dataset_type=dataset_type,
-            description=desc, tags=tags, attributes=attrs)
+                      description=desc, tags=tags, attributes=attrs)
         data = _utils.proto_to_json(msg)
         response = _utils.make_request("POST",
                                        "{}://{}/v1/dataset/createDataset".format(conn.scheme, conn.socket),
@@ -148,12 +148,12 @@ class Dataset(object):
         msg = Message(dataset_id=self.id)
         data = _utils.proto_to_json(msg)
         response = _utils.make_request("GET",
-                                        "{}://{}/v1/dataset-version/getAllDatasetVersionsByDatasetId".format(self._conn.scheme, self._conn.socket),
-                                        self._conn, params=data)
+                                       "{}://{}/v1/dataset-version/getAllDatasetVersionsByDatasetId".format(self._conn.scheme, self._conn.socket),
+                                       self._conn, params=data)
         _utils.raise_for_http_error(response)
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
-        return [DatasetVersion(self._conn, self._conf, _dataset_version_id = dataset_version.id)
+        return [DatasetVersion(self._conn, self._conf, _dataset_version_id=dataset_version.id)
                 for dataset_version in response_msg.dataset_versions]
 
     # TODO: sorting seems to be incorrect
@@ -179,8 +179,8 @@ class Dataset(object):
         msg = Message(dataset_id=self.id, ascending=ascending, sort_key=sort_key)
         data = _utils.proto_to_json(msg)
         response = _utils.make_request("GET",
-                                        "{}://{}/v1/dataset-version/getLatestDatasetVersionByDatasetId".format(self._conn.scheme, self._conn.socket),
-                                        self._conn, params=data)
+                                       "{}://{}/v1/dataset-version/getLatestDatasetVersionByDatasetId".format(self._conn.scheme, self._conn.socket),
+                                       self._conn, params=data)
         _utils.raise_for_http_error(response)
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
@@ -353,7 +353,8 @@ class RDBMSDataset(QueryDataset):
         DatasetVersion
             Returns the newly created dataset version
         """
-        version_info = RDBMSDatasetVersionInfo(query=query,
+        version_info = RDBMSDatasetVersionInfo(
+            query=query,
             db_connection_str=db_connection_str,
             execution_timestamp=execution_timestamp,
             query_template=query_template,
@@ -615,9 +616,9 @@ class PathDatasetVersion(DatasetVersion):
             base_path=dataset_version_info.base_path
         )
         msg = Message(dataset_id=dataset_id, parent_id=parent_id,
-                        description=desc, tags=tags, dataset_type=dataset_type,
-                        attributes=attrs, version=version,
-                        path_dataset_version_info=converted_dataset_version_info)
+                      description=desc, tags=tags, dataset_type=dataset_type,
+                      attributes=attrs, version=version,
+                      path_dataset_version_info=converted_dataset_version_info)
         return msg
 
 
@@ -765,7 +766,7 @@ class AtlasHiveDatasetVersionInfo(QueryDatasetVersionInfo):
             atlas_entity_details = self.get_entity_details(guid, atlas_url,
                                                            atlas_user_name, atlas_password, atlas_entity_endpoint)
             if len(atlas_entity_details['entities']) != 1:
-                raise ValueError ("Error fetching details of entity from Atlas")
+                raise ValueError("Error fetching details of entity from Atlas")
             table_obj = atlas_entity_details['entities'][0]
             if table_obj['typeName'] != 'hive_table':
                 raise NotImplementedError("Atlas dataset currently supported only for Hive tables")
@@ -841,7 +842,7 @@ class AtlasHiveDatasetVersionInfo(QueryDatasetVersionInfo):
 class BigQueryDatasetVersionInfo(QueryDatasetVersionInfo):
     def __init__(self, job_id=None,
                  query="", location="", execution_timestamp="", data_source_uri="",
-                 query_template="",query_parameters=[], num_records=0):
+                 query_template="", query_parameters=[], num_records=0):
         """https://googleapis.github.io/google-cloud-python/latest/bigquery/generated/google.cloud.bigquery.job.QueryJob.html#google.cloud.bigquery.job.QueryJob.query_plan"""
         if job_id is not None and location:
             self.job_id = job_id
@@ -868,7 +869,7 @@ class BigQueryDatasetVersionInfo(QueryDatasetVersionInfo):
 
 class RDBMSDatasetVersionInfo(QueryDatasetVersionInfo):
     def __init__(self, query="", db_connection_str="", execution_timestamp=None,
-        query_template="", query_parameters=[], num_records=0):
+                 query_template="", query_parameters=[], num_records=0):
         if execution_timestamp is None:
             self.execution_timestamp = _utils.timestamp_to_ms(time.time())
         self.data_source_uri = db_connection_str

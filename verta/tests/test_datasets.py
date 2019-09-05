@@ -12,9 +12,6 @@ from verta._protos.public.modeldb import DatasetService_pb2 as _DatasetService
 from verta._protos.public.modeldb import DatasetVersionService_pb2 as _DatasetVersionService
 
 
-if six.PY2: FileNotFoundError = IOError
-
-
 class TestBaseDatasets:
     def test_creation_from_scratch(self, client):
         name = utils.gen_str()
@@ -396,8 +393,9 @@ class TestRDBMSDatasetVersionInfo:
     def test_rdbms_version_creation(self, client):
         name = utils.gen_str()
         dataset = client.set_dataset("pg-" + name, type="postgres")
-        dataset_version = dataset.create_version(query="SELECT * FROM ner-table", 
-            db_connection_str="localhost:6543", num_records=100)
+        dataset_version = dataset.create_version(query="SELECT * FROM ner-table",
+                                                 db_connection_str="localhost:6543",
+                                                 num_records=100)
 
         assert dataset_version.dataset_version_info.query == "SELECT * FROM ner-table"
         assert dataset_version.dataset_version_info.data_source_uri == "localhost:6543"
