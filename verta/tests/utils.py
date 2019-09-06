@@ -1,3 +1,4 @@
+import contextlib
 import random
 import os
 from string import printable
@@ -85,25 +86,21 @@ def st_key_values(draw, min_size=1, max_size=12, scalars_only=False):
                                 max_size=max_size))
 
 
-class chdir:
+@contextlib.contextmanager
+def chdir(new_dir):
     """
     Context manager for safely changing current working directory.
 
-    Without this context manager, if a test involving a directory change fails then subsequent tests
-    would likely fail as well due to a bad execution state.
+    Without this, if a test involving a directory change fails then subsequent tests would likely
+    fail as well due to a bad execution state.
 
     """
-    def __init__(self, new_dir):
-        self.new_dir = new_dir
-        self.old_dir = None
-
-    def __enter__(self):
-        self.old_dir = os.getcwd()
-        os.chdir(self.new_dir)
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        os.chdir(self.old_dir)
-        self.old_dir = None
+    old_dir = os.getcwd()
+    os.chdir(new_dir)
+    try:
+        yield
+    finally:
+        os.chdir(old_dir)
 
 
 def delete_project(id_, conn):
