@@ -2663,8 +2663,7 @@ class ExperimentRun(_ModelDBEntity):
         else:
             try:
                 return pickle.loads(artifact)
-            except (pickle.UnpicklingError,
-                    KeyError, ValueError):  # other unpickling errors
+            except:
                 return six.BytesIO(artifact)
 
     def log_observation(self, key, value, timestamp=None):
