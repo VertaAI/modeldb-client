@@ -2,6 +2,19 @@ Release Notes
 =============
 
 
+v0.13.6 (2019-09-05)
+--------------------
+
+Bug Fixes
+^^^^^^^^^
+- `fix small bugs in the _dataset submodule and update tests
+  <https://github.com/VertaAI/modeldb-client/pull/211>`_
+
+Internal Changes
+^^^^^^^^^^^^^^^^
+- `update protos version
+   <https://github.com/VertaAI/modeldb-client/pull/212>`_
+
 v0.13.5 (2019-09-05)
 --------------------
 
