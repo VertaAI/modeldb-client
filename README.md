@@ -4,6 +4,8 @@ Thanks for stopping by, and for taking your first step towards a healthier, more
 
 Come see [our user guide and documentation](https://verta.readthedocs.io/en/master/index.html) to get started.
 
+Take a look at [our development guide](https://github.com/VertaAI/modeldb-client/blob/master/CONTRIBUTING.md) for how to contribute.
+
 ## `verta/`
 This subdirectory contains the actual Python package.
 
@@ -27,19 +29,3 @@ This shell script builds and uploads the Verta package to PyPI.
 
 ## `workflows/`
 This subdirectory contains example and demo Jupyter notebooks
-
-## Contributing
-1. from the root directory of the repository, run these commands:
-    1. `git submodule init`
-    1. `git submodule update`
-    1. `cd verta/`
-    1. `pip install -e .`
-        1. this means you don't have to rerun `pip install` whenever you make changes
-    1. (optional) `pip install -r requirements.txt`
-        1. this installs packages for PyPI publication, unit testing, and documentation
-1. use Client
-1. tackle issues
-### Troubleshooting
-1. If you receive an Environment Error (Errno: 13) with regard to permissions in Step 1.4 `pip install -e .`, consider these potential solutions:
-    1. Append `--user` to the command: `pip install -e . --user`
-    1. Use Python3 by using the command: `pip3 install -e .`
