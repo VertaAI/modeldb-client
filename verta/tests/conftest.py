@@ -257,16 +257,19 @@ def big_query_job():
     return (job_id, "US", query)
 
 @pytest.fixture
-def model_for_deployment(seed, strs):
+def model_for_deployment(strs):
     num_rows, num_cols = 36, 6
 
-    model = sklearn.linear_model.LogisticRegression()
-    requirements = six.StringIO("scikit-learn=={}".format(sklearn.__version__))
     data = pd.DataFrame(np.tile(np.arange(num_rows).reshape(-1, 1),
                                 num_cols),
                         columns=strs[:num_cols])
     X_train = data.iloc[:,:-1]  # pylint: disable=bad-whitespace
     y_train = data.iloc[:, -1]
-    model_api = verta.utils.ModelAPI(X_train, y_train)
 
-    return model, model_api, requirements, X_train, y_train
+    return {
+        'model': sklearn.linear_model.LogisticRegression(),
+        'model_api': verta.utils.ModelAPI(X_train, y_train),
+        'requirements': six.StringIO("scikit-learn=={}".format(sklearn.__version__)),
+        'train_features': X_train,
+        'train_targets': y_train,
+    }
