@@ -194,7 +194,7 @@ def output_path():
 
 @pytest.fixture
 def client(host, port, email, dev_key):
-    client = Client(host, port, email, dev_key)
+    client = Client(host, port, email, dev_key, debug=True)
 
     yield client
 
