@@ -2,18 +2,18 @@
 
 From the root directory of the repository, run these commands:
 1. `git submodule init`
-   1. `git submodule update`
-   1. `cd verta/`
-   1. `pip install -e .`
-      1. This means you don't have to rerun `pip install` whenever you make changes.
-   1. `pip install -r requirements.txt`
-      1. This installs packages relating to PyPI publication, unit testing, and documentation.
+1. `git submodule update`
+1. `cd verta/`
+1. `pip install -e .`
+   1. This means you don't have to rerun `pip install` whenever you make changes.
+1. `pip install -r requirements.txt`
+   1. This installs packages relating to PyPI publication, unit testing, and documentation.
 
 ### Troubleshooting
 
-- If you receive an Environment Error (Errno: 13) with regard to permissions in Step 1.4 `pip install -e .`, consider these potential solutions:
-  1. Append `--user` to the command: `pip install -e . --user`
-  1. Use Python3 by using the command: `pip3 install -e .`
+If you receive an `EnvironmentError: [Errno 13]` regarding permissions during `pip install -e .`, consider these potential solutions:
+- Append `--user` to the command: `pip install -e . --user`
+- Use Python3 by using the command: `pip3 install -e .`
 
 ## Package Publication
 
