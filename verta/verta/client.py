@@ -167,7 +167,7 @@ class Client(object):
     def expt_runs(self):
         warnings.warn("`client.expt_runs` is deprecated and will removed in a later version;"
                       " consider using `proj.expt_runs` and `expt.expt_runs` instead",
-                      category=DeprecationWarning, stacklevel=2)
+                      category=FutureWarning)
 
         if self.expt is None:
             return None
@@ -1184,7 +1184,7 @@ class ExperimentRuns(object):
         """
         if ret_all_info:
             warnings.warn("`ret_all_info` is deprecated and will removed in a later version;",
-                          category=DeprecationWarning, stacklevel=2)
+                          category=FutureWarning)
 
         if _proj_id is not None and _expt_id is not None:
             raise ValueError("cannot specify both `_proj_id` and `_expt_id`")
@@ -1278,7 +1278,7 @@ class ExperimentRuns(object):
         """
         if ret_all_info:
             warnings.warn("`ret_all_info` is deprecated and will removed in a later version;",
-                          category=DeprecationWarning, stacklevel=2)
+                          category=FutureWarning)
 
         if key.split('.')[0] not in self._VALID_QUERY_KEYS:
             raise ValueError("key `{}` is not a valid key for querying;"
@@ -1333,7 +1333,7 @@ class ExperimentRuns(object):
         """
         if ret_all_info:
             warnings.warn("`ret_all_info` is deprecated and will removed in a later version;",
-                          category=DeprecationWarning, stacklevel=2)
+                          category=FutureWarning)
 
         if key.split('.')[0] not in self._VALID_QUERY_KEYS:
             raise ValueError("key `{}` is not a valid key for querying;"
@@ -1393,7 +1393,7 @@ class ExperimentRuns(object):
         """
         if ret_all_info:
             warnings.warn("`ret_all_info` is deprecated and will removed in a later version;",
-                          category=DeprecationWarning, stacklevel=2)
+                          category=FutureWarning)
 
         if key.split('.')[0] not in self._VALID_QUERY_KEYS:
             raise ValueError("key `{}` is not a valid key for querying;"
@@ -2248,7 +2248,7 @@ class ExperimentRun(_ModelDBEntity):
         warnings.warn("`log_dataset_path()` is deprecated and will removed in a later version;"
                       " consider using `client.set_dataset(..., type=\"local\")`"
                       " and `run.log_dataset_version()` instead",
-                      category=DeprecationWarning, stacklevel=2)
+                      category=FutureWarning)
 
         # create impromptu DatasetVersion
         dataset = _dataset.LocalDataset(self._conn, self._conf, name=key)
