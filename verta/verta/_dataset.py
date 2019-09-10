@@ -210,7 +210,7 @@ class QueryDataset(Dataset):
 
 class S3Dataset(PathDataset):
     def create_version(self,
-                       bucket_name, key=None, prefix=None,
+                       bucket_name, key=None, key_prefix=None,
                        url_stub=None,
                        parent_id=None,
                        desc=None, tags=None, attrs=None):
@@ -222,8 +222,8 @@ class S3Dataset(PathDataset):
         bucket_name : str
             Name of the S3 bucketing storing the data.
         key : str, optional
-            Key of the object in S3. This argument cannot be provided alongside `prefix`.
-        prefix : str, optional
+            Key of the object in S3. This argument cannot be provided alongside `key_prefix`.
+        key_prefix : str, optional
             Key prefix to use for snapshotting multiple objects. This argument cannot be provided
             alongside `key`.
         url_stub : str, optional
@@ -242,10 +242,10 @@ class S3Dataset(PathDataset):
         DatasetVersion
             Returns the newly created dataset version
         """
-        if key is not None and prefix is not None:
-            raise ValueError("cannot specify both `key` and `prefix`")
+        if key is not None and key_prefix is not None:
+            raise ValueError("cannot specify both `key` and `key_prefix`")
 
-        version_info = S3DatasetVersionInfo(bucket_name, key=key, prefix=prefix, url_stub=url_stub)
+        version_info = S3DatasetVersionInfo(bucket_name, key=key, key_prefix=key_prefix, url_stub=url_stub)
         return PathDatasetVersion(self._conn, self._conf,
                                   dataset_id=self.id, dataset_type=self.TYPE,
                                   dataset_version_info=version_info,
@@ -712,12 +712,12 @@ class FilesystemDatasetVersionInfo(PathDatasetVersionInfo):
 
 
 class S3DatasetVersionInfo(PathDatasetVersionInfo):
-    def __init__(self, bucket_name, key=None, prefix=None, url_stub=None):
+    def __init__(self, bucket_name, key=None, key_prefix=None, url_stub=None):
         super(S3DatasetVersionInfo, self).__init__()
         self.location_type = _DatasetVersionService.PathLocationTypeEnum.S3_FILE_SYSTEM
         self.bucket_name = bucket_name
         self.key = key
-        self.prefix = prefix
+        self.key_prefix = key_prefix
         self.url_stub = url_stub
         self.base_path = ("" if url_stub is None else url_stub) + bucket_name \
             + (("/" + key) if key is not None else "")
@@ -734,9 +734,9 @@ class S3DatasetVersionInfo(PathDatasetVersionInfo):
             # look up object by key
             obj = conn.head_object(Bucket=self.bucket_name, Key=self.key)
             dataset_part_infos.append(self.get_s3_object_info(obj, self.key))
-        elif self.prefix is not None:
-            # look up objects by prefix
-            for obj in conn.list_objects(Bucket=self.bucket_name, Prefix=self.prefix)['Contents']:
+        elif self.key_prefix is not None:
+            # look up objects by key prefix
+            for obj in conn.list_objects(Bucket=self.bucket_name, Prefix=self.key_prefix)['Contents']:
                 dataset_part_infos.append(self.get_s3_object_info(obj))
         else:
             # look up all objects in bucket
