@@ -15,6 +15,37 @@ If you receive an `EnvironmentError: [Errno 13]` regarding permissions during `p
 - Append `--user` to the command: `pip install -e . --user`
 - Use Python3 by using the command: `pip3 install -e .`
 
+## Example and Demo Writing
+
+### Jupyter Notebook Formatting
+
+Before committing a Jupyter notebook we have to:
+- remove code cell outputs to prevent merge conflicts later, since outputs may change from run to run
+- preserve code cell execution numbers to enable easy reference in walkthroughs
+
+This can be done automatically with a pre-save hook:
+1. create a Jupyter config file using `jupyter notebook --generate-config`
+1. open the resulting `~/.jupyter/jupyter_notebook_config.py` in a code editor
+1. replace the line
+   ```python
+   #c.ContentsManager.pre_save_hook = None
+   ```
+   with
+   ```python
+   def number_cells(model, **kwargs):
+       if model['type'] != 'notebook':
+           return  # only run on notebooks
+       if model['content']['nbformat'] != 4:
+           return  # only run on nbformat v4
+       code_cells = (cell
+                     for cell in model['content']['cells']
+                     if cell['cell_type'] == 'code')
+       for i, cell in enumerate(code_cells, start=1):
+           cell['outputs'] = []
+           cell['execution_count'] = i
+   c.ContentsManager.pre_save_hook = number_cells
+   ```
+
 ## Package Publication
 
 1. Run the test suite and see that they pass to an acceptable degree.
