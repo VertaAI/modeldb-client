@@ -15,7 +15,7 @@ from .client import _GRPC_PREFIX
 from . import _utils
 
 
-class DeployedModel:
+class DeployedModel(object):
     """
     Object for interacting with deployed models.
 
@@ -32,30 +32,11 @@ class DeployedModel:
     ----------
     host : str
         Hostname of the Verta Web App.
-    model_id : str
+    run_id : str
         ID of the deployed ExperimentRun/ModelRecord.
 
     """
-    def __init__(self, host=None, model_id=None, socket=None):
-        # this is to temporarily maintain compatibility with anyone passing in `socket` as a kwarg
-        # TODO v0.14.0: remove `socket` param
-        # TODO v0.14.0: remove default `None`s for `host` and `model_id` params
-        # TODO v0.14.0: remove the following block of param checks
-        if host is None and socket is None and model_id is None:
-            raise TypeError("missing 2 required positional arguments: 'host' and 'model_id'")
-        elif host is not None and socket is not None:
-            raise ValueError("cannot specify both `host` and `socket`; please only provide `host`")
-        elif host is None:
-            if socket is None:
-                raise TypeError("missing 1 required positional argument: 'host'")
-            else:
-                warnings.warn("`socket` will be renamed to `host` in a later version",
-                              category=FutureWarning)
-                host = socket
-                del socket
-        elif model_id is None:
-            raise TypeError("missing 1 required positional argument: 'model_id'")
-
+    def __init__(self, host=None, run_id=None, socket=None):
         self._session = requests.Session()
         self._session.headers.update({_GRPC_PREFIX+'source': "PythonClient"})
         try:
