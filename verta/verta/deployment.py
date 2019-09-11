@@ -11,6 +11,7 @@ import warnings
 
 import requests
 
+from .client import _GRPC_PREFIX
 from . import _utils
 
 
@@ -35,8 +36,6 @@ class DeployedModel:
         ID of the deployed ExperimentRun/ModelRecord.
 
     """
-    _GRPC_PREFIX = "Grpc-Metadata-"
-
     def __init__(self, host=None, model_id=None, socket=None):
         # this is to temporarily maintain compatibility with anyone passing in `socket` as a kwarg
         # TODO v0.14.0: remove `socket` param
@@ -57,6 +56,17 @@ class DeployedModel:
         elif model_id is None:
             raise TypeError("missing 1 required positional argument: 'model_id'")
 
+        self._session = requests.Session()
+        self._session.headers.update({_GRPC_PREFIX+'source': "PythonClient"})
+        try:
+            self._session.headers.update({_GRPC_PREFIX+'email': os.environ['VERTA_EMAIL']})
+        except KeyError:
+            six.raise_from(EnvironmentError("${} not found in environment".format('VERTA_EMAIL')), None)
+        try:
+            self._session.headers.update({_GRPC_PREFIX+'developer_key': os.environ['VERTA_DEV_KEY']})
+        except KeyError:
+            six.raise_from(EnvironmentError("${} not found in environment".format('VERTA_DEV_KEY')), None)
+
         back_end_url = urlparse(host)
         self._scheme = back_end_url.scheme or "https"
         self._socket = back_end_url.netloc + back_end_url.path.rstrip('/')
@@ -65,12 +75,6 @@ class DeployedModel:
         self._status_url = "{}://{}/api/v1/deployment/status/{}".format(self._scheme, self._socket, model_id)
 
         self._prediction_url = None
-
-        self._session = requests.Session()
-
-        self._auth = {self._GRPC_PREFIX+'email': os.environ.get('VERTA_EMAIL'),
-                      self._GRPC_PREFIX+'developer_key': os.environ.get('VERTA_DEV_KEY'),
-                      self._GRPC_PREFIX+'source': "PythonClient"}
 
     def __repr__(self):
         return "<Model {}>".format(self._id)
