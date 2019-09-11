@@ -82,7 +82,7 @@ class DeployedModel:
     @classmethod
     def from_url(cls, url, token):
         """
-        Returns a :class:`ModelAPI` based on a custom URL and token.
+        Returns a :class:`DeployedModel` based on a custom URL and token.
 
         Parameters
         ----------
@@ -138,11 +138,6 @@ class DeployedModel:
             )
         else:
             return self._session.post(self._prediction_url, json=x)
-
-    @property
-    def is_deployed(self):
-        response = self._session.get(self._status_url)
-        return response.ok and 'token' in response.json()
 
     def predict(self, x, compress=False, max_retries=5):
         """
