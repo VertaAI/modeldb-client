@@ -2326,7 +2326,7 @@ class ExperimentRun(_ModelDBEntity):
             DatasetVersion associated with the given key.
 
         """
-        self.get_dataset(key)
+        return self.get_dataset(key)
 
     def log_model_for_deployment(self, model, model_api, requirements, train_features=None, train_targets=None):
         """
