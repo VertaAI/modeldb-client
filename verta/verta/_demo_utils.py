@@ -11,4 +11,4 @@ class DeployedModel(TrueDeployedModel):
                       " and `verta._demo_utils` will be removed in a future version;"
                       " please refer to the Verta documentation for usage notes",
                       category=FutureWarning)
-        super(DeployedModel, self).__init__(run_id=model_id, host=socket)
+        self.__dict__ = super(DeployedModel, self).from_id(run_id=model_id, host=socket).__dict__

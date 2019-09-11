@@ -7,7 +7,6 @@ import json
 import gzip
 import os
 import time
-import warnings
 
 import requests
 
@@ -19,58 +18,74 @@ class DeployedModel(object):
     """
     Object for interacting with deployed models.
 
-    .. deprecated:: 0.13.7
-        The `socket` parameter will be renamed to `host` in v0.14.0
-
     This class provides functionality for sending predictions to a deployed model on the Verta
     backend.
 
     Authentication credentials must be present in the environment through `$VERTA_EMAIL` and
     `$VERTA_DEV_KEY`.
 
-    Parameters
-    ----------
-    host : str
-        Hostname of the Verta Web App.
-    run_id : str
-        ID of the deployed ExperimentRun/ModelRecord.
-
     """
-    def __init__(self, host=None, run_id=None, socket=None):
+    def __init__(self, prediction_url, token):
         self._session = requests.Session()
-        self._session.headers.update({_GRPC_PREFIX+'source': "PythonClient"})
-        try:
-            self._session.headers.update({_GRPC_PREFIX+'email': os.environ['VERTA_EMAIL']})
-        except KeyError:
-            six.raise_from(EnvironmentError("${} not found in environment".format('VERTA_EMAIL')), None)
-        try:
-            self._session.headers.update({_GRPC_PREFIX+'developer_key': os.environ['VERTA_DEV_KEY']})
-        except KeyError:
-            six.raise_from(EnvironmentError("${} not found in environment".format('VERTA_DEV_KEY')), None)
-
-        back_end_url = urlparse(host)
-        self._scheme = back_end_url.scheme or "https"
-        self._socket = back_end_url.netloc + back_end_url.path.rstrip('/')
-
-        self._id = model_id
-        self._status_url = "{}://{}/api/v1/deployment/status/{}".format(self._scheme, self._socket, model_id)
-
-        self._prediction_url = None
+        self._prediction_url = prediction_url
+        self._session.headers['Access-Token'] = token
 
     def __repr__(self):
-        return "<Model {}>".format(self._id)
+        return "<DeployedModel at {}>".format(self._prediction_url)
 
-    @classmethod
-    def from_url(cls, url, token):
+    @staticmethod
+    def from_id(run_id, host):
+        """
+        Returns a :class:`DeployedModel` based on an Experiment Run ID.
+
+        Parameters
+        ----------
+        run_id : str
+            ID of the deployed Experiment Run.
+        host : str
+            Hostname of the Verta Web App.
+
+        Returns
+        -------
+        :class:`DeployedModel`
+
+        """
+        try:
+            auth = {_GRPC_PREFIX+'email': os.environ['VERTA_EMAIL'],
+                    _GRPC_PREFIX+'developer_key': os.environ['VERTA_DEV_KEY'],
+                    _GRPC_PREFIX+'source': "PythonClient"}
+        except KeyError:
+            six.raise_from(EnvironmentError("$VERTA_EMAIL and $VERTA_DEV_KEY must be set as environment variables"), None)
+
+        parsed_url = urlparse(host)
+        scheme = parsed_url.scheme or "https"
+        socket = parsed_url.netloc + parsed_url.path.rstrip('/')
+        status_url = "{}://{}/api/v1/deployment/status/{}".format(scheme, socket, run_id)
+        prediction_url_prefix = "{}://{}".format(scheme, socket)
+
+        # set token and prediction URL
+        response = requests.get(status_url, headers=auth)
+        _utils.raise_for_http_error(response)
+        status = response.json()
+        if 'token' in status and 'api' in status:
+            prediction_url = urljoin(prediction_url_prefix, status['api'])
+            return DeployedModel(prediction_url, status['token'])
+        elif status.get('status') == 'error':
+            raise RuntimeError(status.get('message', "message not found in status endpoint response; deployment may not be ready"))
+        else:
+            raise RuntimeError("token not found in status endpoint response; deployment may not be ready")
+
+    @staticmethod
+    def from_url(url, token):
         """
         Returns a :class:`DeployedModel` based on a custom URL and token.
 
         Parameters
         ----------
         url : str, optional
-            Prediction endpoint URL or path. Can be copy and pasted directly from the Verta Web App.
+            Prediction endpoint URL or path. Can be copied and pasted directly from the Verta Web App.
         token : str, optional
-            Prediction token. Can be copy and pasted directly from the Verta Web App.
+            Prediction token. Can be copied and pasted directly from the Verta Web App.
 
         Returns
         -------
@@ -78,33 +93,12 @@ class DeployedModel(object):
 
         """
         parsed_url = urlparse(url)
+        prediction_url = urljoin("{}://{}".format(parsed_url.scheme, parsed_url.netloc), parsed_url.path)
 
-        deployed_model = cls(parsed_url.netloc, "")
-        deployed_model._id = None
-        deployed_model._status_url = None
-
-        deployed_model._prediction_url = urljoin("{}://{}".format(parsed_url.scheme, parsed_url.netloc), parsed_url.path)
-        deployed_model._session.headers['Access-Token'] = token
-
-        return deployed_model
-
-    def _set_token_and_url(self):
-        response = self._session.get(self._status_url)
-        _utils.raise_for_http_error(response)
-        status = response.json()
-        if status['status'] == 'error':
-            raise RuntimeError(status['message'])
-        if 'token' in status and 'api' in status:
-            self._session.headers['Access-Token'] = status['token']
-            self._prediction_url = urljoin("{}://{}".format(self._scheme, self._socket), status['api'])
-        else:
-            raise RuntimeError("token not found in status endpoint response; deployment may not be ready")
+        return DeployedModel(prediction_url, token)
 
     def _predict(self, x, compress=False):
         """This is like ``DeployedModel.predict()``, but returns the raw ``Response`` for debugging."""
-        if 'Access-token' not in self._session.headers or self._prediction_url is None:
-            self._set_token_and_url()
-
         if compress:
             # create gzip
             gzstream = six.BytesIO()
