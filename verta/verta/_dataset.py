@@ -431,12 +431,13 @@ class DatasetVersion(object):
                  parent_id=None,
                  desc=None, tags=None, attrs=None,
                  version=None, _dataset_version_id=None):
-        # retrieve dataset by id
         if _dataset_version_id is not None:
+            # retrieve dataset version by id
             dataset_version = DatasetVersion._get(conn, _dataset_version_id)
             if dataset_version is None:
                 raise ValueError("DatasetVersion with ID {} not found".format(_dataset_version_id))
         else:
+            # create new version under dataset
             if dataset_id is None:
                 raise ValueError('dataset_id must be specified')
 
