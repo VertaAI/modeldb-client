@@ -108,6 +108,9 @@ class Client(object):
                     _GRPC_PREFIX+'developer_key': dev_key,
                     _GRPC_PREFIX+'source': "PythonClient"}
             scheme = "https"
+            # save credentials to env for other Verta Client features
+            os.environ['VERTA_EMAIL'] = email
+            os.environ['VERTA_DEV_KEY'] = dev_key
         else:
             raise ValueError("`email` and `dev_key` must be provided together")
 
