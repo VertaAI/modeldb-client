@@ -2798,7 +2798,7 @@ class ExperimentRun(_ModelDBEntity):
         if isinstance(paths, six.string_types):
             paths = [paths]
 
-        CUSTOM_MODULES_DIR = "/app/custom_modules/"
+        CUSTOM_MODULES_DIR = "/app/custom_modules/"  # location in DeploymentService model container
 
         # convert into absolute paths
         paths = map(os.path.abspath, paths)

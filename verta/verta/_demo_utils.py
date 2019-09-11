@@ -60,11 +60,18 @@ class DeployedModel:
     @classmethod
     def from_url(cls, url, token):
         """
+        Returns a :class:`ModelAPI` based on a custom URL and token.
 
+        Parameters
+        ----------
         url : str, optional
             Prediction endpoint URL or path. Can be copy and pasted directly from the Verta Web App.
         token : str, optional
             Prediction token. Can be copy and pasted directly from the Verta Web App.
+
+        Returns
+        -------
+        :class:`DeployedModel`
 
         """
         parsed_url = urlparse(url)
@@ -119,13 +126,10 @@ class DeployedModel:
         """
         Make a prediction using input `x`.
 
-        This function fetches the model api artifact (using key "model_api.json") to wrap `x` before
-        sending it to the deployed model for a prediction.
-
         Parameters
         ----------
         x : list
-            List of Sequence of feature values representing a single data point.
+            A batch of inputs for the model.
         compress : bool, default False
             Whether to compress the request body.
         max_retries : int, default 5
@@ -134,8 +138,12 @@ class DeployedModel:
         Returns
         -------
         prediction : dict or None
-            Output returned by the deployed model for `x`. If the prediction request returns an
-            error, None is returned instead as a silent failure.
+            Output returned by the deployed model for `x`.
+
+        Raises
+        ------
+        RuntimeError
+            If the deployed model encounters an error while running a prediction.
 
         """
         for i_retry in range(max_retries):
@@ -144,9 +152,8 @@ class DeployedModel:
                 return response.json()
             elif response.status_code == 502: # bad gateway; the error happened in the model backend
                 data = response.json()
-                if 'message' not in data:
-                    raise RuntimeError("server error (no specific error message found)")
-                raise RuntimeError("got error message from backend:\n" + data['message'])
+                raise RuntimeError("back end encountered an error: {}"
+                                   .format(data.get('message', "(no specific error message found)")))
             elif response.status_code >= 500 or response.status_code == 429:
                 sleep = 0.3*(2**i_retry)  # 5 retries is 9.3 seconds total
                 print("received status {}; retrying in {:.1f}s".format(response.status_code, sleep))
