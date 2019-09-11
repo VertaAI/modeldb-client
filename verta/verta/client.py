@@ -36,14 +36,19 @@ class Client(object):
     """
     Object for interfacing with the ModelDB backend.
 
+    .. deprecated:: 0.12.0
+       The `port` parameter will removed in v0.14.0; please combine `port` with the first parameter,
+       e.g. `Client("localhost:8080")`.
+    .. deprecated:: 0.13.3
+       The `expt_runs` attribute will removed in v0.14.0; consider using `proj.expt_runs` and
+       `expt.expt_runs` instead.
+
     This class provides functionality for starting/resuming Projects, Experiments, and Experiment Runs.
 
     Parameters
     ----------
     host : str
-        Hostname of the node running the ModelDB backend.
-    port : str or int, optional
-        Port number to which the ModelDB backend is listening.
+        Hostname of the Verta Web App.
     email : str, optional
         Authentication credentials for managed service. If this does not sound familiar, then there
         is no need to set it.
@@ -167,7 +172,7 @@ class Client(object):
     def expt_runs(self):
         warnings.warn("`client.expt_runs` is deprecated and will removed in a later version;"
                       " consider using `proj.expt_runs` and `expt.expt_runs` instead",
-                      category=DeprecationWarning, stacklevel=2)
+                      category=FutureWarning)
 
         if self.expt is None:
             return None
@@ -1155,6 +1160,9 @@ class ExperimentRuns(object):
         """
         Gets the Experiment Runs from this collection that match predicates `where`.
 
+        .. deprecated:: 0.13.3
+           The `ret_all_info` parameter will removed in v0.14.0.
+
         A predicate in `where` is a string containing a simple boolean expression consisting of:
 
             - a dot-delimited Experiment Run property such as ``metrics.accuracy``
@@ -1183,8 +1191,8 @@ class ExperimentRuns(object):
 
         """
         if ret_all_info:
-            warnings.warn("`ret_all_info` is deprecated and will removed in a later version;",
-                          category=DeprecationWarning, stacklevel=2)
+            warnings.warn("`ret_all_info` is deprecated and will removed in a later version",
+                          category=FutureWarning)
 
         if _proj_id is not None and _expt_id is not None:
             raise ValueError("cannot specify both `_proj_id` and `_expt_id`")
@@ -1251,6 +1259,9 @@ class ExperimentRuns(object):
         """
         Sorts the Experiment Runs from this collection by `key`.
 
+        .. deprecated:: 0.13.3
+           The `ret_all_info` parameter will removed in v0.14.0.
+
         A `key` is a string containing a dot-delimited Experiment Run property such as
         ``metrics.accuracy``.
 
@@ -1277,8 +1288,8 @@ class ExperimentRuns(object):
 
         """
         if ret_all_info:
-            warnings.warn("`ret_all_info` is deprecated and will removed in a later version;",
-                          category=DeprecationWarning, stacklevel=2)
+            warnings.warn("`ret_all_info` is deprecated and will removed in a later version",
+                          category=FutureWarning)
 
         if key.split('.')[0] not in self._VALID_QUERY_KEYS:
             raise ValueError("key `{}` is not a valid key for querying;"
@@ -1306,6 +1317,9 @@ class ExperimentRuns(object):
         r"""
         Gets the Experiment Runs from this collection with the `k` highest `key`\ s.
 
+        .. deprecated:: 0.13.3
+           The `ret_all_info` parameter will removed in v0.14.0.
+
         A `key` is a string containing a dot-delimited Experiment Run property such as
         ``metrics.accuracy``.
 
@@ -1332,8 +1346,8 @@ class ExperimentRuns(object):
 
         """
         if ret_all_info:
-            warnings.warn("`ret_all_info` is deprecated and will removed in a later version;",
-                          category=DeprecationWarning, stacklevel=2)
+            warnings.warn("`ret_all_info` is deprecated and will removed in a later version",
+                          category=FutureWarning)
 
         if key.split('.')[0] not in self._VALID_QUERY_KEYS:
             raise ValueError("key `{}` is not a valid key for querying;"
@@ -1367,6 +1381,9 @@ class ExperimentRuns(object):
         r"""
         Gets the Experiment Runs from this collection with the `k` lowest `key`\ s.
 
+        .. deprecated:: 0.13.3
+           The `ret_all_info` parameter will removed in v0.14.0.
+
         A `key` is a string containing a dot-delimited Experiment Run property such as ``metrics.accuracy``.
 
         Parameters
@@ -1392,8 +1409,8 @@ class ExperimentRuns(object):
 
         """
         if ret_all_info:
-            warnings.warn("`ret_all_info` is deprecated and will removed in a later version;",
-                          category=DeprecationWarning, stacklevel=2)
+            warnings.warn("`ret_all_info` is deprecated and will removed in a later version",
+                          category=FutureWarning)
 
         if key.split('.')[0] not in self._VALID_QUERY_KEYS:
             raise ValueError("key `{}` is not a valid key for querying;"
@@ -2232,6 +2249,10 @@ class ExperimentRun(_ModelDBEntity):
         """
         Logs the filesystem path of an dataset to this Experiment Run.
 
+        .. deprecated:: 0.13.0
+           The `log_dataset_path()` method will removed in v0.14.0; consider using
+           `client.set_dataset(…, type="local")` and `run.log_dataset_version()` instead.
+
         This function makes no attempt to open a file at `dataset_path`. Only the path string itself
         is logged.
 
@@ -2248,7 +2269,7 @@ class ExperimentRun(_ModelDBEntity):
         warnings.warn("`log_dataset_path()` is deprecated and will removed in a later version;"
                       " consider using `client.set_dataset(..., type=\"local\")`"
                       " and `run.log_dataset_version()` instead",
-                      category=DeprecationWarning, stacklevel=2)
+                      category=FutureWarning)
 
         # create impromptu DatasetVersion
         dataset = _dataset.LocalDataset(self._conn, self._conf, name=key)
@@ -2758,6 +2779,10 @@ class ExperimentRun(_ModelDBEntity):
     def log_modules(self, paths, search_path=None):
         """
         Logs local files that are dependencies for a deployed model to this Experiment Run.
+
+        .. deprecated:: 0.12.4
+           The `search_path` parameter is no longer necessary and will removed in v0.14.0; consider
+           removing it from the function call.
 
         Parameters
         ----------
