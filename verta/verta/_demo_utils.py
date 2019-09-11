@@ -30,11 +30,6 @@ class DeployedModel:
     model_id : str, optional
         ID of the deployed ExperimentRun/ModelRecord.
 
-    Attributes
-    ----------
-    is_deployed : bool
-        Whether this model is currently deployed.
-
     """
     _GRPC_PREFIX = "Grpc-Metadata-"
 
