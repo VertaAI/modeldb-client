@@ -13,19 +13,13 @@ import pathlib2
 class ModelAPI:
     """
     A file-like and partially dict-like object representing a Verta model API.
-    Init requires a list of potential x and y input
 
     Parameters
     ----------
-    x : [{None, bool, int, float, str, dict, list}]
-        An archetypal input for the model this API describes.
-    y : [{None, bool, int, float, str, dict, list}]
-        An archetypal output for the model this API describes.
-
-    Attributes
-    ----------
-    is_valid : bool
-        Whether or not this Model API adheres to Verta's complete specification.
+    x : list, pd.DataFrame, or pd.Series of {None, bool, int, float, str, dict, list}
+        A sequence of inputs for the model this API describes.
+    y : list, pd.DataFrame, or pd.Series of {None, bool, int, float, str, dict, list}
+        A sequence of outputs for the model this API describes.
 
     """
     def __init__(self, x, y):
@@ -126,7 +120,7 @@ class ModelAPI:
     @staticmethod
     def from_file(f):
         """
-        Reads and returns a ``ModelAPI`` from a file.
+        Reads and returns a :class:`ModelAPI` from a file.
 
         Parameters
         ----------
