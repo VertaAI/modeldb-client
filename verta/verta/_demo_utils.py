@@ -7,6 +7,7 @@ import json
 import gzip
 import os
 import time
+import warnings
 
 import requests
 
@@ -17,6 +18,9 @@ class DeployedModel:
     """
     Object for interacting with deployed models.
 
+    .. deprecated:: 0.13.7
+        The `socket` parameter will be renamed to `host` in v0.14.0
+
     This class provides functionality for sending predictions to a deployed model on the Verta
     backend.
 
@@ -25,16 +29,35 @@ class DeployedModel:
 
     Parameters
     ----------
-    socket : str
-        Hostname of the node running the Verta backend, e.g. "app.verta.ai".
+    host : str
+        Hostname of the Verta Web App.
     model_id : str, optional
         ID of the deployed ExperimentRun/ModelRecord.
 
     """
     _GRPC_PREFIX = "Grpc-Metadata-"
 
-    def __init__(self, socket, model_id):
-        back_end_url = urlparse(socket)
+    def __init__(self, host=None, model_id=None, socket=None):
+        # this is to temporarily maintain compatibility with anyone passing in `socket` as a kwarg
+        # TODO v0.14.0: remove `socket` param
+        # TODO v0.14.0: remove default `None`s for `host` and `model_id` params
+        # TODO v0.14.0: remove the following block of param checks
+        if host is None and socket is None and model_id is None:
+            raise TypeError("missing 2 required positional arguments: 'host' and 'model_id'")
+        elif host is not None and socket is not None:
+            raise ValueError("cannot specify both `host` and `socket`; please only provide `host`")
+        elif host is None:
+            if socket is None:
+                raise TypeError("missing 1 required positional argument: 'host'")
+            else:
+                warnings.warn("`socket` will be renamed to `host` in a later version",
+                              category=FutureWarning)
+                host = socket
+                del socket
+        elif model_id is None:
+            raise TypeError("missing 1 required positional argument: 'model_id'")
+
+        back_end_url = urlparse(host)
         self._scheme = back_end_url.scheme or "https"
         self._socket = back_end_url.netloc + back_end_url.path.rstrip('/')
 
