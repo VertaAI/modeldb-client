@@ -48,9 +48,7 @@ class Client(object):
     Parameters
     ----------
     host : str
-        Hostname of the node running the ModelDB backend.
-    port : str or int, optional
-        Port number to which the ModelDB backend is listening.
+        Hostname of the Verta Web App.
     email : str, optional
         Authentication credentials for managed service. If this does not sound familiar, then there
         is no need to set it.
@@ -2783,7 +2781,7 @@ class ExperimentRun(_ModelDBEntity):
         Logs local files that are dependencies for a deployed model to this Experiment Run.
 
         .. deprecated:: 0.12.4
-           The `search_path` parameter is no longer used and will removed in v0.14.0; consider
+           The `search_path` parameter is no longer necessary and will removed in v0.14.0; consider
            removing it from the function call.
 
         Parameters
