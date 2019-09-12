@@ -50,6 +50,13 @@ class DeployedModel(object):
         -------
         :class:`DeployedModel`
 
+        Raises
+        ------
+        RuntimeError
+            If the deployed model appears to not be ready.
+        requests.HTTPError
+            If the server encounters an error while handing the HTTP request.
+
         """
         try:
             auth = {_GRPC_PREFIX+'email': os.environ['VERTA_EMAIL'],
