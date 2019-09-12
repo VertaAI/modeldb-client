@@ -32,7 +32,7 @@ class DeployedModel:
     ----------
     host : str
         Hostname of the Verta Web App.
-    model_id : str, optional
+    model_id : str
         ID of the deployed ExperimentRun/ModelRecord.
 
     """
@@ -154,7 +154,7 @@ class DeployedModel:
 
         Returns
         -------
-        prediction : dict or None
+        prediction : list
             Output returned by the deployed model for `x`.
 
         Raises
