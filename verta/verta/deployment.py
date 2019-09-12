@@ -25,10 +25,10 @@ class DeployedModel(object):
     `$VERTA_DEV_KEY`.
 
     """
-    def __init__(self, prediction_url, token):
+    def __init__(self, _prediction_url, _token):
         self._session = requests.Session()
-        self._prediction_url = prediction_url
-        self._session.headers['Access-Token'] = token
+        self._prediction_url = _prediction_url
+        self._session.headers['Access-Token'] = _token
 
     def __repr__(self):
         return "<DeployedModel at {}>".format(self._prediction_url)
