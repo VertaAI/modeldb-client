@@ -54,8 +54,9 @@ class DeployedModel(object):
             auth = {_GRPC_PREFIX+'email': os.environ['VERTA_EMAIL'],
                     _GRPC_PREFIX+'developer_key': os.environ['VERTA_DEV_KEY'],
                     _GRPC_PREFIX+'source': "PythonClient"}
-        except KeyError:
-            six.raise_from(EnvironmentError("$VERTA_EMAIL and $VERTA_DEV_KEY must be set as environment variables"), None)
+        except KeyError as e:
+            key = e.args[0]
+            six.raise_from(EnvironmentError("${} not found in environment".format(key)), None)
 
         parsed_url = urlparse(host)
         scheme = parsed_url.scheme or "https"
