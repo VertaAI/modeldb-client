@@ -11,4 +11,5 @@ API Reference
     ExperimentRun <api/experimentrun>
     ExperimentRuns <api/experimentruns>
     Data Versioning <api/dataset>
+    Deployment <api/deployment>
     Utilities <api/utilities>

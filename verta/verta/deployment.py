@@ -160,16 +160,18 @@ class DeployedModel:
         Raises
         ------
         RuntimeError
-            If the deployed model encounters an error while running a prediction.
+            If the deployed model encounters an error while running the prediction.
+        requests.HTTPError
+            If the server encounters an error while handing the HTTP request.
 
         """
         for i_retry in range(max_retries):
             response = self._predict(x, compress)
             if response.ok:
                 return response.json()
-            elif response.status_code == 502: # bad gateway; the error happened in the model backend
+            elif response.status_code == 502:  # bad gateway; the error happened in the model back end
                 data = response.json()
-                raise RuntimeError("back end encountered an error: {}"
+                raise RuntimeError("deployed model encountered an error: {}"
                                    .format(data.get('message', "(no specific error message found)")))
             elif response.status_code >= 500 or response.status_code == 429:
                 sleep = 0.3*(2**i_retry)  # 5 retries is 9.3 seconds total
