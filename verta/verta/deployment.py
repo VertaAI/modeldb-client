@@ -33,6 +33,7 @@ class DeployedModel(object):
     def __repr__(self):
         return "<DeployedModel at {}>".format(self._prediction_url)
 
+    # TODO: convert into classmethod when DeployedModel is no longer subclassed
     @staticmethod
     def from_id(run_id, host):
         """
@@ -76,6 +77,7 @@ class DeployedModel(object):
         else:
             raise RuntimeError("token not found in status endpoint response; deployment may not be ready")
 
+    # TODO: convert into classmethod when DeployedModel is no longer subclassed
     @staticmethod
     def from_url(url, token):
         """
