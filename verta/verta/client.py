@@ -32,6 +32,9 @@ from . import _artifact_utils
 from . import utils
 
 
+_GRPC_PREFIX = "Grpc-Metadata-"
+
+
 class Client(object):
     """
     Object for interfacing with the ModelDB backend.
@@ -82,8 +85,6 @@ class Client(object):
         Currently active Experiment.
 
     """
-    _GRPC_PREFIX = "Grpc-Metadata-"
-
     def __init__(self, host, port=None, email=None, dev_key=None,
                  max_retries=5, ignore_conn_err=False, use_git=True, debug=False):
         if email is None and 'VERTA_EMAIL' in os.environ:
@@ -103,10 +104,13 @@ class Client(object):
             if debug:
                 print("[DEBUG] using email: {}".format(email))
                 print("[DEBUG] using developer key: {}".format(dev_key[:8] + re.sub(r"[^-]", '*', dev_key[8:])))
-            auth = {self._GRPC_PREFIX+'email': email,
-                    self._GRPC_PREFIX+'developer_key': dev_key,
-                    self._GRPC_PREFIX+'source': "PythonClient"}
+            auth = {_GRPC_PREFIX+'email': email,
+                    _GRPC_PREFIX+'developer_key': dev_key,
+                    _GRPC_PREFIX+'source': "PythonClient"}
             scheme = "https"
+            # save credentials to env for other Verta Client features
+            os.environ['VERTA_EMAIL'] = email
+            os.environ['VERTA_DEV_KEY'] = dev_key
         else:
             raise ValueError("`email` and `dev_key` must be provided together")
 
