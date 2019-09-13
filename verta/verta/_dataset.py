@@ -184,7 +184,7 @@ class Dataset(object):
         _utils.raise_for_http_error(response)
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
-        return response_msg.dataset_version
+        return DatasetVersion(self._conn, self._conf, _dataset_version_id=response_msg.dataset_version.id)
 
 
 class RawDataset(Dataset):
