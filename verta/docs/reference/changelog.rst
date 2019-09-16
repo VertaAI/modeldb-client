@@ -2,6 +2,63 @@ Release Notes
 =============
 
 
+.. This comment block is a template for version release notes.
+   v.. (--)
+   --------------------
+
+   Backwards Incompatibilities
+   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   - `
+     <>`_
+
+   Deprecations
+   ^^^^^^^^^^^^
+   - `
+     <>`_
+
+   New Features
+   ^^^^^^^^^^^^
+   - `
+     <>`_
+
+   Bug Fixes
+   ^^^^^^^^^
+   - `
+     <>`_
+
+   Internal Changes
+   ^^^^^^^^^^^^^^^^
+   - `
+     <>`_
+
+
+v0.13.7 (2019-09-18)
+--------------------
+
+New Features
+^^^^^^^^^^^^
+- `accept key prefixes for S3DatasetVersion
+  <https://github.com/VertaAI/modeldb-client/pull/216>`_
+- `implement verta.deployment.DeployedModel
+  <https://github.com/VertaAI/modeldb-client/pull/221>`_
+
+Bug Fixes
+^^^^^^^^^
+- `enable code version to be downloaded as a ZIP archive through the Web App
+  <https://github.com/VertaAI/modeldb-client/pull/207>`_
+- `fix bug in run.get_dataset_version()
+  <https://github.com/VertaAI/modeldb-client/pull/223>`_
+- `fix bug in dataset.get_latest_version()
+  <https://github.com/VertaAI/modeldb-client/pull/227>`_
+- `catch all unpickling-related errors in get_artifact()
+  <https://github.com/VertaAI/modeldb-client/pull/213>`_
+
+Internal Changes
+^^^^^^^^^^^^^^^^
+- `keep cell execution numbers in example notebooks
+  <https://github.com/VertaAI/modeldb-client/pull/217>`_
+
+
 v0.13.6 (2019-09-05)
 --------------------
 
