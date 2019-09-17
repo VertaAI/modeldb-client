@@ -52,6 +52,7 @@ class DeployedModel:
         # this is to temporarily maintain compatibility with anyone passing in `socket` and `model_id` as kwargs
         # TODO v0.14.0: instate `host` and `run_id` params
         # TODO v0.14.0: remove the following block of param checks
+        # TODO v0.14.0: put automodule verta.deployment back on ReadTheDocs
         if 'socket' in kwargs:
             warnings.warn("`socket` will be renamed to `host` in an upcoming version",
                           category=FutureWarning)

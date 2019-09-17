@@ -2,5 +2,5 @@ Deployment
 ==========
 
 
-.. automodule:: verta.deployment
+.. autoclass:: verta.deployment.DeployedModel(host, run_id)
     :members:
