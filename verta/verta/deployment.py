@@ -101,9 +101,9 @@ class DeployedModel:
 
         Parameters
         ----------
-        url : str, optional
+        url : str
             Full prediction endpoint URL. Can be copy and pasted directly from the Verta Web App.
-        token : str, optional
+        token : str
             Prediction token. Can be copy and pasted directly from the Verta Web App.
 
         Returns
