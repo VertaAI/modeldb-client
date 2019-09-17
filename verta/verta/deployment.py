@@ -35,6 +35,16 @@ class DeployedModel:
     model_id : str
         ID of the deployed ExperimentRun/ModelRecord.
 
+    Examples
+    --------
+    >>> # host == "https://app.verta.ai/"
+    >>> # run.id == "01234567-0123-0123-0123-012345678901"
+    >>> DeployedModel(
+    ...     host="https://app.verta.ai/",
+    ...     model_id="01234567-0123-0123-0123-012345678901",
+    ... )
+    <DeployedModel 01234567-0123-0123-0123-012345678901>
+
     """
     def __init__(self, host=None, model_id=None, socket=None):
         # this is to temporarily maintain compatibility with anyone passing in `socket` as a kwarg
@@ -77,7 +87,12 @@ class DeployedModel:
         self._prediction_url = None
 
     def __repr__(self):
-        return "<Model {}>".format(self._id)
+        if self._id is not None:
+            return "<{} {}>".format(self.__class__.__name__, self._id)
+        elif self._prediction_url:
+            return "<{} at {}>".format(self.__class__.__name__, self._prediction_url)
+        else:  # if someone's messing with the object's state
+            return "<{}>".format(self.__class__.__name__)
 
     @classmethod
     def from_url(cls, url, token):
@@ -87,13 +102,23 @@ class DeployedModel:
         Parameters
         ----------
         url : str, optional
-            Prediction endpoint URL or path. Can be copy and pasted directly from the Verta Web App.
+            Full prediction endpoint URL. Can be copy and pasted directly from the Verta Web App.
         token : str, optional
             Prediction token. Can be copy and pasted directly from the Verta Web App.
 
         Returns
         -------
         :class:`DeployedModel`
+
+        Examples
+        --------
+        >>> # run.id == "01234567-0123-0123-0123-012345678901"
+        >>> # token == "abcdefgh-abcd-abcd-abcd-abcdefghijkl"
+        >>> DeployedModel.from_url(
+        ...     url="https://app.verta.ai/api/v1/predict/01234567-0123-0123-0123-012345678901",
+        ...     token="abcdefgh-abcd-abcd-abcd-abcdefghijkl",
+        ... )
+        <DeployedModel at https://app.verta.ai/api/v1/predict/01234567-0123-0123-0123-012345678901>
 
         """
         parsed_url = urlparse(url)
