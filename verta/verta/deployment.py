@@ -48,29 +48,20 @@ class DeployedModel:
     <DeployedModel 01234567-0123-0123-0123-012345678901>
 
     """
-    def __init__(self, host=None, run_id=None, socket=None, model_id=None):
+    def __init__(self, **kwargs):
         # this is to temporarily maintain compatibility with anyone passing in `socket` and `model_id` as kwargs
-        # TODO v0.14.0: remove `socket` and `model_id` params
-        # TODO v0.14.0: remove default `None`s for `host` and `run_id` params
+        # TODO v0.14.0: instate `host` and `run_id` params
         # TODO v0.14.0: remove the following block of param checks
-        if all(param is None for param in (host, socket, run_id, model_id)):
-            raise TypeError("missing 2 required positional arguments: 'host' and 'run_id'")
-        if host is not None and socket is not None:
-            raise ValueError("cannot specify both `host` and `socket`; please only provide `host`")
-        elif host is None and socket is None:
-            raise TypeError("missing 1 required positional argument: 'host'")
-        elif host is None and socket is not None:
+        if kwargs.get('socket', None):
             warnings.warn("`socket` will be renamed to `host` in an upcoming version", category=FutureWarning)
-            host = socket
-            del socket
-        if run_id is not None and model_id is not None:
-            raise ValueError("cannot specify both `run_id` and `model_id`; please only provide `run_id`")
-        elif run_id is None and model_id is None:
-            raise TypeError("missing 1 required positional argument: 'run_id'")
-        elif run_id is None and model_id is not None:
+        if kwargs.get('model_id', None):
             warnings.warn("`model_id` will be renamed to `run_id` in an upcoming version", category=FutureWarning)
-            run_id = model_id
-            del model_id
+        host = kwargs.get('host', kwargs.get('socket', None))
+        run_id = kwargs.get('run_id', kwargs.get('model_id', None))
+        if host is None:
+            raise TypeError("missing required argument: `host`")
+        if run_id is None:
+            raise TypeError("missing required argument: `run_id`")
 
         self._session = requests.Session()
         self._session.headers.update({_GRPC_PREFIX+'source': "PythonClient"})
