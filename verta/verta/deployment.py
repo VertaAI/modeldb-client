@@ -21,6 +21,8 @@ class DeployedModel:
 
     .. deprecated:: 0.13.7
         The `socket` parameter will be renamed to `host` in v0.14.0
+    .. deprecated:: 0.13.7
+        The `model_id` parameter will be renamed to `run_id` in v0.14.0
 
     This class provides functionality for sending predictions to a deployed model on the Verta
     backend.
@@ -32,8 +34,8 @@ class DeployedModel:
     ----------
     host : str
         Hostname of the Verta Web App.
-    model_id : str
-        ID of the deployed ExperimentRun/ModelRecord.
+    run_id : str
+        ID of the deployed ExperimentRun.
 
     Examples
     --------
@@ -41,30 +43,34 @@ class DeployedModel:
     >>> # run.id == "01234567-0123-0123-0123-012345678901"
     >>> DeployedModel(
     ...     host="https://app.verta.ai/",
-    ...     model_id="01234567-0123-0123-0123-012345678901",
+    ...     run_id="01234567-0123-0123-0123-012345678901",
     ... )
     <DeployedModel 01234567-0123-0123-0123-012345678901>
 
     """
-    def __init__(self, host=None, model_id=None, socket=None):
-        # this is to temporarily maintain compatibility with anyone passing in `socket` as a kwarg
-        # TODO v0.14.0: remove `socket` param
-        # TODO v0.14.0: remove default `None`s for `host` and `model_id` params
+    def __init__(self, host=None, run_id=None, socket=None, model_id=None):
+        # this is to temporarily maintain compatibility with anyone passing in `socket` and `model_id` as kwargs
+        # TODO v0.14.0: remove `socket` and `model_id` params
+        # TODO v0.14.0: remove default `None`s for `host` and `run_id` params
         # TODO v0.14.0: remove the following block of param checks
-        if host is None and socket is None and model_id is None:
-            raise TypeError("missing 2 required positional arguments: 'host' and 'model_id'")
-        elif host is not None and socket is not None:
+        if all(param is None for param in (host, socket, run_id, model_id)):
+            raise TypeError("missing 2 required positional arguments: 'host' and 'run_id'")
+        if host is not None and socket is not None:
             raise ValueError("cannot specify both `host` and `socket`; please only provide `host`")
-        elif host is None:
-            if socket is None:
-                raise TypeError("missing 1 required positional argument: 'host'")
-            else:
-                warnings.warn("`socket` will be renamed to `host` in a later version",
-                              category=FutureWarning)
-                host = socket
-                del socket
-        elif model_id is None:
-            raise TypeError("missing 1 required positional argument: 'model_id'")
+        elif host is None and socket is None:
+            raise TypeError("missing 1 required positional argument: 'host'")
+        elif host is None and socket is not None:
+            warnings.warn("`socket` will be renamed to `host` in an upcoming version", category=FutureWarning)
+            host = socket
+            del socket
+        if run_id is not None and model_id is not None:
+            raise ValueError("cannot specify both `run_id` and `model_id`; please only provide `run_id`")
+        elif run_id is None and model_id is None:
+            raise TypeError("missing 1 required positional argument: 'run_id'")
+        elif run_id is None and model_id is not None:
+            warnings.warn("`model_id` will be renamed to `run_id` in an upcoming version", category=FutureWarning)
+            run_id = model_id
+            del model_id
 
         self._session = requests.Session()
         self._session.headers.update({_GRPC_PREFIX+'source': "PythonClient"})
@@ -81,8 +87,8 @@ class DeployedModel:
         self._scheme = back_end_url.scheme or "https"
         self._socket = back_end_url.netloc + back_end_url.path.rstrip('/')
 
-        self._id = model_id
-        self._status_url = "{}://{}/api/v1/deployment/status/{}".format(self._scheme, self._socket, model_id)
+        self._id = run_id
+        self._status_url = "{}://{}/api/v1/deployment/status/{}".format(self._scheme, self._socket, self._id)
 
         self._prediction_url = None
 
