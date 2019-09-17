@@ -52,12 +52,14 @@ class DeployedModel:
         # this is to temporarily maintain compatibility with anyone passing in `socket` and `model_id` as kwargs
         # TODO v0.14.0: instate `host` and `run_id` params
         # TODO v0.14.0: remove the following block of param checks
-        if kwargs.get('socket', None):
-            warnings.warn("`socket` will be renamed to `host` in an upcoming version", category=FutureWarning)
-        if kwargs.get('model_id', None):
-            warnings.warn("`model_id` will be renamed to `run_id` in an upcoming version", category=FutureWarning)
-        host = kwargs.get('host', kwargs.get('socket', None))
-        run_id = kwargs.get('run_id', kwargs.get('model_id', None))
+        if 'socket' in kwargs:
+            warnings.warn("`socket` will be renamed to `host` in an upcoming version",
+                          category=FutureWarning)
+        if 'model_id' in kwargs:
+            warnings.warn("`model_id` will be renamed to `run_id` in an upcoming version",
+                          category=FutureWarning)
+        host = kwargs.get('host', kwargs.get('socket'))
+        run_id = kwargs.get('run_id', kwargs.get('model_id'))
         if host is None:
             raise TypeError("missing required argument: `host`")
         if run_id is None:
