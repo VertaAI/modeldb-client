@@ -76,8 +76,8 @@ class Client(object):
     ignore_conn_err : bool
         Whether to ignore connection errors and instead return successes with empty contents. Changes
         to this value propagate to any objects that are/were created from this Client.
-    use_git : bool
-        Whether to use a local Git repository for certain operations. Changes to this value propagate
+    debug : bool
+        Whether to print extra verbose information to aid in debugging. Changes to this value propagate
         to any objects that are/were created from this Client.
     proj : :class:`Project` or None
         Currently active Project.
@@ -163,6 +163,15 @@ class Client(object):
     @ignore_conn_err.setter
     def ignore_conn_err(self, value):
         self._conn.ignore_conn_err = value
+
+    @property
+    def use_git(self):
+        return self._conf.use_git
+
+    @use_git.setter
+    def use_git(self, _):
+        """This would mess with state in safe but unexpected ways."""
+        raise AttributeError("cannot set `use_git` after Client has been initialized")
 
     @property
     def debug(self):
