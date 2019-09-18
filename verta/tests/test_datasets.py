@@ -2,10 +2,14 @@ import six
 
 import numpy as np
 import os
-import pytest
 import time
-import utils
 import shutil
+
+import botocore
+import google
+
+import pytest
+import utils
 
 from verta._dataset import Dataset, DatasetVersion, S3DatasetVersionInfo, FilesystemDatasetVersionInfo
 from verta._protos.public.modeldb import DatasetService_pb2 as _DatasetService
@@ -331,28 +335,40 @@ class TestFileSystemDatasetVersionInfo:
 
 class TestS3DatasetVersionInfo:
     def test_single_object(self, s3_bucket, s3_object):
-        s3dvi = S3DatasetVersionInfo(s3_bucket, s3_object)
-        assert len(s3dvi.dataset_part_infos) == 1
-        assert s3dvi.size > 0
+        try:
+            s3dvi = S3DatasetVersionInfo(s3_bucket, s3_object)
+            assert len(s3dvi.dataset_part_infos) == 1
+            assert s3dvi.size > 0
+        except botocore.exceptions.ClientError:
+            pytest.skip("insufficient AWS credentials")
 
     def test_bucket(self, s3_bucket):
-        s3dvi = S3DatasetVersionInfo(s3_bucket)
-        assert len(s3dvi.dataset_part_infos) >= 1
-        assert s3dvi.size > 0
+        try:
+            s3dvi = S3DatasetVersionInfo(s3_bucket)
+            assert len(s3dvi.dataset_part_infos) >= 1
+            assert s3dvi.size > 0
+        except botocore.exceptions.ClientError:
+            pytest.skip("insufficient AWS credentials")
 
 
 class TestS3ClientFunctions:
     def test_s3_dataset_creation(self, client):
-        name = utils.gen_str()
-        dataset = client.set_dataset("s3-" + name, type="s3")
-        assert dataset.dataset_type == _DatasetService.DatasetTypeEnum.PATH
+        try:
+            name = utils.gen_str()
+            dataset = client.set_dataset("s3-" + name, type="s3")
+            assert dataset.dataset_type == _DatasetService.DatasetTypeEnum.PATH
+        except botocore.exceptions.ClientError:
+            pytest.skip("insufficient AWS credentials")
 
     def test_s3_dataset_version_creation(self, client, s3_bucket):
-        name = utils.gen_str()
-        dataset = client.set_dataset("s3-" + name, type="s3")
-        dataset_version = dataset.create_version(s3_bucket)
+        try:
+            name = utils.gen_str()
+            dataset = client.set_dataset("s3-" + name, type="s3")
+            dataset_version = dataset.create_version(s3_bucket)
 
-        assert len(dataset_version.dataset_version_info.dataset_part_infos) >= 1
+            assert len(dataset_version.dataset_version_info.dataset_part_infos) >= 1
+        except botocore.exceptions.ClientError:
+            pytest.skip("insufficient AWS credentials")
 
 
 class TestFilesystemClientFunctions:
@@ -388,12 +404,21 @@ class TestBigQueryDatasetVersionInfo:
         dataset = client.set_dataset("bq-" + name, type="big query")
         assert dataset.dataset_type == _DatasetService.DatasetTypeEnum.QUERY
 
-    def test_big_query_dataset_version_creation(self, client, big_query_job):
-        name = utils.gen_str()
-        dataset = client.set_dataset("bq-" + name, type="big query")
-        dataset_version = dataset.create_version(job_id=big_query_job[0], location=big_query_job[1])
+    def test_big_query_dataset_version_creation(self, client, bq_query, bq_location):
+        try:
+            query_job = google.cloud.bigquery.Client().query(
+                bq_query,
+                # Location must match that of the dataset(s) referenced in the query.
+                location=bq_location,
+            )
 
-        assert dataset_version.dataset_version_info.query == big_query_job[2]
+            name = utils.gen_str()
+            dataset = client.set_dataset("bq-" + name, type="big query")
+            dataset_version = dataset.create_version(job_id=query_job.job_id, location=bq_location)
+
+            assert dataset_version.dataset_version_info.query == bq_query
+        except google.auth.exceptions.GoogleAuthError:
+            pytest.skip("insufficient GCP credentials")
 
 class TestRDBMSDatasetVersionInfo:
     def test_rdbms_dataset(self, client):
@@ -414,12 +439,15 @@ class TestRDBMSDatasetVersionInfo:
 
 class TestLogDatasetVersion:
     def test_log_dataset_version(self, client, experiment_run, s3_bucket):
-        name = utils.gen_str()
-        dataset = client.set_dataset("s3-" + name, type="s3")
-        assert dataset.dataset_type == _DatasetService.DatasetTypeEnum.PATH
+        try:
+            name = utils.gen_str()
+            dataset = client.set_dataset("s3-" + name, type="s3")
+            assert dataset.dataset_type == _DatasetService.DatasetTypeEnum.PATH
 
-        dataset_version = dataset.create_version(s3_bucket)
-        experiment_run.log_dataset_version('train', dataset_version)
+            dataset_version = dataset.create_version(s3_bucket)
+            experiment_run.log_dataset_version('train', dataset_version)
 
-        # _, linked_id = experiment_run.get_dataset('train')
-        # assert linked_id == dataset_version.id
+            # _, linked_id = experiment_run.get_dataset('train')
+            # assert linked_id == dataset_version.id
+        except botocore.exceptions.ClientError:
+            pytest.skip("insufficient AWS credentials")

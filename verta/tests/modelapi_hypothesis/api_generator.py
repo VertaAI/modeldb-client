@@ -27,7 +27,7 @@ def recursive(children):
     # Create a list of (name, subtree) where the names are unique
     dikt = st.lists(st.tuples(name, children), 1, 10, unique_by=lambda v: v[0])
     # Then iterate over them replacing the given name (which is empty) with the given name
-    dikt = dikt.map(lambda lst: [dict_replace(el, 'name', n) for n, el in lst])
+    dikt = dikt.map(lambda lst: sorted([dict_replace(el, 'name', n) for n, el in lst], key=lambda value: value['name']))
     # Then convert the newly created to the dictionary format
     dikt = dikt.map(lambda d: {'type': 'VertaJson', 'name': '', 'value': d})
 

@@ -15,6 +15,7 @@ from sklearn import linear_model
 import verta
 from verta import Client
 
+import hypothesis
 import pytest
 import utils
 
@@ -30,6 +31,11 @@ DEFAULT_DEV_KEY = None
 DEFAULT_S3_TEST_BUCKET = "bucket"
 DEFAULT_S3_TEST_OBJECT = "object"
 DEFAULT_GOOGLE_APPLICATION_CREDENTIALS = "credentials.json"
+
+
+# hypothesis on Jenkins is apparently too slow
+hypothesis.settings.register_profile("default", suppress_health_check=[hypothesis.HealthCheck.too_slow])
+hypothesis.settings.load_profile("default")
 
 
 @pytest.fixture(scope='session')
@@ -225,36 +231,19 @@ def s3_object():
     return os.environ.get("VERTA_S3_TEST_OBJECT", DEFAULT_S3_TEST_OBJECT)
 
 
-@pytest.fixture(scope="session")
-def big_query_job():
-    # needs to be set
-    #_ = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", DEFAULT_GOOGLE_APPLICATION_CREDENTIALS)
-    query = (
-        """SELECT
-        id,
-        `by`,
-        score,
-        time,
-        time_ts,
-        title,
-        url,
-        text,
-        deleted,
-        dead,
-        descendants,
-        author
-        FROM
-        `bigquery-public-data.hacker_news.stories`
-        LIMIT
-        1000"""
+@pytest.fixture(scope='session')
+def bq_query():
+    return (
+        "SELECT id, `by`, score, time, time_ts, title, url, text, deleted, dead, descendants, author"
+        " FROM `bigquery-public-data.hacker_news.stories`"
+        " LIMIT 1000"
     )
-    query_job = bigquery.Client().query(
-        query,
-        # Location must match that of the dataset(s) referenced in the query.
-        location="US",
-    )
-    job_id = query_job.job_id
-    return (job_id, "US", query)
+
+
+@pytest.fixture(scope='session')
+def bq_location():
+    return "US"
+
 
 @pytest.fixture
 def model_for_deployment(strs):

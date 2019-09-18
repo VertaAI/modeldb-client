@@ -3,9 +3,8 @@ import six
 import os
 import sys
 
-if sys.platform == "darwin":  # https://stackoverflow.com/q/21784641
-    import matplotlib
-    matplotlib.use("TkAgg")
+import matplotlib
+matplotlib.use("Agg")  # https://stackoverflow.com/a/37605654
 import matplotlib.pyplot as plt
 import numpy as np
 import PIL
@@ -50,7 +49,7 @@ class TestArtifacts:
             experiment_run.get_artifact(holdout)
 
     def test_upload_file(self, experiment_run, strs):
-        filepaths = (filepath for filepath in os.listdir() if filepath.endswith('.py'))
+        filepaths = (filepath for filepath in os.listdir('.') if filepath.endswith('.py'))
         artifacts = list(zip(strs, filepaths))
 
         # log using file handle
@@ -87,6 +86,7 @@ class TestArtifacts:
                 experiment_run.log_artifact(key, artifact)
 
 
+@pytest.mark.skipif(six.PY2, reason="run.get_model() doesn't work in Python 2")
 class TestModels:
     def test_sklearn(self, seed, experiment_run, strs):
         np.random.seed(seed)
@@ -204,7 +204,7 @@ class TestModels:
         init_args = flat_lists[0]
         init_kwargs = flat_dicts[0]
 
-        class Custom:
+        class Custom(object):
             def __init__(self, *args, **kwargs):
                 self.args = args
                 self.kwargs = kwargs

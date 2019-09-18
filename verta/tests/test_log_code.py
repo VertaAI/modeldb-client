@@ -1,14 +1,25 @@
 import six
 
-import itertools
 import os
 import zipfile
+
+import verta
 
 import pytest
 import utils
 
 
+# check if in git repo
+try:
+    verta._utils.get_git_repo_root_dir()
+except OSError:
+    IN_GIT_REPO = False
+else:
+    IN_GIT_REPO = True
+
+
 class TestLogGit:
+    @pytest.mark.skipif(not IN_GIT_REPO, reason="not in git repo")
     def test_log_git(self, client):
         """git mode succeeds inside git repo"""
         for mdb_entity in (client.set_project(), client.set_experiment(), client.set_experiment_run()):
@@ -31,6 +42,7 @@ class TestLogGit:
                 with pytest.raises(OSError):
                     mdb_entity.log_code()
 
+    @pytest.mark.skipif(not IN_GIT_REPO, reason="not in git repo")
     def test_log_git_provide_path(self, client):
         for mdb_entity in (client.set_project(), client.set_experiment(), client.set_experiment_run()):
             mdb_entity._conf.use_git = True
@@ -72,15 +84,41 @@ class TestLogSource:
 
 
 class TestConflict:
-    @pytest.mark.parametrize("order", itertools.product((True, False), repeat=2))
-    def test_log_conflict(self, client, order):
-        """only one code version, regardless of mode"""
-        first_mode, second_mode = order
+    @pytest.mark.skipif(not IN_GIT_REPO, reason="not in git repo")
+    def test_log_two_git(self, client):
+        client._conf.use_git = True
 
         for mdb_entity in (client.set_project(), client.set_experiment(), client.set_experiment_run()):
-            mdb_entity._conf.use_git = first_mode
             mdb_entity.log_code()
 
-            mdb_entity._conf.use_git = second_mode
+            with pytest.raises(ValueError):
+                mdb_entity.log_code()
+
+    def test_log_two_source(self, client):
+        client._conf.use_git = False
+
+        for mdb_entity in (client.set_project(), client.set_experiment(), client.set_experiment_run()):
+            mdb_entity.log_code()
+
+            with pytest.raises(ValueError):
+                mdb_entity.log_code()
+
+    @pytest.mark.skipif(not IN_GIT_REPO, reason="not in git repo")
+    def test_log_git_then_source(self, client):
+        for mdb_entity in (client.set_project(), client.set_experiment(), client.set_experiment_run()):
+            mdb_entity._conf.use_git = True
+            mdb_entity.log_code()
+
+            mdb_entity._conf.use_git = False
+            with pytest.raises(ValueError):
+                mdb_entity.log_code()
+
+    @pytest.mark.skipif(not IN_GIT_REPO, reason="not in git repo")
+    def test_log_source_then_git(self, client):
+        for mdb_entity in (client.set_project(), client.set_experiment(), client.set_experiment_run()):
+            mdb_entity._conf.use_git = False
+            mdb_entity.log_code()
+
+            mdb_entity._conf.use_git = True
             with pytest.raises(ValueError):
                 mdb_entity.log_code()
