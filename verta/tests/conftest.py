@@ -15,6 +15,7 @@ from sklearn import linear_model
 import verta
 from verta import Client
 
+import hypothesis
 import pytest
 import utils
 
@@ -30,6 +31,11 @@ DEFAULT_DEV_KEY = None
 DEFAULT_S3_TEST_BUCKET = "bucket"
 DEFAULT_S3_TEST_OBJECT = "object"
 DEFAULT_GOOGLE_APPLICATION_CREDENTIALS = "credentials.json"
+
+
+# hypothesis on Jenkins is apparently too slow
+hypothesis.settings.register_profile("default", suppress_health_check=[hypothesis.HealthCheck.too_slow])
+hypothesis.settings.load_profile("default")
 
 
 @pytest.fixture(scope='session')
