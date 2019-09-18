@@ -3,9 +3,8 @@ import six
 import os
 import sys
 
-if sys.platform == "darwin":  # https://stackoverflow.com/q/21784641
-    import matplotlib
-    matplotlib.use("TkAgg")
+import matplotlib
+matplotlib.use("Agg")  # https://stackoverflow.com/a/37605654
 import matplotlib.pyplot as plt
 import numpy as np
 import PIL
