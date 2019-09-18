@@ -106,7 +106,8 @@ class ModelAPI:
         elif isinstance(data, collections.Mapping):
             return {'type': "VertaJson",
                     'name': str(name),
-                    'value': [ModelAPI._single_data_to_api(value, str(name)) for name, value in six.iteritems(data)]}
+                    'value': [ModelAPI._single_data_to_api(value, str(name))
+                              for name, value in sorted(six.iteritems(data), key=lambda item: item[0])]}
         else:
             try:
                 iter(data)
