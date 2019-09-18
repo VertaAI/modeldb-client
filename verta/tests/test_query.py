@@ -117,6 +117,7 @@ class TestFind:
     def test_attributes(self, client):
         key = "attributes"
 
+    @pytest.mark.xfail(reason="back end sorts numbers lexicographically")
     def test_metrics_and_hyperparameters(self, client, strs, bools, floats):
         proj = client.set_project()
         client.set_experiment()
@@ -141,6 +142,7 @@ class TestFind:
 
 
 class TestSort:
+    @pytest.mark.xfail(reason="back end sorts numbers lexicographically")
     def test_metrics_and_hyperparameters(self, client, floats):
         proj = client.set_project()
         client.set_experiment()
@@ -174,6 +176,7 @@ class TestSort:
 
 
 class TestTopK:
+    @pytest.mark.xfail(reason="back end sorts numbers lexicographically")
     def test_metrics_and_hyperparameters(self, client, floats):
         k = 3
         proj = client.set_project()
@@ -209,6 +212,7 @@ class TestTopK:
 
 
 class TestBottomK:
+    @pytest.mark.xfail(reason="back end sorts numbers lexicographically")
     def test_metrics_and_hyperparameters(self, client, floats):
         k = 3
         proj = client.set_project()
