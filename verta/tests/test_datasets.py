@@ -2,10 +2,13 @@ import six
 
 import numpy as np
 import os
-import pytest
 import time
-import utils
 import shutil
+
+from google.cloud import bigquery
+
+import pytest
+import utils
 
 from verta._dataset import Dataset, DatasetVersion, S3DatasetVersionInfo, FilesystemDatasetVersionInfo
 from verta._protos.public.modeldb import DatasetService_pb2 as _DatasetService
@@ -388,12 +391,18 @@ class TestBigQueryDatasetVersionInfo:
         dataset = client.set_dataset("bq-" + name, type="big query")
         assert dataset.dataset_type == _DatasetService.DatasetTypeEnum.QUERY
 
-    def test_big_query_dataset_version_creation(self, client, big_query_job):
+    def test_big_query_dataset_version_creation(self, client, bq_query, bq_location):
+        query_job = bigquery.Client().query(
+            bq_query,
+            # Location must match that of the dataset(s) referenced in the query.
+            location=bq_location,
+        )
+
         name = utils.gen_str()
         dataset = client.set_dataset("bq-" + name, type="big query")
-        dataset_version = dataset.create_version(job_id=big_query_job[0], location=big_query_job[1])
+        dataset_version = dataset.create_version(job_id=query_job.job_id, location=bq_location)
 
-        assert dataset_version.dataset_version_info.query == big_query_job[2]
+        assert dataset_version.dataset_version_info.query == bq_query
 
 class TestRDBMSDatasetVersionInfo:
     def test_rdbms_dataset(self, client):
