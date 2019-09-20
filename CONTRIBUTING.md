@@ -50,26 +50,17 @@ This can be done automatically with a pre-save hook:
 
 1. Run the test suite and see that they pass to an acceptable degree.
 1. Update `__version__` in [`__about__.py`](https://github.com/VertaAI/modeldb-client/blob/development/verta/verta/__about__.py) with a new version number.
-   - We're not stable yet, so we're not strictly adhering to [Semantic Versioning](https://semver.org/).
    - Increment the minor version for backwards-incompatible changes or a major set of new features.
    - Increment the patch version for minor new features and bug fixes.
 1. Update [changelog.rst](https://github.com/VertaAI/modeldb-client/blob/development/verta/docs/reference/changelog.rst).
-   - The categories of changes are as follows, in this order, each one being optional:
-     1. Backwards Incompatibilities — features that will cause errors if a user runs old code with this new version
-     1. Deprecations — features that will be removed in a future version
-     1. New Features
-     1. Bug Fixes
-     1. Internal Changes — features that do not change the way users interact with the package
 1. Add the updated `__about__.py` and `changelog.rst` in a single commit on `development` using the message `"Increment major|minor|patch version"`.
-   - Since this is a release, the `master` branch should also be fast-forwarded to point at this commit.
+1. Update the `master` branch to match the new commit, since this is a release.
 1. Tag the commit with the version number using e.g. `git tag -a v0.0.0 -m ''`, with the appropriate version number.
-1. Push the commit and tag using `git push --follow-tags`.
+1. Push the commit and tag using `git push --follow-tags origin development:development master:master`.
 
 ### Publish to PyPI
 
-1. `cd verta/` from the repository root.
-1. `./upload.sh`
-1. Enter your PyPI username and password when prompted.
+1. Launch the Client's PyPI publication pipeline on Jenkins.
 1. Verify that the package number has been updated [on PyPI](https://pypi.org/project/verta/).
 1. The new version will be `pip install`able shortly.
 
