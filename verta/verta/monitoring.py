@@ -8,41 +8,26 @@ import copy
 
 
 class ProcessorBase(object):
-    # Config carries any configuration to change the processor, such as references and bucket limits to use. It should not be changed during the computation.
     def __init__(self, config=None):
         self.config = config
 
-    # Return a new state. This state is the aggregation of the computation.
-    # The format and value depend on the processor and might rely on config, but
-    # it must be serializable by json
     def new_state(self):
-        pass
+        raise NotImplementedError
 
-    # When there is an input, this method is called with the relevant state and the value of the feature.
-    # If the feature is missing, then `feature_val` is None.
-    # This method returns the new state.
     def reduce_on_input(self, state, feature_val):
-        pass
+        raise NotImplementedError
 
-    # When there is a prediction, this method is called with the relevant state and the value of the feature.
-    # This method returns the new state.
     def reduce_on_prediction(self, state, prediction):
-        pass
+        raise NotImplementedError
 
-    # When a ground truth is associated with a sample, its value and the prediction associated are sent to this method.
-    # This method returns the updated state.
     def reduce_on_ground_truth(self, state, prediction, ground_truth):
-        pass
+        raise NotImplementedError
 
-    # Given two states, combine them to create a valid accumulated state and return it.
-    # This final state must be the same as if was called with the values that created `state1` and `state2`
     def reduce_states(self, state1, state2):
-        pass
+        raise NotImplementedError
 
-    # Given a state, returns a structured output that can give information about it.
-    # For now, we only have visualization information.
     def get_from_state(self, state):
-        pass
+        raise NotImplementedError
 
 
 class HistogramProcessor(ProcessorBase):
