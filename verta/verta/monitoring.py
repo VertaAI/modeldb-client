@@ -84,13 +84,13 @@ class HistogramProcessor(ProcessorBase):
 
         # initialize out-of-bounds bins
         state['bins'].insert(0, {
-            'bounds': {'lower': float('-inf'),
+            'bounds': {'lower': None,
                        'upper': state['bins'][0]['bounds']['lower']},
             'counts': {},
         })
         state['bins'].append({
             'bounds': {'lower': state['bins'][-1]['bounds']['upper'],
-                       'upper': float('inf')},
+                       'upper': None},
             'counts': {},
         })
 
@@ -112,7 +112,9 @@ class HistogramProcessor(ProcessorBase):
         state = copy.deepcopy(state)
 
         for bin in state['bins']:
-            if bin['bounds']['lower'] <= feature_val < bin['bounds']['upper']:
+            lower_bound = bin['bounds']['lower'] or float('-inf')
+            upper_bound = bin['bounds']['upper'] or float('inf')
+            if lower_bound <= feature_val < upper_bound:
                 bin['counts'][distribution_name] = bin['counts'].get(distribution_name, 0) + 1
                 return state
 
