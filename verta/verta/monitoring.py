@@ -51,16 +51,18 @@ class HistogramProcessor(ProcessorBase):
 
     Parameters
     ----------
+    feature_name : str
     bin_boundaries : list of float of length N+1
         Boundaries for the histogram's N bins.
     reference_counts : list of int of length N
         Counts for a precomputed reference distribution.
 
     """
-    def __init__(self, bin_boundaries, reference_counts, **kwargs):
+    def __init__(self, feature_name, bin_boundaries, reference_counts, **kwargs):
         if len(bin_boundaries) - 1 != len(reference_counts):
             raise ValueError("`bin_boundaries` must be one element longer than `reference_counts`")
 
+        kwargs['feature_name'] = feature_name
         kwargs['bin_boundaries'] = bin_boundaries
         kwargs['reference_counts'] = reference_counts
         super(HistogramProcessor, self).__init__(kwargs)
@@ -94,7 +96,7 @@ class HistogramProcessor(ProcessorBase):
 
         return state
 
-    def reduce_on_input(self, state, feature_val):
+    def reduce_on_input(self, state, input):
         """
 
 
@@ -102,11 +104,12 @@ class HistogramProcessor(ProcessorBase):
         ----------
         state : dict
             Current state of the histogram.
-        feature_val : float or int or bool or str
-            Value of the feature.
+        input : dict
+            JSON data containing the feature value.
 
         """
         distribution_name = "Live"
+        feature_val = input[self.config['feature_name']]
         state = copy.deepcopy(state)
 
         for bin in state['bins']:
