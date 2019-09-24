@@ -2870,7 +2870,7 @@ class ExperimentRun(_ModelDBEntity):
 
         self._log_artifact("custom_modules", bytestream, _CommonService.ArtifactTypeEnum.BLOB, 'zip')
 
-    def add_monitoring_processor(self, name, processor, feature_name):
+    def add_monitoring_processor(self, name, processor):
         """
         Associate a :class:`~verta.monitoring.Processor` with this Experiment Run.
 
@@ -2880,10 +2880,6 @@ class ExperimentRun(_ModelDBEntity):
             Name to assign to the processor.
         processor : :class:`~verta.monitoring.Processor`
             Data processor.
-        feature_name : list of str
-            Features to send to the processor.
 
         """
-        processor.feature_name = feature_name  # arbitrary attribute assignment
-
         self._log_artifact("data-processor--{}".format(name), processor, _CommonService.ArtifactTypeEnum.BLOB)
