@@ -116,9 +116,6 @@ class HistogramProcessor(ProcessorBase):
                 bin['counts'][distribution_name] = bin['counts'].get(distribution_name, 0) + 1
                 return state
 
-    def reduce_on_prediction(self, state, prediction):
-        return self.reduce_on_input(state, prediction)
-
     def reduce_states(self, state1, state2):
         """
 
