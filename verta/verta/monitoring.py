@@ -14,7 +14,7 @@ class ProcessorBase(object):
     def new_state(self):
         raise NotImplementedError
 
-    def reduce_on_input(self, state, feature_val):
+    def reduce_on_input(self, state, input):
         raise NotImplementedError
 
     def reduce_on_prediction(self, state, prediction):
@@ -94,8 +94,13 @@ class HistogramProcessor(ProcessorBase):
 
         """
         distribution_name = "Live"
-        feature_val = input[self.config['feature_name']]
         state = copy.deepcopy(state)
+
+        feature_name = self.config['feature_name']
+        try:
+            feature_val = input[feature_name]
+        except KeyError as e:
+            six.raise_from(KeyError("key '{}' not found in `input`".format(e.args[0])), None)
 
         for bin in state['bins']:
             lower_bound = bin['bounds'].get('lower', float('-inf'))
@@ -103,6 +108,8 @@ class HistogramProcessor(ProcessorBase):
             if lower_bound <= feature_val < upper_bound:
                 bin['counts'][distribution_name] = bin['counts'].get(distribution_name, 0) + 1
                 return state
+        else:
+            raise RuntimeError("unable to find appropriate bin; `state` is probably missing its out-of-bounds bins")
 
     def reduce_states(self, state1, state2):
         """
