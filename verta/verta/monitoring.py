@@ -255,7 +255,7 @@ class BinaryHistogramProcessor(HistogramProcessor):
             raise ValueError("`reference_counts` must contain exactly two elements")
 
         kwargs['feature_name'] = feature_name
-        kwargs['bin_boundaries'] = None  # this isn't used by this subclass
+        kwargs['bin_boundaries'] = [0, .5, 1+1e-15]  # this isn't used by this subclass
         kwargs['reference_counts'] = reference_counts
         super(BinaryHistogramProcessor, self).__init__(**kwargs)
 
