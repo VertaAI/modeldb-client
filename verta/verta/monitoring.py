@@ -215,6 +215,10 @@ class HistogramProcessor(ProcessorBase):
         return state
 
     def get_from_state(self, state):
+        """
+        Returns a more parsable representation of `state`.
+
+        """
         state_info = copy.deepcopy(state)
 
         # get all distribution names
@@ -224,3 +228,60 @@ class HistogramProcessor(ProcessorBase):
         state_info['distribution_names'] = list(distribution_names)
 
         return state_info
+
+
+class FloatHistogramProcessor(HistogramProcessor):
+    """
+    :class:`HistogramProcessor` for continuous data.
+
+    """
+    pass
+
+
+class BinaryHistogramProcessor(HistogramProcessor):
+    """
+    :class:`HistogramProcessor` for binary data.
+
+    Parameters
+    ----------
+    feature_name : str
+        Name of the feature to track in the histogram.
+    reference_counts : list of int of length 2
+        Counts for a precomputed reference distribution.
+
+    """
+    def __init__(self, feature_name, reference_counts, **kwargs):
+        if len(reference_counts) != 2:
+            raise ValueError("`reference_counts` must contain exactly two elements")
+
+        kwargs['feature_name'] = feature_name
+        kwargs['reference_counts'] = reference_counts
+        super(BinaryHistogramProcessor, self).__init__(kwargs)
+
+    def new_state(self):
+        state = {}
+
+        # initialize empty bins
+        state['bins'] = []
+        state['bins'].append({
+            'bounds': {'upper': .5},
+            'counts': {},
+        })
+        state['bins'].append({
+            'bounds': {'lower': .5},
+            'counts': {},
+        })
+
+        # fill reference bins
+        for bin, reference_count in zip(state['bins'], self.config['reference_counts']):
+            bin['counts']['Reference'] = reference_count
+
+        return state
+
+    def get_from_state(self, state):
+        """
+        Returns a more parsable representation of `state`.
+
+        """
+        # TODO: perhaps rewrite bin boundaries to something like [0, .5, 1]
+        return super(BinaryHistogramProcessor, self).get_from_state()
