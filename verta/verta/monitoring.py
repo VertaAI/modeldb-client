@@ -60,8 +60,8 @@ def calculate_reference_counts(data, bin_boundaries):
 
 
 class ProcessorBase(object):
-    def __init__(self, config=None):
-        self.config = config
+    def __init__(self, **kwargs):
+        self.config = kwargs
 
     def new_state(self):
         raise NotImplementedError
@@ -103,7 +103,7 @@ class HistogramProcessor(ProcessorBase):
         kwargs['feature_name'] = feature_name
         kwargs['bin_boundaries'] = bin_boundaries
         kwargs['reference_counts'] = reference_counts
-        super(HistogramProcessor, self).__init__(kwargs)
+        super(HistogramProcessor, self).__init__(**kwargs)
 
     def new_state(self):
         """
@@ -255,8 +255,9 @@ class BinaryHistogramProcessor(HistogramProcessor):
             raise ValueError("`reference_counts` must contain exactly two elements")
 
         kwargs['feature_name'] = feature_name
+        kwargs['bin_boundaries'] = None  # this isn't used by this subclass
         kwargs['reference_counts'] = reference_counts
-        super(BinaryHistogramProcessor, self).__init__(kwargs)
+        super(BinaryHistogramProcessor, self).__init__(**kwargs)
 
     def new_state(self):
         state = {}
