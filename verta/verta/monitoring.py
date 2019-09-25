@@ -28,6 +28,35 @@ def calculate_bin_boundaries(data, num_bins=10):
     return [start + space*i for i in range(num_bins+1)]
 
 
+def calculate_reference_counts(data, bin_boundaries):
+    """
+    Fits `data` into the histogram bins defined by `bin_boundaries`.
+
+    Parameters
+    ----------
+    data : sequence of numbers
+        Numerical data to be binned.
+
+    Returns
+    -------
+    list of float
+        Counts of `data` values in each bin defined by `bin_boundaries`.
+
+    Raises
+    ------
+    ValueError
+        If `data` contains a value outside the range defined by `bin_boundaries`.
+
+    """
+    # TODO: there is definitely a faster way to do this
+    reference_counts = []
+    for l, r in zip(bin_boundaries[:-1], bin_boundaries[1:]):
+        count = len([datum for datum in data if l <= datum < r])
+        reference_counts.append(count)
+
+    return reference_counts
+
+
 class ProcessorBase(object):
     def __init__(self, config=None):
         self.config = config
