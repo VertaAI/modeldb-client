@@ -32,11 +32,12 @@ class ProcessorBase(object):
 
 class HistogramProcessor(ProcessorBase):
     """
-
+    Object for processing histogram states and handling new inputs.
 
     Parameters
     ----------
     feature_name : str
+        Name of the feature to track in the histogram.
     bin_boundaries : list of float of length N+1
         Boundaries for the histogram's N bins.
     reference_counts : list of int of length N
@@ -53,6 +54,15 @@ class HistogramProcessor(ProcessorBase):
         super(HistogramProcessor, self).__init__(kwargs)
 
     def new_state(self):
+        """
+        Returns a new state as configured by `self.config`.
+
+        Returns
+        -------
+        dict
+            New histogram state.
+
+        """
         state = {}
 
         # initialize empty bins
@@ -83,7 +93,7 @@ class HistogramProcessor(ProcessorBase):
 
     def reduce_on_input(self, state, input):
         """
-
+        Updates `state` with `input`.
 
         Parameters
         ----------
@@ -91,6 +101,11 @@ class HistogramProcessor(ProcessorBase):
             Current state of the histogram.
         input : dict
             JSON data containing the feature value.
+
+        Returns
+        -------
+        dict
+            Updated histogram state.
 
         """
         distribution_name = "Live"
@@ -113,7 +128,7 @@ class HistogramProcessor(ProcessorBase):
 
     def reduce_states(self, state1, state2):
         """
-
+        Combines `state1` and `state2`.
 
         Parameters
         ----------
@@ -125,7 +140,7 @@ class HistogramProcessor(ProcessorBase):
         Returns
         -------
         dict
-            Combination of `state1` and `state2`
+            Combination of `state1` and `state2`.
 
         Raises
         ------
