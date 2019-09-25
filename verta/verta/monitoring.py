@@ -7,6 +7,27 @@ import six
 import copy
 
 
+def calculate_bin_boundaries(data, num_bins=10):
+    """
+    Calculates boundaries for `num_bins` equally-spaced histogram bins.
+
+    Parameters
+    ----------
+    data : sequence of numbers
+        Numerical data to be binned.
+    num_bins : int, default 10
+        Number of bins to use.
+
+    Returns
+    -------
+    list of float
+
+    """
+    start, stop = min(data), max(data)
+    space = (stop - start)/num_bins
+    return [start + space*i for i in range(num_bins+1)]
+
+
 class ProcessorBase(object):
     def __init__(self, config=None):
         self.config = config
