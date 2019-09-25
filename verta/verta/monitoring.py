@@ -36,10 +36,12 @@ def calculate_reference_counts(data, bin_boundaries):
     ----------
     data : sequence of numbers
         Numerical data to be binned.
+    bin_boundaries : list of float of length N+1
+        Boundaries for a histogram's N bins.
 
     Returns
     -------
-    list of float
+    list of float of length N
         Counts of `data` values in each bin defined by `bin_boundaries`.
 
     Raises
