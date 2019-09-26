@@ -2441,17 +2441,17 @@ class ExperimentRun(_ModelDBEntity):
         processors = {}
         if train_features is not None and train_targets is not None:
             train_df = train_features.join(train_targets)
-            for col_name in train_df:
+            for col_i, col_name in enumerate(train_df):
                 col = train_df[col_name]
                 dtype_name = col.dtype.name
                 if dtype_name.startswith(('int', 'float')):
                     if set(col.unique()) == {0, 1}:
                         reference_counts = [sum(col == 0), sum(col == 1)]
-                        processors[col_name] = monitoring.BinaryHistogramProcessor(col_name, reference_counts)
+                        processors[col_name] = monitoring.BinaryHistogramProcessor(col_name, reference_counts, feature_index=col_i)
                     else:
                         bin_boundaries = monitoring.calculate_bin_boundaries(col)
                         reference_counts = monitoring.calculate_reference_counts(col, bin_boundaries)
-                        processors[col_name] = monitoring.FloatHistogramProcessor(col_name, bin_boundaries, reference_counts)
+                        processors[col_name] = monitoring.FloatHistogramProcessor(col_name, bin_boundaries, reference_counts, feature_index=col_i)
                 else:
                     continue  # ignore non-numeric columns for now
 
