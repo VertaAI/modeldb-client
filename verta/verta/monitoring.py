@@ -154,6 +154,16 @@ class FloatHistogramProcessor(HistogramProcessor):
             feature_val = input[feature_name]
         except KeyError:
             six.raise_from(KeyError("key '{}' not found in `input`".format(feature_name)), None)
+        except TypeError:  # input is list instead of dict
+            try:
+                feature_index = self.config['feature_index']
+            except KeyError:
+                six.raise_from(RuntimeError("`input` is a list, but this Processor"
+                                            " doesn't have an index for its feature"), None)
+            try:
+                feature_val = input[feature_index]
+            except IndexError:
+                six.raise_from(IndexError("index '{}' out of bounds for `input`".format(feature_index)), None)
 
         # fold feature value into state
         lower_bounds = [float('-inf')] + self.config['bin_boundaries']
@@ -260,6 +270,16 @@ class BinaryHistogramProcessor(HistogramProcessor):
             feature_val = input[feature_name]
         except KeyError:
             six.raise_from(KeyError("key '{}' not found in `input`".format(feature_name)), None)
+        except TypeError:  # input is list instead of dict
+            try:
+                feature_index = self.config['feature_index']
+            except KeyError:
+                six.raise_from(RuntimeError("`input` is a list, but this Processor"
+                                            " doesn't have an index for its feature"), None)
+            try:
+                feature_val = input[feature_index]
+            except IndexError:
+                six.raise_from(IndexError("index '{}' out of bounds for `input`".format(feature_index)), None)
 
         # fold feature value into state
         for bin, category in zip(state['bins'], self.config['bin_categories']):
