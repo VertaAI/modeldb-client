@@ -207,20 +207,49 @@ class FloatHistogramProcessor(HistogramProcessor):
             raise RuntimeError("unable to find appropriate bin;"
                                " `state` is probably somehow missing its out-of-bounds bins")
 
-    # def get_from_state(self, state):
-    #     """
-    #     Returns a more parsable representation of `state`.
+    def get_from_state(self, state):
+        """
+        Returns a more parsable representation of `state`.
 
-    #     """
-    #     state_info = copy.deepcopy(state)
+        Parameters
+        ----------
+        state : dict
+            Current state of the histogram.
 
-    #     # get all distribution names
-    #     distribution_names = set()
-    #     for bin in state['bins']:
-    #         distribution_names.update(six.viewkeys(bin['counts']))
-    #     state_info['distribution_names'] = list(distribution_names)
+        Returns
+        -------
+        dict
+            JSON data.
 
-    #     return state_info
+        """
+        info = copy.deepcopy(state)
+
+        # data type
+        info['data_type'] = "float"
+
+        # feature name
+        info['feature_name'] = self.config['feature_name']
+
+        # feature index
+        try:
+            info['feature_index'] = self.config['feature_index']
+        except KeyError:
+            pass
+
+        # all distribution names
+        distribution_names = set()
+        for bin in info['bins']:
+            distribution_names.update(six.viewkeys(bin['counts']))
+        info['distribution_names'] = list(distribution_names)
+
+        # reference counts
+        for bin, reference_count in zip(info['bins'], self.config['reference_counts']):
+            bin['counts']['Reference'] = reference_count
+
+        # bin boundaries
+        info['bin_boundaries'] = self.config['bin_boundaries']
+
+        return info
 
 
 # TODO: have this subclass a future `CategoricalHistogramProcessor`
@@ -293,3 +322,47 @@ class BinaryHistogramProcessor(HistogramProcessor):
             state['invalid_inputs'][val] = state['invalid_inputs'].get(val, 0) + count
 
         return state
+
+    def get_from_state(self, state):
+        """
+        Returns a more parsable representation of `state`.
+
+        Parameters
+        ----------
+        state : dict
+            Current state of the histogram.
+
+        Returns
+        -------
+        dict
+            JSON data.
+
+        """
+        info = copy.deepcopy(state)
+
+        # data type
+        info['data_type'] = "binary"
+
+        # feature name
+        info['feature_name'] = self.config['feature_name']
+
+        # feature index
+        try:
+            info['feature_index'] = self.config['feature_index']
+        except KeyError:
+            pass
+
+        # all distribution names
+        distribution_names = set()
+        for bin in info['bins']:
+            distribution_names.update(six.viewkeys(bin['counts']))
+        info['distribution_names'] = list(distribution_names)
+
+        # reference counts
+        for bin, reference_count in zip(info['bins'], self.config['reference_counts']):
+            bin['counts']['Reference'] = reference_count
+
+        # bin categories
+        info['bin_categories'] = self.config['bin_categories']
+
+        return info
