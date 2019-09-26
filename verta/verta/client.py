@@ -2441,6 +2441,10 @@ class ExperimentRun(_ModelDBEntity):
         processors = {}
         if train_features is not None and train_targets is not None:
             train_df = train_features.join(train_targets)
+
+            if len(set(train_df.columns)) != len(train_df.columns):
+                raise ValueError("DataFrame contains duplicate column names, which will result in monitoring inconsistencies")
+
             for col_i, col_name in enumerate(train_df):
                 col = train_df[col_name]
                 dtype_name = col.dtype.name
