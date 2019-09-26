@@ -228,6 +228,7 @@ class FloatHistogramProcessor(HistogramProcessor):
     #     return state_info
 
 
+# TODO: have this subclass a future `CategoricalHistogramProcessor`
 class BinaryHistogramProcessor(HistogramProcessor):
     """
     :class:`HistogramProcessor` for binary data.
@@ -245,6 +246,7 @@ class BinaryHistogramProcessor(HistogramProcessor):
             raise ValueError("`reference_counts` must contain exactly two elements")
 
         kwargs['feature_name'] = feature_name
+        kwargs['bin_categories'] = [0, 1]
         kwargs['reference_counts'] = reference_counts
         super(BinaryHistogramProcessor, self).__init__(**kwargs)
 
@@ -252,26 +254,39 @@ class BinaryHistogramProcessor(HistogramProcessor):
         state = {}
 
         # initialize empty bins
-        state['bins'] = []
-        state['bins'].append({
-            'bounds': {'upper': .5},
-            'counts': {},
-        })
-        state['bins'].append({
-            'bounds': {'lower': .5},
-            'counts': {},
-        })
+        state['bins'] = [{'counts': {}} for _ in range(len(self.config['bin_categories']))]
 
-        # fill reference bins
-        for bin, reference_count in zip(state['bins'], self.config['reference_counts']):
-            bin['counts']['Reference'] = reference_count
+        # initialize invalid input mapping
+        state['invalid_inputs'] = {}
 
         return state
 
-    def get_from_state(self, state):
-        """
-        Returns a more parsable representation of `state`.
+    def reduce_on_input(self, state, input):
+        distribution_name = "Live"
 
-        """
-        # TODO: perhaps rewrite bin boundaries to something like [0, .5, 1]
-        return super(BinaryHistogramProcessor, self).get_from_state()
+        # get feature value
+        feature_name = self.config['feature_name']
+        try:
+            feature_val = input[feature_name]
+        except KeyError:
+            six.raise_from(KeyError("key '{}' not found in `input`".format(feature_name)), None)
+        except TypeError:  # input is list instead of dict
+            try:
+                feature_index = self.config['feature_index']
+            except KeyError:
+                six.raise_from(RuntimeError("`input` is a list, but this Processor"
+                                            " doesn't have an index for its feature"), None)
+            try:
+                feature_val = input[feature_index]
+            except IndexError:
+                six.raise_from(IndexError("index '{}' out of bounds for `input`".format(feature_index)), None)
+
+        # fold feature value into state
+        for bin, category in zip(state['bins'], self.config['bin_categories']):
+            if feature_val == category:
+                bin['counts'][distribution_name] = bin['counts'].get(distribution_name, 0) + 1
+                break
+        else:  # input doesn't match any category
+            state['invalid_inputs'][feature_val] = state['invalid_inputs'].get(feature_val, 0) + 1
+
+        return state
