@@ -125,28 +125,7 @@ class FloatHistogramProcessor(HistogramProcessor):
         state = {}
 
         # initialize empty bins
-        state['bins'] = []
-        bounds = self.config['bin_boundaries']
-        for lower_bound, upper_bound in zip(bounds[:-1], bounds[1:]):
-            state['bins'].append({
-                'bounds': {'lower': lower_bound,
-                           'upper': upper_bound},
-                'counts': {},
-            })
-
-        # fill reference bins
-        for bin, reference_count in zip(state['bins'], self.config['reference_counts']):
-            bin['counts']['Reference'] = reference_count
-
-        # initialize out-of-bounds bins
-        state['bins'].insert(0, {
-            'bounds': {'upper': state['bins'][0]['bounds']['lower']},
-            'counts': {},
-        })
-        state['bins'].append({
-            'bounds': {'lower': state['bins'][-1]['bounds']['upper']},
-            'counts': {},
-        })
+        state['bins'] = [{'counts': {}} for _ in range(len(self.config['bin_boundaries']) + 1)]
 
         return state
 
@@ -168,73 +147,85 @@ class FloatHistogramProcessor(HistogramProcessor):
 
         """
         distribution_name = "Live"
-        state = copy.deepcopy(state)
 
+        # get feature value
         feature_name = self.config['feature_name']
         try:
             feature_val = input[feature_name]
-        except KeyError as e:
-            six.raise_from(KeyError("key '{}' not found in `input`".format(e.args[0])), None)
+        except KeyError:
+            six.raise_from(KeyError("key '{}' not found in `input`".format(feature_name)), None)
+        except TypeError:  # input is list instead of dict
+            try:
+                feature_index = self.config['feature_index']
+            except KeyError:
+                six.raise_from(RuntimeError("`input` is a list, but this Processor"
+                                            " doesn't have an index for its feature"), None)
+            try:
+                feature_val = input[feature_index]
+            except IndexError:
+                six.raise_from(IndexError("index '{}' out of bounds for `input`".format(feature_index)), None)
 
-        for bin in state['bins']:
-            lower_bound = bin['bounds'].get('lower', float('-inf'))
-            upper_bound = bin['bounds'].get('upper', float('inf'))
+        # fold feature value into state
+        lower_bounds = [float('-inf')] + self.config['bin_boundaries']
+        upper_bounds = self.config['bin_boundaries'] + [float('inf')]
+        for bin, lower_bound, upper_bound in zip(state['bins'], lower_bounds, upper_bounds):
             if lower_bound <= feature_val < upper_bound:
                 bin['counts'][distribution_name] = bin['counts'].get(distribution_name, 0) + 1
                 return state
-        else:
-            raise RuntimeError("unable to find appropriate bin; `state` is probably missing its out-of-bounds bins")
+        else:  # this should only happen by developer error
+            raise RuntimeError("unable to find appropriate bin;"
+                               " `state` is probably somehow missing its out-of-bounds bins")
 
-    def reduce_states(self, state1, state2):
-        """
-        Combines `state1` and `state2`.
+    # def reduce_states(self, state1, state2):
+    #     """
+    #     Combines `state1` and `state2`.
 
-        Parameters
-        ----------
-        state1 : dict
-            Current state of a histogram.
-        state2 : dict
-            Current state of a histogram.
+    #     Parameters
+    #     ----------
+    #     state1 : dict
+    #         Current state of a histogram.
+    #     state2 : dict
+    #         Current state of a histogram.
 
-        Returns
-        -------
-        dict
-            Combination of `state1` and `state2`.
+    #     Returns
+    #     -------
+    #     dict
+    #         Combination of `state1` and `state2`.
 
-        Raises
-        ------
-        ValueError
-            If `state1` and `state2` have incompatible bins.
+    #     Raises
+    #     ------
+    #     ValueError
+    #         If `state1` and `state2` have incompatible bins.
 
-        """
-        if len(state1['bins']) != len(state2['bins']):
-            raise ValueError("states have unidentical numbers of bins")
-        for bin1, bin2 in zip(state1['bins'], state2['bins']):
-            if (bin1['bounds']['lower'] != bin2['bounds']['lower']
-                    or bin1['bounds']['upper'] != bin2['bounds']['upper']):
-                raise ValueError("states have unidentical bin boundaries")
+    #     """
+    #     if len(state1['bins']) != len(state2['bins']):
+    #         raise ValueError("states have unidentical numbers of bins")
+    #     for bin1, bin2 in zip(state1['bins'], state2['bins']):
+    #         if (bin1['bounds']['lower'] != bin2['bounds']['lower']
+    #                 or bin1['bounds']['upper'] != bin2['bounds']['upper']):
+    #             raise ValueError("states have unidentical bin boundaries")
 
-        state = copy.deepcopy(state1)
-        for i, bin in enumerate(state['bins']):
-            for distribution_name, count in six.viewitems(state2['bins'][i]['counts']):
-                bin['counts'][distribution_name] = bin['counts'].get(distribution_name, 0) + count
+    #     state = copy.deepcopy(state1)
+    #     for i, bin in enumerate(state['bins']):
+    #         for distribution_name, count in six.viewitems(state2['bins'][i]['counts']):
+    #             bin['counts'][distribution_name] = bin['counts'].get(distribution_name, 0) + count
 
-        return state
+    #     return state
 
-    def get_from_state(self, state):
-        """
-        Returns a more parsable representation of `state`.
+    # def get_from_state(self, state):
+    #     """
+    #     Returns a more parsable representation of `state`.
 
-        """
-        state_info = copy.deepcopy(state)
+    #     """
+    #     state_info = copy.deepcopy(state)
 
-        # get all distribution names
-        distribution_names = set()
-        for bin in state['bins']:
-            distribution_names.update(six.viewkeys(bin['counts']))
-        state_info['distribution_names'] = list(distribution_names)
+    #     # get all distribution names
+    #     distribution_names = set()
+    #     for bin in state['bins']:
+    #         distribution_names.update(six.viewkeys(bin['counts']))
+    #     state_info['distribution_names'] = list(distribution_names)
 
-        return state_info
+    #     return state_info
 
 
 class BinaryHistogramProcessor(HistogramProcessor):
