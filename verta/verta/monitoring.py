@@ -86,6 +86,13 @@ class HistogramProcessor(ProcessorBase):
     """
     Object for processing histogram states and handling new inputs.
 
+    """
+
+
+class FloatHistogramProcessor(HistogramProcessor):
+    """
+    :class:`HistogramProcessor` for continuous data.
+
     Parameters
     ----------
     feature_name : str
@@ -103,7 +110,7 @@ class HistogramProcessor(ProcessorBase):
         kwargs['feature_name'] = feature_name
         kwargs['bin_boundaries'] = bin_boundaries
         kwargs['reference_counts'] = reference_counts
-        super(HistogramProcessor, self).__init__(**kwargs)
+        super(FloatHistogramProcessor, self).__init__(**kwargs)
 
     def new_state(self):
         """
@@ -230,14 +237,6 @@ class HistogramProcessor(ProcessorBase):
         return state_info
 
 
-class FloatHistogramProcessor(HistogramProcessor):
-    """
-    :class:`HistogramProcessor` for continuous data.
-
-    """
-    pass
-
-
 class BinaryHistogramProcessor(HistogramProcessor):
     """
     :class:`HistogramProcessor` for binary data.
@@ -255,7 +254,6 @@ class BinaryHistogramProcessor(HistogramProcessor):
             raise ValueError("`reference_counts` must contain exactly two elements")
 
         kwargs['feature_name'] = feature_name
-        kwargs['bin_boundaries'] = [0, .5, 1+1e-15]  # this isn't used by this subclass
         kwargs['reference_counts'] = reference_counts
         super(BinaryHistogramProcessor, self).__init__(**kwargs)
 
