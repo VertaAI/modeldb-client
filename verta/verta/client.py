@@ -29,6 +29,7 @@ from ._protos.public.modeldb import ExperimentRunService_pb2 as _ExperimentRunSe
 from . import _dataset
 from . import _utils
 from . import _artifact_utils
+from . import monitoring
 from . import utils
 
 
@@ -2370,13 +2371,6 @@ class ExperimentRun(_ModelDBEntity):
             pandas DataFrame representing targets of the training data. If provided, `train_features`
             must also be provided.
 
-        Warnings
-        --------
-        Due to the way deployment currently works, `train_features` and `train_targets` will be joined
-        together and then converted into a CSV. Retrieving the dataset through the Client will return
-        a file-like bytestream of this CSV that can be passed directly into `pd.read_csv()
-        <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html>`_.
-
         """
         if sum(arg is None for arg in (train_features, train_targets)) == 1:
             raise ValueError("`train_features` and `train_targets` must be provided together")
@@ -2444,20 +2438,28 @@ class ExperimentRun(_ModelDBEntity):
             requirements.seek(0)
 
         # prehandle train_features and train_targets
+        processors = {}
         if train_features is not None and train_targets is not None:
-            stringstream = six.StringIO()
             train_df = train_features.join(train_targets)
-            train_df.to_csv(stringstream, index=False)  # write as CSV
-            stringstream.seek(0)
-            train_data = stringstream
-        else:
-            train_data = None
+            for col_name in train_df:
+                col = train_df[col_name]
+                dtype_name = col.dtype.name
+                if dtype_name.startswith(('int', 'float')):
+                    if set(col.unique()) == {0, 1}:
+                        reference_counts = [sum(col == 0), sum(col == 1)]
+                        processors[col_name] = monitoring.BinaryHistogramProcessor(col_name, reference_counts)
+                    else:
+                        bin_boundaries = monitoring.calculate_bin_boundaries(col)
+                        reference_counts = monitoring.calculate_reference_counts(col, bin_boundaries)
+                        processors[col_name] = monitoring.FloatHistogramProcessor(col_name, bin_boundaries, reference_counts)
+                else:
+                    continue  # ignore non-numeric columns for now
 
         self._log_artifact("model.pkl", model, _CommonService.ArtifactTypeEnum.MODEL, model_extension)
         self._log_artifact("model_api.json", model_api, _CommonService.ArtifactTypeEnum.BLOB, 'json')
         self._log_artifact("requirements.txt", requirements, _CommonService.ArtifactTypeEnum.BLOB, 'txt')
-        if train_data is not None:
-            self._log_artifact("train_data", train_data, _CommonService.ArtifactTypeEnum.DATA, 'csv')
+        for processor_name, processor in six.viewitems(processors):
+            self.add_monitoring_processor(processor_name, processor)
 
     def log_model(self, key, model):
         """
