@@ -64,22 +64,22 @@ class ProcessorBase(object):
         self.config = kwargs
 
     def new_state(self):
-        raise NotImplementedError
+        pass
 
     def reduce_on_input(self, state, input):
-        raise NotImplementedError
+        pass
 
     def reduce_on_prediction(self, state, prediction):
-        raise NotImplementedError
+        pass
 
     def reduce_on_ground_truth(self, state, prediction, ground_truth):
-        raise NotImplementedError
+        pass
 
     def reduce_states(self, state1, state2):
-        raise NotImplementedError
+        pass
 
     def get_from_state(self, state):
-        raise NotImplementedError
+        pass
 
 
 class HistogramProcessor(ProcessorBase):
