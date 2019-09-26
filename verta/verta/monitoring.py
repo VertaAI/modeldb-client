@@ -87,6 +87,37 @@ class HistogramProcessor(ProcessorBase):
     Object for processing histogram states and handling new inputs.
 
     """
+    def reduce_states(self, state1, state2):
+        """
+        Combines `state1` and `state2`.
+
+        Parameters
+        ----------
+        state1 : dict
+            Current state of a histogram.
+        state2 : dict
+            Current state of a histogram.
+
+        Returns
+        -------
+        dict
+            Combination of `state1` and `state2`.
+
+        Raises
+        ------
+        ValueError
+            If `state1` and `state2` have incompatible bins.
+
+        """
+        if len(state1['bins']) != len(state2['bins']):
+            raise ValueError("states have unidentical numbers of bins")
+
+        state = copy.deepcopy(state1)
+        for bin, state2_bin in zip(state['bins'], state2['bins']):
+            for distribution_name, count in six.viewitems(state2_bin['counts']):
+                bin['counts'][distribution_name] = bin['counts'].get(distribution_name, 0) + count
+
+        return state
 
 
 class FloatHistogramProcessor(HistogramProcessor):
@@ -176,42 +207,6 @@ class FloatHistogramProcessor(HistogramProcessor):
             raise RuntimeError("unable to find appropriate bin;"
                                " `state` is probably somehow missing its out-of-bounds bins")
 
-    # def reduce_states(self, state1, state2):
-    #     """
-    #     Combines `state1` and `state2`.
-
-    #     Parameters
-    #     ----------
-    #     state1 : dict
-    #         Current state of a histogram.
-    #     state2 : dict
-    #         Current state of a histogram.
-
-    #     Returns
-    #     -------
-    #     dict
-    #         Combination of `state1` and `state2`.
-
-    #     Raises
-    #     ------
-    #     ValueError
-    #         If `state1` and `state2` have incompatible bins.
-
-    #     """
-    #     if len(state1['bins']) != len(state2['bins']):
-    #         raise ValueError("states have unidentical numbers of bins")
-    #     for bin1, bin2 in zip(state1['bins'], state2['bins']):
-    #         if (bin1['bounds']['lower'] != bin2['bounds']['lower']
-    #                 or bin1['bounds']['upper'] != bin2['bounds']['upper']):
-    #             raise ValueError("states have unidentical bin boundaries")
-
-    #     state = copy.deepcopy(state1)
-    #     for i, bin in enumerate(state['bins']):
-    #         for distribution_name, count in six.viewitems(state2['bins'][i]['counts']):
-    #             bin['counts'][distribution_name] = bin['counts'].get(distribution_name, 0) + count
-
-    #     return state
-
     # def get_from_state(self, state):
     #     """
     #     Returns a more parsable representation of `state`.
@@ -288,5 +283,13 @@ class BinaryHistogramProcessor(HistogramProcessor):
                 break
         else:  # input doesn't match any category
             state['invalid_inputs'][feature_val] = state['invalid_inputs'].get(feature_val, 0) + 1
+
+        return state
+
+    def reduce_states(self, state1, state2):
+        state = super(BinaryHistogramProcessor, self).reduce_states(state1, state2)
+
+        for val, count in six.viewitems(state2['invalid_inputs']):
+            state['invalid_inputs'][val] = state['invalid_inputs'].get(val, 0) + count
 
         return state
