@@ -177,7 +177,7 @@ class FloatHistogramProcessor(HistogramProcessor):
             Updated histogram state.
 
         """
-        distribution_name = "Live"
+        distribution_name = "live"
 
         # get feature value
         feature_name = self.config['feature_name']
@@ -209,7 +209,7 @@ class FloatHistogramProcessor(HistogramProcessor):
 
     def get_from_state(self, state):
         """
-        Returns a more parsable representation of `state`.
+        Returns a well-structured representation of `state` and `self.config`.
 
         Parameters
         ----------
@@ -222,34 +222,16 @@ class FloatHistogramProcessor(HistogramProcessor):
             JSON data.
 
         """
-        info = copy.deepcopy(state)
-
-        # data type
-        info['data_type'] = "float"
-
-        # feature name
-        info['feature_name'] = self.config['feature_name']
-
-        # feature index
-        try:
-            info['feature_index'] = self.config['feature_index']
-        except KeyError:
-            pass
-
-        # all distribution names
-        distribution_names = set()
-        for bin in info['bins']:
-            distribution_names.update(six.viewkeys(bin['counts']))
-        info['distribution_names'] = list(distribution_names)
-
-        # reference counts
-        for bin, reference_count in zip(info['bins'], self.config['reference_counts']):
-            bin['counts']['Reference'] = reference_count
-
-        # bin boundaries
-        info['bin_boundaries'] = self.config['bin_boundaries']
-
-        return info
+        return {
+            'type': "float",
+            'histogram': {
+                'float': {
+                    'live': [bin['counts'].get('live', 0) for bin in state['bins']],
+                    'reference': self.config['reference_counts'],
+                    'bucket_limits': [-1] + self.config['bin_boundaries'] + [-1],
+                }
+            }
+        }
 
 
 # TODO: have this subclass a future `CategoricalHistogramProcessor`
@@ -286,7 +268,7 @@ class BinaryHistogramProcessor(HistogramProcessor):
         return state
 
     def reduce_on_input(self, state, input):
-        distribution_name = "Live"
+        distribution_name = "live"
 
         # get feature value
         feature_name = self.config['feature_name']
@@ -325,7 +307,7 @@ class BinaryHistogramProcessor(HistogramProcessor):
 
     def get_from_state(self, state):
         """
-        Returns a more parsable representation of `state`.
+        Returns a well-structured representation of `state` and `self.config`.
 
         Parameters
         ----------
@@ -338,31 +320,12 @@ class BinaryHistogramProcessor(HistogramProcessor):
             JSON data.
 
         """
-        info = copy.deepcopy(state)
-
-        # data type
-        info['data_type'] = "binary"
-
-        # feature name
-        info['feature_name'] = self.config['feature_name']
-
-        # feature index
-        try:
-            info['feature_index'] = self.config['feature_index']
-        except KeyError:
-            pass
-
-        # all distribution names
-        distribution_names = set()
-        for bin in info['bins']:
-            distribution_names.update(six.viewkeys(bin['counts']))
-        info['distribution_names'] = list(distribution_names)
-
-        # reference counts
-        for bin, reference_count in zip(info['bins'], self.config['reference_counts']):
-            bin['counts']['Reference'] = reference_count
-
-        # bin categories
-        info['bin_categories'] = self.config['bin_categories']
-
-        return info
+        return {
+            'type': "binary",
+            'histogram': {
+                'binary': {
+                    'live': [bin['counts'].get('live', 0) for bin in state['bins']],
+                    'reference': self.config['reference_counts'],
+                },
+            },
+        }
