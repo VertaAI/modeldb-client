@@ -2458,7 +2458,7 @@ class ExperimentRun(_ModelDBEntity):
                 else:
                     continue  # ignore non-numeric columns for now
 
-            # convert potential Series to DataFrame
+            # convert potential Series to DataFrame to iter cols
             try:
                 train_targets = train_targets.to_frame()
             except AttributeError:  # not a Series, hopefully a DataFrame
