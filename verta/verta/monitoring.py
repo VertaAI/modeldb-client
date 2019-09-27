@@ -194,7 +194,8 @@ class FloatHistogramProcessor(HistogramProcessor):
             try:
                 feature_val = input[feature_index]
             except IndexError:
-                six.raise_from(IndexError("index '{}' out of bounds for `input`".format(feature_index)), None)
+                six.raise_from(IndexError("index '{}' out of bounds for"
+                                          " `input` of length {}".format(feature_index, len(input))), None)
 
         # fold feature value into state
         lower_bounds = [float('-inf')] + self.config['bin_boundaries']
@@ -285,7 +286,8 @@ class BinaryHistogramProcessor(HistogramProcessor):
             try:
                 feature_val = input[feature_index]
             except IndexError:
-                six.raise_from(IndexError("index '{}' out of bounds for `input`".format(feature_index)), None)
+                six.raise_from(IndexError("index '{}' out of bounds for"
+                                          " `input` of length {}".format(feature_index, len(input))), None)
 
         # fold feature value into state
         for bin, category in zip(state['bins'], self.config['bin_categories']):
