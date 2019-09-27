@@ -65,22 +65,22 @@ class _BaseProcessor(object):
         self.config = kwargs
 
     def new_state(self):
-        pass
+        raise NotImplementedError
 
     def reduce_on_input(self, state, input):
-        pass
+        raise NotImplementedError
 
     def reduce_on_prediction(self, state, prediction):
-        pass
+        raise NotImplementedError
 
     def reduce_on_ground_truth(self, state, prediction, ground_truth):
-        pass
+        raise NotImplementedError
 
     def reduce_states(self, state1, state2):
-        pass
+        raise NotImplementedError
 
     def get_from_state(self, state):
-        pass
+        raise NotImplementedError
 
 
 @six.add_metaclass(abc.ABCMeta)
