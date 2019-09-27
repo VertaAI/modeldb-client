@@ -227,7 +227,7 @@ class FloatHistogramProcessor(HistogramProcessor):
             'histogram': {
                 'float': {
                     'live': [bin['counts'].get('live', 0) for bin in state['bins']],
-                    'reference': self.config['reference_counts'],
+                    'reference': [0] + self.config['reference_counts'] + [0],
                     'bucket_limits': [-1] + self.config['bin_boundaries'] + [-1],
                 }
             }
