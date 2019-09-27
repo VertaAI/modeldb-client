@@ -59,7 +59,7 @@ def calculate_reference_counts(data, bin_boundaries):
     return reference_counts
 
 
-class ProcessorBase(object):
+class _BaseProcessor(object):
     def __init__(self, **kwargs):
         self.config = kwargs
 
@@ -82,7 +82,7 @@ class ProcessorBase(object):
         pass
 
 
-class HistogramProcessor(ProcessorBase):
+class HistogramProcessor(_BaseProcessor):
     """
     Object for processing histogram states and handling new inputs.
 
