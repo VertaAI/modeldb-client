@@ -4,6 +4,7 @@ from __future__ import division
 
 import six
 
+import abc
 import copy
 
 
@@ -59,32 +60,76 @@ def calculate_reference_counts(data, bin_boundaries):
     return reference_counts
 
 
-class ProcessorBase(object):
+class _BaseProcessor(object):
     def __init__(self, **kwargs):
         self.config = kwargs
 
     def new_state(self):
-        pass
+        raise NotImplementedError
 
     def reduce_on_input(self, state, input):
-        pass
+        raise NotImplementedError
 
     def reduce_on_prediction(self, state, prediction):
-        pass
+        raise NotImplementedError
 
     def reduce_on_ground_truth(self, state, prediction, ground_truth):
-        pass
+        raise NotImplementedError
 
     def reduce_states(self, state1, state2):
-        pass
+        raise NotImplementedError
 
     def get_from_state(self, state):
-        pass
+        raise NotImplementedError
 
 
-class HistogramProcessor(ProcessorBase):
+@six.add_metaclass(abc.ABCMeta)
+class _InputProcessor(object):
+    @abc.abstractmethod
+    def reduce_on_input(self, state, input):
+        """
+        Updates `state` with `input`.
+
+        Parameters
+        ----------
+        state : dict
+            Current state of the histogram.
+        input : dict
+            JSON data containing the feature value.
+
+        Returns
+        -------
+        dict
+            Updated histogram state.
+
+        """
+
+
+@six.add_metaclass(abc.ABCMeta)
+class _PredictionProcessor(object):
+    @abc.abstractmethod
+    def reduce_on_prediction(self, state, prediction):
+        """
+        Updates `state` with `prediction`.
+
+        Parameters
+        ----------
+        state : dict
+            Current state of the histogram.
+        prediction : dict
+            JSON data containing the feature value.
+
+        Returns
+        -------
+        dict
+            Updated histogram state.
+
+        """
+
+
+class _HistogramProcessor(_BaseProcessor):
     """
-    Object for processing histogram states and handling new inputs.
+    Object for processing histogram states and handling incoming values.
 
     """
     def reduce_states(self, state1, state2):
@@ -120,7 +165,7 @@ class HistogramProcessor(ProcessorBase):
         return state
 
 
-class FloatHistogramProcessor(HistogramProcessor):
+class _FloatHistogramProcessor(_HistogramProcessor):
     """
     :class:`HistogramProcessor` for continuous data.
 
@@ -141,7 +186,39 @@ class FloatHistogramProcessor(HistogramProcessor):
         kwargs['feature_name'] = feature_name
         kwargs['bin_boundaries'] = bin_boundaries
         kwargs['reference_counts'] = reference_counts
-        super(FloatHistogramProcessor, self).__init__(**kwargs)
+        super(_FloatHistogramProcessor, self).__init__(**kwargs)
+
+    def _reduce_data(self, state, data):
+        distribution_name = "live"
+
+        # get feature value
+        feature_name = self.config['feature_name']
+        try:
+            feature_val = data[feature_name]
+        except KeyError:
+            six.raise_from(KeyError("key '{}' not found in data".format(feature_name)), None)
+        except TypeError:  # data is list instead of dict
+            try:
+                feature_index = self.config['feature_index']
+            except KeyError:
+                six.raise_from(RuntimeError("data is a list, but this Processor"
+                                            " doesn't have an index for its feature"), None)
+            try:
+                feature_val = data[feature_index]
+            except IndexError:
+                six.raise_from(IndexError("index '{}' out of bounds for"
+                                          " data of length {}".format(feature_index, len(data))), None)
+
+        # fold feature value into state
+        lower_bounds = [float('-inf')] + self.config['bin_boundaries']
+        upper_bounds = self.config['bin_boundaries'] + [float('inf')]
+        for bin, lower_bound, upper_bound in zip(state['bins'], lower_bounds, upper_bounds):
+            if lower_bound <= feature_val < upper_bound:
+                bin['counts'][distribution_name] = bin['counts'].get(distribution_name, 0) + 1
+                return state
+        else:  # this should only happen by developer error
+            raise RuntimeError("unable to find appropriate bin;"
+                               " `state` is probably somehow missing its out-of-bounds bins")
 
     def new_state(self):
         """
@@ -159,53 +236,6 @@ class FloatHistogramProcessor(HistogramProcessor):
         state['bins'] = [{'counts': {}} for _ in range(len(self.config['bin_boundaries']) + 1)]
 
         return state
-
-    def reduce_on_input(self, state, input):
-        """
-        Updates `state` with `input`.
-
-        Parameters
-        ----------
-        state : dict
-            Current state of the histogram.
-        input : dict
-            JSON data containing the feature value.
-
-        Returns
-        -------
-        dict
-            Updated histogram state.
-
-        """
-        distribution_name = "live"
-
-        # get feature value
-        feature_name = self.config['feature_name']
-        try:
-            feature_val = input[feature_name]
-        except KeyError:
-            six.raise_from(KeyError("key '{}' not found in `input`".format(feature_name)), None)
-        except TypeError:  # input is list instead of dict
-            try:
-                feature_index = self.config['feature_index']
-            except KeyError:
-                six.raise_from(RuntimeError("`input` is a list, but this Processor"
-                                            " doesn't have an index for its feature"), None)
-            try:
-                feature_val = input[feature_index]
-            except IndexError:
-                six.raise_from(IndexError("index '{}' out of bounds for `input`".format(feature_index)), None)
-
-        # fold feature value into state
-        lower_bounds = [float('-inf')] + self.config['bin_boundaries']
-        upper_bounds = self.config['bin_boundaries'] + [float('inf')]
-        for bin, lower_bound, upper_bound in zip(state['bins'], lower_bounds, upper_bounds):
-            if lower_bound <= feature_val < upper_bound:
-                bin['counts'][distribution_name] = bin['counts'].get(distribution_name, 0) + 1
-                return state
-        else:  # this should only happen by developer error
-            raise RuntimeError("unable to find appropriate bin;"
-                               " `state` is probably somehow missing its out-of-bounds bins")
 
     def get_from_state(self, state):
         """
@@ -235,7 +265,7 @@ class FloatHistogramProcessor(HistogramProcessor):
 
 
 # TODO: have this subclass a future `CategoricalHistogramProcessor`
-class BinaryHistogramProcessor(HistogramProcessor):
+class _BinaryHistogramProcessor(_HistogramProcessor):
     """
     :class:`HistogramProcessor` for binary data.
 
@@ -254,7 +284,38 @@ class BinaryHistogramProcessor(HistogramProcessor):
         kwargs['feature_name'] = feature_name
         kwargs['bin_categories'] = [0, 1]
         kwargs['reference_counts'] = reference_counts
-        super(BinaryHistogramProcessor, self).__init__(**kwargs)
+        super(_BinaryHistogramProcessor, self).__init__(**kwargs)
+
+    def _reduce_data(self, state, data):
+        distribution_name = "live"
+
+        # get feature value
+        feature_name = self.config['feature_name']
+        try:
+            feature_val = data[feature_name]
+        except KeyError:
+            six.raise_from(KeyError("key '{}' not found in data".format(feature_name)), None)
+        except TypeError:  # data is list instead of dict
+            try:
+                feature_index = self.config['feature_index']
+            except KeyError:
+                six.raise_from(RuntimeError("data is a list, but this Processor"
+                                            " doesn't have an index for its feature"), None)
+            try:
+                feature_val = data[feature_index]
+            except IndexError:
+                six.raise_from(IndexError("index '{}' out of bounds for"
+                                          " data of length {}".format(feature_index, len(data))), None)
+
+        # fold feature value into state
+        for bin, category in zip(state['bins'], self.config['bin_categories']):
+            if feature_val == category:
+                bin['counts'][distribution_name] = bin['counts'].get(distribution_name, 0) + 1
+                break
+        else:  # data doesn't match any category
+            state['invalid_values'][feature_val] = state['invalid_values'].get(feature_val, 0) + 1
+
+        return state
 
     def new_state(self):
         state = {}
@@ -262,46 +323,16 @@ class BinaryHistogramProcessor(HistogramProcessor):
         # initialize empty bins
         state['bins'] = [{'counts': {}} for _ in range(len(self.config['bin_categories']))]
 
-        # initialize invalid input mapping
-        state['invalid_inputs'] = {}
-
-        return state
-
-    def reduce_on_input(self, state, input):
-        distribution_name = "live"
-
-        # get feature value
-        feature_name = self.config['feature_name']
-        try:
-            feature_val = input[feature_name]
-        except KeyError:
-            six.raise_from(KeyError("key '{}' not found in `input`".format(feature_name)), None)
-        except TypeError:  # input is list instead of dict
-            try:
-                feature_index = self.config['feature_index']
-            except KeyError:
-                six.raise_from(RuntimeError("`input` is a list, but this Processor"
-                                            " doesn't have an index for its feature"), None)
-            try:
-                feature_val = input[feature_index]
-            except IndexError:
-                six.raise_from(IndexError("index '{}' out of bounds for `input`".format(feature_index)), None)
-
-        # fold feature value into state
-        for bin, category in zip(state['bins'], self.config['bin_categories']):
-            if feature_val == category:
-                bin['counts'][distribution_name] = bin['counts'].get(distribution_name, 0) + 1
-                break
-        else:  # input doesn't match any category
-            state['invalid_inputs'][feature_val] = state['invalid_inputs'].get(feature_val, 0) + 1
+        # initialize invalid value mapping
+        state['invalid_values'] = {}
 
         return state
 
     def reduce_states(self, state1, state2):
-        state = super(BinaryHistogramProcessor, self).reduce_states(state1, state2)
+        state = super(_BinaryHistogramProcessor, self).reduce_states(state1, state2)
 
-        for val, count in six.viewitems(state2['invalid_inputs']):
-            state['invalid_inputs'][val] = state['invalid_inputs'].get(val, 0) + count
+        for val, count in six.viewitems(state2['invalid_values']):
+            state['invalid_values'][val] = state['invalid_values'].get(val, 0) + count
 
         return state
 
@@ -329,3 +360,23 @@ class BinaryHistogramProcessor(HistogramProcessor):
                 },
             },
         }
+
+
+class FloatInputHistogramProcessor(_InputProcessor, _FloatHistogramProcessor):
+    def reduce_on_input(self, state, input):
+        return self._reduce_data(state, input)
+
+
+class FloatPredictionHistogramProcessor(_PredictionProcessor, _FloatHistogramProcessor):
+    def reduce_on_prediction(self, state, prediction):
+        return self._reduce_data(state, prediction)
+
+
+class BinaryInputHistogramProcessor(_InputProcessor, _BinaryHistogramProcessor):
+    def reduce_on_input(self, state, input):
+        return self._reduce_data(state, input)
+
+
+class BinaryPredictionHistogramProcessor(_PredictionProcessor, _BinaryHistogramProcessor):
+    def reduce_on_prediction(self, state, prediction):
+        return self._reduce_data(state, prediction)
