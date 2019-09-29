@@ -313,7 +313,7 @@ class _BinaryHistogramProcessor(_HistogramProcessor):
                 bin['counts'][distribution_name] = bin['counts'].get(distribution_name, 0) + 1
                 break
         else:  # data doesn't match any category
-            state['invalid_values'][feature_val] = state['invalid_values'].get(feature_val, 0) + 1
+            state['invalid_values'] += 1
 
         return state
 
@@ -323,16 +323,15 @@ class _BinaryHistogramProcessor(_HistogramProcessor):
         # initialize empty bins
         state['bins'] = [{'counts': {}} for _ in range(len(self.config['bin_categories']))]
 
-        # initialize invalid value mapping
-        state['invalid_values'] = {}
+        # initialize invalid value count
+        state['invalid_values'] = 0
 
         return state
 
     def reduce_states(self, state1, state2):
         state = super(_BinaryHistogramProcessor, self).reduce_states(state1, state2)
 
-        for val, count in six.viewitems(state2['invalid_values']):
-            state['invalid_values'][val] = state['invalid_values'].get(val, 0) + count
+        state['invalid_values'] = state1['invalid_values'] + state2['invalid_values']
 
         return state
 
