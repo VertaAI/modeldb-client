@@ -252,6 +252,9 @@ class _FloatHistogramProcessor(_HistogramProcessor):
             JSON data.
 
         """
+        if not state:
+            state = self.new_state()
+
         return {
             'type': "float",
             'histogram': {
@@ -350,6 +353,9 @@ class _BinaryHistogramProcessor(_HistogramProcessor):
             JSON data.
 
         """
+        if not state:
+            state = self.new_state()
+
         return {
             'type': "binary",
             'histogram': {
