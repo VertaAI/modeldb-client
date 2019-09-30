@@ -208,9 +208,7 @@ class _FloatHistogramProcessor(_HistogramProcessor):
         # get feature value
         feature_name = self.config['feature_name']
         try:
-            feature_val = data[feature_name]
-        except KeyError:
-            six.raise_from(KeyError("key '{}' not found in data".format(feature_name)), None)
+            feature_val = data.get(feature_name, None)
         except TypeError:  # data is list instead of dict
             feature_index = self.config['feature_index']
             if feature_index is None:
@@ -221,6 +219,8 @@ class _FloatHistogramProcessor(_HistogramProcessor):
             except IndexError:
                 six.raise_from(IndexError("index '{}' out of bounds for"
                                           " data of length {}".format(feature_index, len(data))), None)
+        if feature_val is None:  # missing data
+            return state
 
         # fold feature value into state
         lower_bounds = [float('-inf')] + self.config['bin_boundaries']
@@ -291,9 +291,7 @@ class _BinaryHistogramProcessor(_HistogramProcessor):
         # get feature value
         feature_name = self.config['feature_name']
         try:
-            feature_val = data[feature_name]
-        except KeyError:
-            six.raise_from(KeyError("key '{}' not found in data".format(feature_name)), None)
+            feature_val = data.get(feature_name, None)
         except TypeError:  # data is list instead of dict
             feature_index = self.config['feature_index']
             if feature_index is None:
@@ -304,6 +302,8 @@ class _BinaryHistogramProcessor(_HistogramProcessor):
             except IndexError:
                 six.raise_from(IndexError("index '{}' out of bounds for"
                                           " data of length {}".format(feature_index, len(data))), None)
+        if feature_val is None:  # missing data
+            return state
 
         # fold feature value into state
         for bin, category in zip(state['bins'], self.config['bin_categories']):
