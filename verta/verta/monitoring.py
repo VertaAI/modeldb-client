@@ -207,18 +207,20 @@ class _FloatHistogramProcessor(_HistogramProcessor):
 
         # get feature value
         feature_name = self.config['feature_name']
-        try:
+        if isinstance(data, dict):
             feature_val = data.get(feature_name, None)
-        except TypeError:  # data is list instead of dict
+        elif isinstance(data, list):
             feature_index = self.config['feature_index']
             if feature_index is None:
-                six.raise_from(RuntimeError("data is a list, but this Processor"
-                                            " doesn't have an index for its feature"), None)
+                raise RuntimeError("data is a list, but this Processor"
+                                   " doesn't have an index for its feature")
             try:
                 feature_val = data[feature_index]
             except IndexError:
                 six.raise_from(IndexError("index '{}' out of bounds for"
                                           " data of length {}".format(feature_index, len(data))), None)
+        else:
+            raise TypeError("data {} is neither a dict nor a list".format(data))
         if feature_val is None:  # missing data
             return state
 
@@ -290,18 +292,20 @@ class _BinaryHistogramProcessor(_HistogramProcessor):
 
         # get feature value
         feature_name = self.config['feature_name']
-        try:
+        if isinstance(data, dict):
             feature_val = data.get(feature_name, None)
-        except TypeError:  # data is list instead of dict
+        elif isinstance(data, list):
             feature_index = self.config['feature_index']
             if feature_index is None:
-                six.raise_from(RuntimeError("data is a list, but this Processor"
-                                            " doesn't have an index for its feature"), None)
+                raise RuntimeError("data is a list, but this Processor"
+                                   " doesn't have an index for its feature")
             try:
                 feature_val = data[feature_index]
             except IndexError:
                 six.raise_from(IndexError("index '{}' out of bounds for"
                                           " data of length {}".format(feature_index, len(data))), None)
+        else:
+            raise TypeError("data {} is neither a dict nor a list".format(data))
         if feature_val is None:  # missing data
             return state
 
