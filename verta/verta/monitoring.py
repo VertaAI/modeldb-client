@@ -187,9 +187,11 @@ class _FloatHistogramProcessor(_HistogramProcessor):
         Boundaries for the histogram's N bins.
     reference_counts : list of int of length N, optional
         Counts for a precomputed reference distribution.
+    feature_index : int, optional
+        Index of the feature for when the data is passed as a list instead of a dictionary.
 
     """
-    def __init__(self, feature_name, bin_boundaries, reference_counts=None, **kwargs):
+    def __init__(self, feature_name, bin_boundaries, reference_counts=None, feature_index=None, **kwargs):
         if (reference_counts is not None
                 and len(bin_boundaries) - 1 != len(reference_counts)):
             raise ValueError("`bin_boundaries` must be one element longer than `reference_counts`")
@@ -197,6 +199,7 @@ class _FloatHistogramProcessor(_HistogramProcessor):
         kwargs['feature_name'] = feature_name
         kwargs['bin_boundaries'] = bin_boundaries
         kwargs['reference_counts'] = reference_counts
+        kwargs['feature_index'] = feature_index
         super(_FloatHistogramProcessor, self).__init__(**kwargs)
 
     def _reduce_data(self, state, data):
@@ -204,21 +207,22 @@ class _FloatHistogramProcessor(_HistogramProcessor):
 
         # get feature value
         feature_name = self.config['feature_name']
-        try:
-            feature_val = data[feature_name]
-        except KeyError:
-            six.raise_from(KeyError("key '{}' not found in data".format(feature_name)), None)
-        except TypeError:  # data is list instead of dict
-            try:
-                feature_index = self.config['feature_index']
-            except KeyError:
-                six.raise_from(RuntimeError("data is a list, but this Processor"
-                                            " doesn't have an index for its feature"), None)
+        if isinstance(data, dict):
+            feature_val = data.get(feature_name, None)
+        elif isinstance(data, list):
+            feature_index = self.config['feature_index']
+            if feature_index is None:
+                raise RuntimeError("data is a list, but this Processor"
+                                   " doesn't have an index for its feature")
             try:
                 feature_val = data[feature_index]
             except IndexError:
                 six.raise_from(IndexError("index '{}' out of bounds for"
                                           " data of length {}".format(feature_index, len(data))), None)
+        else:
+            raise TypeError("data {} is neither a dict nor a list".format(data))
+        if feature_val is None:  # missing data
+            return state
 
         # fold feature value into state
         lower_bounds = [float('-inf')] + self.config['bin_boundaries']
@@ -268,9 +272,11 @@ class _BinaryHistogramProcessor(_HistogramProcessor):
         Name of the feature to track in the histogram.
     reference_counts : list of int of length 2, optional
         Counts for a precomputed reference distribution.
+    feature_index : int, optional
+        Index of the feature for when the data is passed as a list instead of a dictionary.
 
     """
-    def __init__(self, feature_name, reference_counts=None, **kwargs):
+    def __init__(self, feature_name, reference_counts=None, feature_index=None, **kwargs):
         if (reference_counts is not None
                 and len(reference_counts) != 2):
             raise ValueError("`reference_counts` must contain exactly two elements")
@@ -278,6 +284,7 @@ class _BinaryHistogramProcessor(_HistogramProcessor):
         kwargs['feature_name'] = feature_name
         kwargs['bin_categories'] = [0, 1]
         kwargs['reference_counts'] = reference_counts
+        kwargs['feature_index'] = feature_index
         super(_BinaryHistogramProcessor, self).__init__(**kwargs)
 
     def _reduce_data(self, state, data):
@@ -285,21 +292,22 @@ class _BinaryHistogramProcessor(_HistogramProcessor):
 
         # get feature value
         feature_name = self.config['feature_name']
-        try:
-            feature_val = data[feature_name]
-        except KeyError:
-            six.raise_from(KeyError("key '{}' not found in data".format(feature_name)), None)
-        except TypeError:  # data is list instead of dict
-            try:
-                feature_index = self.config['feature_index']
-            except KeyError:
-                six.raise_from(RuntimeError("data is a list, but this Processor"
-                                            " doesn't have an index for its feature"), None)
+        if isinstance(data, dict):
+            feature_val = data.get(feature_name, None)
+        elif isinstance(data, list):
+            feature_index = self.config['feature_index']
+            if feature_index is None:
+                raise RuntimeError("data is a list, but this Processor"
+                                   " doesn't have an index for its feature")
             try:
                 feature_val = data[feature_index]
             except IndexError:
                 six.raise_from(IndexError("index '{}' out of bounds for"
                                           " data of length {}".format(feature_index, len(data))), None)
+        else:
+            raise TypeError("data {} is neither a dict nor a list".format(data))
+        if feature_val is None:  # missing data
+            return state
 
         # fold feature value into state
         for bin, category in zip(state['bins'], self.config['bin_categories']):
