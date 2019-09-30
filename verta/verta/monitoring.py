@@ -187,9 +187,11 @@ class _FloatHistogramProcessor(_HistogramProcessor):
         Boundaries for the histogram's N bins.
     reference_counts : list of int of length N, optional
         Counts for a precomputed reference distribution.
+    feature_index : int, optional
+        Index of the feature for when the data is passed as a list instead of a dictionary.
 
     """
-    def __init__(self, feature_name, bin_boundaries, reference_counts=None, **kwargs):
+    def __init__(self, feature_name, bin_boundaries, reference_counts=None, feature_index=None, **kwargs):
         if (reference_counts is not None
                 and len(bin_boundaries) - 1 != len(reference_counts)):
             raise ValueError("`bin_boundaries` must be one element longer than `reference_counts`")
@@ -197,6 +199,7 @@ class _FloatHistogramProcessor(_HistogramProcessor):
         kwargs['feature_name'] = feature_name
         kwargs['bin_boundaries'] = bin_boundaries
         kwargs['reference_counts'] = reference_counts
+        kwargs['feature_index'] = feature_index
         super(_FloatHistogramProcessor, self).__init__(**kwargs)
 
     def _reduce_data(self, state, data):
@@ -268,9 +271,11 @@ class _BinaryHistogramProcessor(_HistogramProcessor):
         Name of the feature to track in the histogram.
     reference_counts : list of int of length 2, optional
         Counts for a precomputed reference distribution.
+    feature_index : int, optional
+        Index of the feature for when the data is passed as a list instead of a dictionary.
 
     """
-    def __init__(self, feature_name, reference_counts=None, **kwargs):
+    def __init__(self, feature_name, reference_counts=None, feature_index=None, **kwargs):
         if (reference_counts is not None
                 and len(reference_counts) != 2):
             raise ValueError("`reference_counts` must contain exactly two elements")
@@ -278,6 +283,7 @@ class _BinaryHistogramProcessor(_HistogramProcessor):
         kwargs['feature_name'] = feature_name
         kwargs['bin_categories'] = [0, 1]
         kwargs['reference_counts'] = reference_counts
+        kwargs['feature_index'] = feature_index
         super(_BinaryHistogramProcessor, self).__init__(**kwargs)
 
     def _reduce_data(self, state, data):
