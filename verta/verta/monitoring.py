@@ -212,9 +212,8 @@ class _FloatHistogramProcessor(_HistogramProcessor):
         except KeyError:
             six.raise_from(KeyError("key '{}' not found in data".format(feature_name)), None)
         except TypeError:  # data is list instead of dict
-            try:
-                feature_index = self.config['feature_index']
-            except KeyError:
+            feature_index = self.config['feature_index']
+            if feature_index is None:
                 six.raise_from(RuntimeError("data is a list, but this Processor"
                                             " doesn't have an index for its feature"), None)
             try:
@@ -296,9 +295,8 @@ class _BinaryHistogramProcessor(_HistogramProcessor):
         except KeyError:
             six.raise_from(KeyError("key '{}' not found in data".format(feature_name)), None)
         except TypeError:  # data is list instead of dict
-            try:
-                feature_index = self.config['feature_index']
-            except KeyError:
+            feature_index = self.config['feature_index']
+            if feature_index is None:
                 six.raise_from(RuntimeError("data is a list, but this Processor"
                                             " doesn't have an index for its feature"), None)
             try:
