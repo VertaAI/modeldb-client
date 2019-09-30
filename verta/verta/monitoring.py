@@ -401,6 +401,16 @@ class FloatPredictionHistogramProcessor(_FloatHistogramProcessor):
         return self._reduce_data(state, prediction)
 
 
+class DiscreteInputHistogramProcessor(_DiscreteHistogramProcessor):
+    def reduce_on_input(self, state, input):
+        return self._reduce_data(state, input)
+
+
+class DiscretePredictionHistogramProcessor(_DiscreteHistogramProcessor):
+    def reduce_on_prediction(self, state, prediction):
+        return self._reduce_data(state, prediction)
+
+
 class BinaryInputHistogramProcessor(_BinaryHistogramProcessor):
     def reduce_on_input(self, state, input):
         return self._reduce_data(state, input)
