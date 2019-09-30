@@ -185,12 +185,13 @@ class _FloatHistogramProcessor(_HistogramProcessor):
         Name of the feature to track in the histogram.
     bin_boundaries : list of float of length N+1
         Boundaries for the histogram's N bins.
-    reference_counts : list of int of length N
+    reference_counts : list of int of length N, optional
         Counts for a precomputed reference distribution.
 
     """
-    def __init__(self, feature_name, bin_boundaries, reference_counts, **kwargs):
-        if len(bin_boundaries) - 1 != len(reference_counts):
+    def __init__(self, feature_name, bin_boundaries, reference_counts=None, **kwargs):
+        if (reference_counts is not None
+                and len(bin_boundaries) - 1 != len(reference_counts)):
             raise ValueError("`bin_boundaries` must be one element longer than `reference_counts`")
 
         kwargs['feature_name'] = feature_name
@@ -242,15 +243,17 @@ class _FloatHistogramProcessor(_HistogramProcessor):
         if not state:
             state = self.new_state()
 
+        histogram = {}
+        histogram['live'] = [bin['counts'].get('live', 0) for bin in state['bins']]
+        if self.config['reference_counts'] is not None:
+            histogram['reference'] = [0] + self.config['reference_counts'] + [0]
+        histogram['bucket_limits'] = [-1] + self.config['bin_boundaries'] + [-1]
+
         return {
             'type': "float",
             'histogram': {
-                'float': {
-                    'live': [bin['counts'].get('live', 0) for bin in state['bins']],
-                    'reference': [0] + self.config['reference_counts'] + [0],
-                    'bucket_limits': [-1] + self.config['bin_boundaries'] + [-1],
-                }
-            }
+                'float': histogram,
+            },
         }
 
 
@@ -263,12 +266,13 @@ class _BinaryHistogramProcessor(_HistogramProcessor):
     ----------
     feature_name : str
         Name of the feature to track in the histogram.
-    reference_counts : list of int of length 2
+    reference_counts : list of int of length 2, optional
         Counts for a precomputed reference distribution.
 
     """
-    def __init__(self, feature_name, reference_counts, **kwargs):
-        if len(reference_counts) != 2:
+    def __init__(self, feature_name, reference_counts=None, **kwargs):
+        if (reference_counts is not None
+                and len(reference_counts) != 2):
             raise ValueError("`reference_counts` must contain exactly two elements")
 
         kwargs['feature_name'] = feature_name
@@ -329,13 +333,15 @@ class _BinaryHistogramProcessor(_HistogramProcessor):
         if not state:
             state = self.new_state()
 
+        histogram = {}
+        histogram['live'] = [bin['counts'].get('live', 0) for bin in state['bins']]
+        if self.config['reference_counts'] is not None:
+            histogram['reference'] = self.config['reference_counts']
+
         return {
             'type': "binary",
             'histogram': {
-                'binary': {
-                    'live': [bin['counts'].get('live', 0) for bin in state['bins']],
-                    'reference': self.config['reference_counts'],
-                },
+                'binary': histogram,
             },
         }
 
