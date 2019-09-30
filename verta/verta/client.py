@@ -2450,11 +2450,11 @@ class ExperimentRun(_ModelDBEntity):
                 if col.dtype.name.startswith(('int', 'float')):
                     if set(col.unique()) == {0, 1}:
                         reference_counts = [sum(col == 0), sum(col == 1)]
-                        processors[col_name] = monitoring.BinaryInputHistogramProcessor(col_name, reference_counts, feature_index=col_i)
+                        processors[col_name] = monitoring.BinaryInputHistogramProcessor(reference_counts, feature_name=col_name, feature_index=col_i)
                     else:
                         bin_boundaries = monitoring.calculate_bin_boundaries(col)
                         reference_counts = monitoring.calculate_reference_counts(col, bin_boundaries)
-                        processors[col_name] = monitoring.FloatInputHistogramProcessor(col_name, bin_boundaries, reference_counts, feature_index=col_i)
+                        processors[col_name] = monitoring.FloatInputHistogramProcessor(bin_boundaries, reference_counts, feature_name=col_name, feature_index=col_i)
                 else:
                     continue  # ignore non-numeric columns for now
 
@@ -2470,11 +2470,11 @@ class ExperimentRun(_ModelDBEntity):
                 if col.dtype.name.startswith(('int', 'float')):
                     if set(col.unique()) == {0, 1}:
                         reference_counts = [sum(col == 0), sum(col == 1)]
-                        processors[col_name] = monitoring.BinaryPredictionHistogramProcessor(col_name, reference_counts, feature_index=col_i)
+                        processors[col_name] = monitoring.BinaryPredictionHistogramProcessor(reference_counts, feature_name=col_name, feature_index=col_i)
                     else:
                         bin_boundaries = monitoring.calculate_bin_boundaries(col)
                         reference_counts = monitoring.calculate_reference_counts(col, bin_boundaries)
-                        processors[col_name] = monitoring.FloatPredictionHistogramProcessor(col_name, bin_boundaries, reference_counts, feature_index=col_i)
+                        processors[col_name] = monitoring.FloatPredictionHistogramProcessor(bin_boundaries, reference_counts, feature_name=col_name, feature_index=col_i)
                 else:
                     continue  # ignore non-numeric columns for now
 

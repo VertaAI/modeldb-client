@@ -177,24 +177,24 @@ class _FloatHistogramProcessor(_HistogramProcessor):
 
     Parameters
     ----------
-    feature_name : str
-        Name of the feature to track in the histogram.
     bin_boundaries : list of float of length N+1
         Boundaries for the histogram's N bins.
     reference_counts : list of int of length N, optional
         Counts for a precomputed reference distribution.
+    feature_name : str, optional
+        Name of the feature to track in the histogram.
     feature_index : int, optional
         Index of the feature for when the data is passed as a list instead of a dictionary.
 
     """
-    def __init__(self, feature_name, bin_boundaries, reference_counts=None, feature_index=None, **kwargs):
+    def __init__(self, bin_boundaries, reference_counts=None, feature_name=None, feature_index=None, **kwargs):
         if (reference_counts is not None
                 and len(bin_boundaries) - 1 != len(reference_counts)):
             raise ValueError("`bin_boundaries` must be one element longer than `reference_counts`")
 
-        kwargs['feature_name'] = feature_name
         kwargs['bin_boundaries'] = bin_boundaries
         kwargs['reference_counts'] = reference_counts
+        kwargs['feature_name'] = feature_name
         kwargs['feature_index'] = feature_index
         super(_FloatHistogramProcessor, self).__init__(**kwargs)
 
@@ -261,24 +261,24 @@ class _DiscreteHistogramProcessor(_HistogramProcessor):
 
     Parameters
     ----------
-    feature_name : str
-        Name of the feature to track in the histogram.
     bin_categories : list of length N
         Category values for the histogram's bins.
     reference_counts : list of int of length N, optional
         Counts for a precomputed reference distribution.
+    feature_name : str, optional
+        Name of the feature to track in the histogram.
     feature_index : int, optional
         Index of the feature for when the data is passed as a list instead of a dictionary.
 
     """
-    def __init__(self, feature_name, bin_categories, reference_counts=None, feature_index=None, **kwargs):
+    def __init__(self, bin_categories, reference_counts=None, feature_name=None, feature_index=None, **kwargs):
         if (reference_counts is not None
                 and len(bin_categories) != len(reference_counts)):
             raise ValueError("`bin_boundaries` and `reference_counts` must have the same length")
 
-        kwargs['feature_name'] = feature_name
         kwargs['bin_categories'] = bin_categories
         kwargs['reference_counts'] = reference_counts
+        kwargs['feature_name'] = feature_name
         kwargs['feature_index'] = feature_index
         super(_DiscreteHistogramProcessor, self).__init__(**kwargs)
 
@@ -355,22 +355,22 @@ class _BinaryHistogramProcessor(_DiscreteHistogramProcessor):
 
     Parameters
     ----------
-    feature_name : str
-        Name of the feature to track in the histogram.
     reference_counts : list of int of length 2, optional
         Counts for a precomputed reference distribution.
+    feature_name : str, optional
+        Name of the feature to track in the histogram.
     feature_index : int, optional
         Index of the feature for when the data is passed as a list instead of a dictionary.
 
     """
-    def __init__(self, feature_name, reference_counts=None, feature_index=None, **kwargs):
+    def __init__(self, reference_counts=None, feature_name=None, feature_index=None, **kwargs):
         if (reference_counts is not None
                 and len(reference_counts) != 2):
             raise ValueError("`reference_counts` must contain exactly two elements")
 
-        kwargs['feature_name'] = feature_name
         kwargs['bin_categories'] = [0, 1]
         kwargs['reference_counts'] = reference_counts
+        kwargs['feature_name'] = feature_name
         kwargs['feature_index'] = feature_index
         super(_BinaryHistogramProcessor, self).__init__(**kwargs)
 
