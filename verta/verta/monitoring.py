@@ -4,8 +4,6 @@ from __future__ import division
 
 import six
 
-import copy
-
 
 def calculate_bin_boundaries(data, num_bins=10):
     """
@@ -118,7 +116,7 @@ class _BaseProcessor(object):
 
     def reduce_states(self, state1, state2):
         """
-        Combines `state1` and `state2`.
+        Merges `state2` into `state1`.
 
         Parameters
         ----------
@@ -130,7 +128,7 @@ class _BaseProcessor(object):
         Returns
         -------
         dict
-            Combination of `state1` and `state2`.
+            Modified `state1`, with `state2` merged in.
 
         Raises
         ------
@@ -167,12 +165,10 @@ class _HistogramProcessor(_BaseProcessor):
         if len(state1['bins']) != len(state2['bins']):
             raise ValueError("states have unidentical numbers of bins")
 
-        state = copy.deepcopy(state1)
-        for bin, state2_bin in zip(state['bins'], state2['bins']):
-            for distribution_name, count in six.viewitems(state2_bin['counts']):
-                bin['counts'][distribution_name] = bin['counts'].get(distribution_name, 0) + count
+        for i, state2_bin in enumerate(state2['bins']):
+            state1['bins'][i] += state2_bin
 
-        return state
+        return state1
 
 
 class _FloatHistogramProcessor(_HistogramProcessor):
@@ -203,8 +199,6 @@ class _FloatHistogramProcessor(_HistogramProcessor):
         super(_FloatHistogramProcessor, self).__init__(**kwargs)
 
     def _reduce_data(self, state, data):
-        distribution_name = "live"
-
         # get feature value
         feature_name = self.config['feature_name']
         if isinstance(data, dict):
@@ -227,9 +221,9 @@ class _FloatHistogramProcessor(_HistogramProcessor):
         # fold feature value into state
         lower_bounds = [float('-inf')] + self.config['bin_boundaries']
         upper_bounds = self.config['bin_boundaries'] + [float('inf')]
-        for bin, lower_bound, upper_bound in zip(state['bins'], lower_bounds, upper_bounds):
+        for i, (lower_bound, upper_bound) in enumerate(zip(lower_bounds, upper_bounds)):
             if lower_bound <= feature_val < upper_bound:
-                bin['counts'][distribution_name] = bin['counts'].get(distribution_name, 0) + 1
+                state['bins'][i] += 1
                 return state
         else:  # this should only happen by developer error
             raise RuntimeError("unable to find appropriate bin;"
@@ -239,7 +233,7 @@ class _FloatHistogramProcessor(_HistogramProcessor):
         state = {}
 
         # initialize empty bins
-        state['bins'] = [{'counts': {}} for _ in range(len(self.config['bin_boundaries']) + 1)]
+        state['bins'] = [0 for _ in range(len(self.config['bin_boundaries']) + 1)]
 
         return state
 
@@ -248,7 +242,7 @@ class _FloatHistogramProcessor(_HistogramProcessor):
             state = self.new_state()
 
         histogram = {}
-        histogram['live'] = [bin['counts'].get('live', 0) for bin in state['bins']]
+        histogram['live'] = state['bins']
         if self.config['reference_counts'] is not None:
             histogram['reference'] = [0] + self.config['reference_counts'] + [0]
         histogram['bucket_limits'] = [-1] + self.config['bin_boundaries'] + [-1]
@@ -288,8 +282,6 @@ class _BinaryHistogramProcessor(_HistogramProcessor):
         super(_BinaryHistogramProcessor, self).__init__(**kwargs)
 
     def _reduce_data(self, state, data):
-        distribution_name = "live"
-
         # get feature value
         feature_name = self.config['feature_name']
         if isinstance(data, dict):
@@ -310,9 +302,9 @@ class _BinaryHistogramProcessor(_HistogramProcessor):
             return state
 
         # fold feature value into state
-        for bin, category in zip(state['bins'], self.config['bin_categories']):
+        for i, category in enumerate(self.config['bin_categories']):
             if feature_val == category:
-                bin['counts'][distribution_name] = bin['counts'].get(distribution_name, 0) + 1
+                state['bins'][i] += 1
                 break
         else:  # data doesn't match any category
             state['invalid_values'] += 1
@@ -323,7 +315,7 @@ class _BinaryHistogramProcessor(_HistogramProcessor):
         state = {}
 
         # initialize empty bins
-        state['bins'] = [{'counts': {}} for _ in range(len(self.config['bin_categories']))]
+        state['bins'] = [0 for _ in range(len(self.config['bin_categories']))]
 
         # initialize invalid value count
         state['invalid_values'] = 0
@@ -331,18 +323,18 @@ class _BinaryHistogramProcessor(_HistogramProcessor):
         return state
 
     def reduce_states(self, state1, state2):
-        state = super(_BinaryHistogramProcessor, self).reduce_states(state1, state2)
+        state1 = super(_BinaryHistogramProcessor, self).reduce_states(state1, state2)
 
-        state['invalid_values'] = state1['invalid_values'] + state2['invalid_values']
+        state1['invalid_values'] = state1['invalid_values'] + state2['invalid_values']
 
-        return state
+        return state1
 
     def get_from_state(self, state):
         if not state:
             state = self.new_state()
 
         histogram = {}
-        histogram['live'] = [bin['counts'].get('live', 0) for bin in state['bins']]
+        histogram['live'] = state['bins']
         if self.config['reference_counts'] is not None:
             histogram['reference'] = self.config['reference_counts']
 
