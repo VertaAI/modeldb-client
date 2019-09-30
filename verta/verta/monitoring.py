@@ -478,3 +478,13 @@ class BinaryInputHistogramProcessor(_BinaryHistogramProcessor):
 class BinaryPredictionHistogramProcessor(_BinaryHistogramProcessor):
     def reduce_on_prediction(self, state, prediction):
         return self._reduce_data(state, prediction)
+
+
+class MissingInputHistogramProcessor(_MissingHistogramProcessor):
+    def reduce_on_input(self, state, input):
+        return self._reduce_data(state, input)
+
+
+class MissingPredictionHistogramProcessor(_MissingHistogramProcessor):
+    def reduce_on_prediction(self, state, prediction):
+        return self._reduce_data(state, prediction)
