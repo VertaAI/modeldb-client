@@ -316,7 +316,7 @@ class _BinaryHistogramProcessor(_HistogramProcessor):
                 bin['counts'][distribution_name] = bin['counts'].get(distribution_name, 0) + 1
                 break
         else:  # data doesn't match any category
-            state['invalid_values'] += 1
+            state['live_miss_count'] += 1
 
         return state
 
@@ -327,14 +327,14 @@ class _BinaryHistogramProcessor(_HistogramProcessor):
         state['bins'] = [{'counts': {}} for _ in range(len(self.config['bin_categories']))]
 
         # initialize invalid value count
-        state['invalid_values'] = 0
+        state['live_miss_count'] = 0
 
         return state
 
     def reduce_states(self, state1, state2):
         state = super(_BinaryHistogramProcessor, self).reduce_states(state1, state2)
 
-        state['invalid_values'] = state1['invalid_values'] + state2['invalid_values']
+        state['live_miss_count'] = state1['live_miss_count'] + state2['live_miss_count']
 
         return state
 
