@@ -255,31 +255,32 @@ class _FloatHistogramProcessor(_HistogramProcessor):
         }
 
 
-# TODO: have this subclass a future `CategoricalHistogramProcessor`
-class _BinaryHistogramProcessor(_HistogramProcessor):
+class _DiscreteHistogramProcessor(_HistogramProcessor):
     """
-    :class:`HistogramProcessor` for binary data.
+    :class:`HistogramProcessor` for discrete data.
 
     Parameters
     ----------
     feature_name : str
         Name of the feature to track in the histogram.
-    reference_counts : list of int of length 2, optional
+    bin_categories : list of length N
+        Category values for the histogram's bins.
+    reference_counts : list of int of length N, optional
         Counts for a precomputed reference distribution.
     feature_index : int, optional
         Index of the feature for when the data is passed as a list instead of a dictionary.
 
     """
-    def __init__(self, feature_name, reference_counts=None, feature_index=None, **kwargs):
+    def __init__(self, feature_name, bin_categories, reference_counts=None, feature_index=None, **kwargs):
         if (reference_counts is not None
-                and len(reference_counts) != 2):
-            raise ValueError("`reference_counts` must contain exactly two elements")
+                and len(bin_categories) != len(reference_counts)):
+            raise ValueError("`bin_boundaries` and `reference_counts` must have the same length")
 
         kwargs['feature_name'] = feature_name
-        kwargs['bin_categories'] = [0, 1]
+        kwargs['bin_categories'] = bin_categories
         kwargs['reference_counts'] = reference_counts
         kwargs['feature_index'] = feature_index
-        super(_BinaryHistogramProcessor, self).__init__(**kwargs)
+        super(_DiscreteHistogramProcessor, self).__init__(**kwargs)
 
     def _reduce_data(self, state, data):
         # get feature value
@@ -323,11 +324,55 @@ class _BinaryHistogramProcessor(_HistogramProcessor):
         return state
 
     def reduce_states(self, state1, state2):
-        state1 = super(_BinaryHistogramProcessor, self).reduce_states(state1, state2)
+        state1 = super(_DiscreteHistogramProcessor, self).reduce_states(state1, state2)
 
         state1['invalid_values'] = state1['invalid_values'] + state2['invalid_values']
 
         return state1
+
+    def get_from_state(self, state):
+        if not state:
+            state = self.new_state()
+
+        histogram = {}
+        histogram['live'] = state['bins']
+        if self.config['reference_counts'] is not None:
+            histogram['reference'] = self.config['reference_counts']
+        histogram['bucket_values'] = self.config['bin_categories']
+        histogram['live_miss_count'] = state['invalid_values']
+
+        return {
+            'type': "discrete",
+            'histogram': {
+                'discrete': histogram,
+            },
+        }
+
+
+class _BinaryHistogramProcessor(_DiscreteHistogramProcessor):
+    """
+    :class:`HistogramProcessor` for binary data.
+
+    Parameters
+    ----------
+    feature_name : str
+        Name of the feature to track in the histogram.
+    reference_counts : list of int of length 2, optional
+        Counts for a precomputed reference distribution.
+    feature_index : int, optional
+        Index of the feature for when the data is passed as a list instead of a dictionary.
+
+    """
+    def __init__(self, feature_name, reference_counts=None, feature_index=None, **kwargs):
+        if (reference_counts is not None
+                and len(reference_counts) != 2):
+            raise ValueError("`reference_counts` must contain exactly two elements")
+
+        kwargs['feature_name'] = feature_name
+        kwargs['bin_categories'] = [0, 1]
+        kwargs['reference_counts'] = reference_counts
+        kwargs['feature_index'] = feature_index
+        super(_BinaryHistogramProcessor, self).__init__(**kwargs)
 
     def get_from_state(self, state):
         if not state:
