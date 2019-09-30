@@ -4,7 +4,6 @@ from __future__ import division
 
 import six
 
-import abc
 import copy
 
 
@@ -65,27 +64,17 @@ class _BaseProcessor(object):
         self.config = kwargs
 
     def new_state(self):
+        """
+        Returns a new state as configured by `self.config`.
+
+        Returns
+        -------
+        dict
+            New histogram state.
+
+        """
         raise NotImplementedError
 
-    def reduce_on_input(self, state, input):
-        raise NotImplementedError
-
-    def reduce_on_prediction(self, state, prediction):
-        raise NotImplementedError
-
-    def reduce_on_ground_truth(self, state, prediction, ground_truth):
-        raise NotImplementedError
-
-    def reduce_states(self, state1, state2):
-        raise NotImplementedError
-
-    def get_from_state(self, state):
-        raise NotImplementedError
-
-
-@six.add_metaclass(abc.ABCMeta)
-class _InputProcessor(object):
-    @abc.abstractmethod
     def reduce_on_input(self, state, input):
         """
         Updates `state` with `input`.
@@ -103,11 +92,8 @@ class _InputProcessor(object):
             Updated histogram state.
 
         """
+        raise NotImplementedError
 
-
-@six.add_metaclass(abc.ABCMeta)
-class _PredictionProcessor(object):
-    @abc.abstractmethod
     def reduce_on_prediction(self, state, prediction):
         """
         Updates `state` with `prediction`.
@@ -125,13 +111,11 @@ class _PredictionProcessor(object):
             Updated histogram state.
 
         """
+        raise NotImplementedError
 
+    def reduce_on_ground_truth(self, state, prediction, ground_truth):
+        raise NotImplementedError
 
-class _HistogramProcessor(_BaseProcessor):
-    """
-    Object for processing histogram states and handling incoming values.
-
-    """
     def reduce_states(self, state1, state2):
         """
         Combines `state1` and `state2`.
@@ -151,9 +135,35 @@ class _HistogramProcessor(_BaseProcessor):
         Raises
         ------
         ValueError
-            If `state1` and `state2` have incompatible bins.
+            If `state1` and `state2` are incompatible.
 
         """
+        raise NotImplementedError
+
+    def get_from_state(self, state):
+        """
+        Returns a well-structured representation of `state` and `self.config`.
+
+        Parameters
+        ----------
+        state : dict
+            Current state of the histogram.
+
+        Returns
+        -------
+        dict
+            JSON data.
+
+        """
+        raise NotImplementedError
+
+
+class _HistogramProcessor(_BaseProcessor):
+    """
+    Object for processing histogram states and handling incoming values.
+
+    """
+    def reduce_states(self, state1, state2):
         if len(state1['bins']) != len(state2['bins']):
             raise ValueError("states have unidentical numbers of bins")
 
@@ -221,15 +231,6 @@ class _FloatHistogramProcessor(_HistogramProcessor):
                                " `state` is probably somehow missing its out-of-bounds bins")
 
     def new_state(self):
-        """
-        Returns a new state as configured by `self.config`.
-
-        Returns
-        -------
-        dict
-            New histogram state.
-
-        """
         state = {}
 
         # initialize empty bins
@@ -238,20 +239,6 @@ class _FloatHistogramProcessor(_HistogramProcessor):
         return state
 
     def get_from_state(self, state):
-        """
-        Returns a well-structured representation of `state` and `self.config`.
-
-        Parameters
-        ----------
-        state : dict
-            Current state of the histogram.
-
-        Returns
-        -------
-        dict
-            JSON data.
-
-        """
         if not state:
             state = self.new_state()
 
@@ -339,20 +326,6 @@ class _BinaryHistogramProcessor(_HistogramProcessor):
         return state
 
     def get_from_state(self, state):
-        """
-        Returns a well-structured representation of `state` and `self.config`.
-
-        Parameters
-        ----------
-        state : dict
-            Current state of the histogram.
-
-        Returns
-        -------
-        dict
-            JSON data.
-
-        """
         if not state:
             state = self.new_state()
 
@@ -367,21 +340,21 @@ class _BinaryHistogramProcessor(_HistogramProcessor):
         }
 
 
-class FloatInputHistogramProcessor(_InputProcessor, _FloatHistogramProcessor):
+class FloatInputHistogramProcessor(_FloatHistogramProcessor):
     def reduce_on_input(self, state, input):
         return self._reduce_data(state, input)
 
 
-class FloatPredictionHistogramProcessor(_PredictionProcessor, _FloatHistogramProcessor):
+class FloatPredictionHistogramProcessor(_FloatHistogramProcessor):
     def reduce_on_prediction(self, state, prediction):
         return self._reduce_data(state, prediction)
 
 
-class BinaryInputHistogramProcessor(_InputProcessor, _BinaryHistogramProcessor):
+class BinaryInputHistogramProcessor(_BinaryHistogramProcessor):
     def reduce_on_input(self, state, input):
         return self._reduce_data(state, input)
 
 
-class BinaryPredictionHistogramProcessor(_PredictionProcessor, _BinaryHistogramProcessor):
+class BinaryPredictionHistogramProcessor(_BinaryHistogramProcessor):
     def reduce_on_prediction(self, state, prediction):
         return self._reduce_data(state, prediction)
