@@ -81,7 +81,7 @@ class _BaseProcessor(object):
         ----------
         state : dict
             Current state of the histogram.
-        input : dict
+        input : JSON
             JSON data containing the feature value.
 
         Returns
@@ -100,7 +100,7 @@ class _BaseProcessor(object):
         ----------
         state : dict
             Current state of the histogram.
-        prediction : dict
+        prediction : JSON
             JSON data containing the feature value.
 
         Returns
@@ -213,6 +213,8 @@ class _FloatHistogramProcessor(_HistogramProcessor):
             except IndexError:
                 six.raise_from(IndexError("index '{}' out of bounds for"
                                           " data of length {}".format(feature_index, len(data))), None)
+        elif feature_name is None and feature_index is None:  # probably intentional scalar
+            feature_val = data
         else:
             raise TypeError("data {} is neither a dict nor a list".format(data))
         if feature_val is None:  # missing data
@@ -297,6 +299,8 @@ class _DiscreteHistogramProcessor(_HistogramProcessor):
             except IndexError:
                 six.raise_from(IndexError("index '{}' out of bounds for"
                                           " data of length {}".format(feature_index, len(data))), None)
+        elif feature_name is None and feature_index is None:  # probably intentional scalar
+            feature_val = data
         else:
             raise TypeError("data {} is neither a dict nor a list".format(data))
         if feature_val is None:  # missing data
