@@ -488,6 +488,20 @@ class GroundTruthHistogramProcessor(_HistogramProcessor):
         kwargs['feature_index'] = feature_index
         super(GroundTruthHistogramProcessor, self).__init__(**kwargs)
 
+    def _get_prediction_bin(self, prediction):
+        feature_val = self._get_feature_value(prediction)
+
+        if feature_val is None:  # missing data
+            return None
+
+        lower_bounds = self.config['bin_boundaries'][:-1]
+        upper_bounds = self.config['bin_boundaries'][1:]
+        for i, (lower_bound, upper_bound) in enumerate(zip(lower_bounds, upper_bounds)):
+            if lower_bound <= feature_val < upper_bound:
+                return i
+        else:  # out of bounds
+            return None
+
     def new_state(self):
         state = {}
 
@@ -497,26 +511,17 @@ class GroundTruthHistogramProcessor(_HistogramProcessor):
 
         return state
 
+    def reduce_on_prediction(self, state, prediction):
+        i = self._get_prediction_bin(prediction)
+        if i is not None:
+            state['bins'][i] += 1
+        return state
+
     def reduce_on_ground_truth(self, state, prediction, ground_truth):
-        feature_val = self._get_feature_value(prediction)
-
-        if feature_val is None:  # missing data
-            return state
-
-        # fold feature_value into state
-        lower_bounds = self.config['bin_boundaries'][:-1]
-        upper_bounds = self.config['bin_boundaries'][1:]
-        for i, (lower_bound, upper_bound) in enumerate(zip(lower_bounds, upper_bounds)):
-            if lower_bound <= feature_val < upper_bound:
-                state['bins'][i] += 1
-
-                # fold ground_truth into state
-                if ground_truth:
-                    state['gt_bins'][i] += 1
-
-                return state
-        else:  # out of bounds
-            return state  # unchanged
+        i = self._get_prediction_bin(prediction)
+        if ground_truth and (i is not None):
+            state['gt_bins'][i] += 1
+        return state
 
     def reduce_states(self, state1, state2):
         state1 = super(GroundTruthHistogramProcessor, self).reduce_states(state1, state2)
