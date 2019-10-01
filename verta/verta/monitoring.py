@@ -390,22 +390,22 @@ class _MissingHistogramProcessor(_HistogramProcessor):
 
     Parameters
     ----------
-    feature_name : str
-        Name of the feature to track in the histogram.
     reference_proportion : float, optional
         Proportion of missing values for the feature in a reference distribution. This value cannot
         be greater than 1.
+    feature_name : str : optional
+        Name of the feature to track in the histogram.
     feature_index : int, optional
         Index of the feature for when the data is passed as a list instead of a dictionary.
 
     """
-    def __init__(self, feature_name, reference_proportion=None, feature_index=None, **kwargs):
+    def __init__(self, reference_proportion=None, feature_name=None, feature_index=None, **kwargs):
         if (reference_proportion is not None
                 and reference_proportion > 1):
             raise ValueError("`reference_proportion` cannot be greater than 1")
 
-        kwargs['feature_name'] = feature_name
         kwargs['reference_proportion'] = reference_proportion
+        kwargs['feature_name'] = feature_name
         kwargs['feature_index'] = feature_index
         super(_MissingHistogramProcessor, self).__init__(**kwargs)
 
