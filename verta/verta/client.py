@@ -2468,7 +2468,7 @@ class ExperimentRun(_ModelDBEntity):
             for col_i, col_name in enumerate(train_targets):
                 col = train_df[col_name]
 
-                # if model API says output is scalar, don't assigning index or name
+                # if model API says output is scalar, don't assign index or name
                 if model_api.to_dict()['output']['type'] not in ("VertaList", "VertaJson"):
                     feature_index = feature_name = None
                 else:

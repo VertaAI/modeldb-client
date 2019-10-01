@@ -81,7 +81,7 @@ class _BaseProcessor(object):
         ----------
         state : dict
             Current state of the histogram.
-        input : JSON
+        input : JSON object
             JSON data containing the feature value.
 
         Returns
@@ -100,7 +100,7 @@ class _BaseProcessor(object):
         ----------
         state : dict
             Current state of the histogram.
-        prediction : JSON
+        prediction : JSON object
             JSON data containing the feature value.
 
         Returns
