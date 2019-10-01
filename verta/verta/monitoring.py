@@ -453,6 +453,100 @@ class _MissingHistogramProcessor(_HistogramProcessor):
         }
 
 
+class GroundTruthHistogramProcessor(_HistogramProcessor):
+    """
+    :class:`_HistogramProcessor` for cross-referencing predictions with ground truths.
+
+    This processor handles data like a :class:`_FloatHistogramProcessor`, but returns a discrete
+    histogram in :meth:`~_GroundTruthHistogramProcessor.get_from_state`.
+
+    Parameters
+    ----------
+    bin_boundaries : list of float of length N+1
+        Boundaries for the histogram's N bins.
+    reference_counts : list of int of length N, optional
+        Prediction counts for a precomputed reference distribution.
+    reference_gt_counts : list of int of length N, optional
+        Grount Truth counts for a precomputed reference distribution.
+    feature_name : str, optional
+        Name of the feature to track in the histogram.
+    feature_index : int, optional
+        Index of the feature for when the data is passed as a list instead of a dictionary.
+
+    """
+    def __init__(self, feature_name, bin_boundaries,
+                 reference_counts=None, reference_gt_counts=None,
+                 feature_index=None, **kwargs):
+        if (reference_counts is not None
+                and len(bin_boundaries) - 1 != len(reference_counts)):
+            raise ValueError("`bin_boundaries` must be one element longer than `reference_counts`")
+
+        kwargs['bin_boundaries'] = bin_boundaries
+        kwargs['reference_counts'] = reference_counts
+        kwargs['reference_gt_counts'] = reference_gt_counts
+        kwargs['feature_name'] = feature_name
+        kwargs['feature_index'] = feature_index
+        super(GroundTruthHistogramProcessor, self).__init__(**kwargs)
+
+    def new_state(self):
+        state = {}
+
+        # initialize empty bins; no out-of-bounds
+        state['bins'] = [0 for _ in range(len(self.config['bin_boundaries']) - 1)]
+        state['gt_bins'] = [0 for _ in range(len(self.config['bin_boundaries']) - 1)]
+
+        return state
+
+    def reduce_on_ground_truth(self, state, prediction, ground_truth):
+        feature_val = self._get_feature_value(prediction)
+
+        if feature_val is None:  # missing data
+            return state
+
+        # fold feature_value into state
+        lower_bounds = self.config['bin_boundaries'][:-1]
+        upper_bounds = self.config['bin_boundaries'][1:]
+        for i, (lower_bound, upper_bound) in enumerate(zip(lower_bounds, upper_bounds)):
+            if lower_bound <= feature_val < upper_bound:
+                state['bins'][i] += 1
+
+                # fold ground_truth into state
+                if ground_truth:
+                    state['gt_bins'][i] += 1
+
+                return state
+        else:  # out of bounds
+            return state  # unchanged
+
+    def reduce_states(self, state1, state2):
+        state1 = super(GroundTruthHistogramProcessor, self).reduce_states(state1, state2)
+
+        for i, state2_bin in enumerate(state2['gt_bins']):
+            state1['gt_bins'][i] += state2_bin
+
+        return state1
+
+    def get_from_state(self, state):
+        if not state:
+            state = self.new_state()
+
+        histogram = {}
+        histogram['live'] = state['bins']
+        if self.config['reference_counts'] is not None:
+            histogram['reference'] = self.config['reference_counts']
+        histogram['gt_live'] = state['gt_bins']
+        if self.config['reference_gt_counts'] is not None:
+            histogram['gt_reference'] = self.config['reference_gt_counts']
+        histogram['bucket_values'] = list(range(len(state['bins'])))
+
+        return {
+            'type': "discrete",
+            'histogram': {
+                'discrete': histogram,
+            },
+        }
+
+
 class FloatInputHistogramProcessor(_FloatHistogramProcessor):
     def reduce_on_input(self, state, input):
         return self._reduce_data(state, input)
