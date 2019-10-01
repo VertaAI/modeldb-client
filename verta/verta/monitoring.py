@@ -474,9 +474,9 @@ class GroundTruthHistogramProcessor(_HistogramProcessor):
         Index of the feature for when the data is passed as a list instead of a dictionary.
 
     """
-    def __init__(self, feature_name, bin_boundaries,
+    def __init__(self, bin_boundaries,
                  reference_counts=None, reference_gt_counts=None,
-                 feature_index=None, **kwargs):
+                 feature_name=None, feature_index=None, **kwargs):
         if (reference_counts is not None
                 and len(bin_boundaries) - 1 != len(reference_counts)):
             raise ValueError("`bin_boundaries` must be one element longer than `reference_counts`")
