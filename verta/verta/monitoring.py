@@ -411,36 +411,39 @@ class _MissingHistogramProcessor(_HistogramProcessor):
 
     def _reduce_data(self, state, data):
         # increment processor call count
-        state['bins'][1] += 1
+        state['call_count'] += 1
 
         feature_val = self._get_feature_value(data)
 
         # increment feature presence count
         if feature_val is None:
-            state['bins'][0] += 1
+            state['feature_count'] += 1
 
         return state
 
     def new_state(self):
         state = {}
 
-        # initialize empty bins
-        state['bins'] = [
-            0,  # number of times feature is present
-            0,  # number of times processor is called
-        ]
+        state['call_count'] = 0  # number of times processor is called
+        state['feature_count'] = 0  # number of times feature is present
 
         return state
+
+    def reduce_states(self, state1, state2):
+        state1['call_count'] += state2['call_count']
+        state1['feature_count'] += state2['feature_count']
+
+        return state1
 
     def get_from_state(self, state):
         if not state:
             state = self.new_state()
 
         value = {}
-        if state['bins'][1] == 0:
+        if state['call_count'] == 0:
             value['live'] = 0
         else:
-            value['live'] = (state['bins'][0]/state['bins'][1])*100
+            value['live'] = (state['feature_count']/state['call_count'])*100
         if self.config['reference_proportion'] is not None:
             value['reference'] = self.config['reference_proportion']*100
 
