@@ -195,7 +195,7 @@ class _HistogramProcessor(_BaseProcessor):
 
 class _FloatHistogramProcessor(_HistogramProcessor):
     """
-    :class:`HistogramProcessor` for continuous data.
+    :class:`_HistogramProcessor` for continuous data.
 
     Parameters
     ----------
@@ -265,7 +265,7 @@ class _FloatHistogramProcessor(_HistogramProcessor):
 
 class _DiscreteHistogramProcessor(_HistogramProcessor):
     """
-    :class:`HistogramProcessor` for discrete data.
+    :class:`_HistogramProcessor` for discrete data.
 
     Parameters
     ----------
@@ -345,7 +345,7 @@ class _DiscreteHistogramProcessor(_HistogramProcessor):
 
 class _BinaryHistogramProcessor(_DiscreteHistogramProcessor):
     """
-    :class:`HistogramProcessor` for binary data.
+    :class:`_HistogramProcessor` for binary data.
 
     Parameters
     ----------
