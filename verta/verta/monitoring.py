@@ -168,8 +168,8 @@ class _HistogramProcessor(_BaseProcessor):
         elif isinstance(data, list):
             feature_index = self.config['feature_index']
             if feature_index is None:
-                raise RuntimeError("data is a list, but this Processor"
-                                   " doesn't have an index for its feature")
+                raise TypeError("data is a list, but this Processor"
+                                " doesn't have an index for its feature")
             try:
                 feature_val = data[feature_index]
             except IndexError:
