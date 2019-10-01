@@ -162,8 +162,8 @@ class _HistogramProcessor(_BaseProcessor):
 
     """
     def _get_feature_value(self, data):
-        feature_name = self.config['feature_name']
         if isinstance(data, dict):
+            feature_name = self.config['feature_name']
             feature_val = data.get(feature_name, None)
         elif isinstance(data, list):
             feature_index = self.config['feature_index']
@@ -175,7 +175,8 @@ class _HistogramProcessor(_BaseProcessor):
             except IndexError:
                 six.raise_from(IndexError("index '{}' out of bounds for"
                                           " data of length {}".format(feature_index, len(data))), None)
-        elif feature_name is None and feature_index is None:  # probably intentional scalar
+        elif (self.config['feature_name'] is None
+              and self.config['feature_index'] is None):  # probably intentional scalar
             feature_val = data
         else:
             raise TypeError("data {} is neither a dict nor a list".format(data))
