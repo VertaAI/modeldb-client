@@ -2915,3 +2915,8 @@ class ExperimentRun(_ModelDBEntity):
 
         """
         self._log_artifact("data-processor--{}".format(name), processor, _CommonService.ArtifactTypeEnum.BLOB)
+        response = _utils.make_request("PUT",
+                                       "{}://{}/api/v1/monitoring/data/{}/processors/{}".format(
+                                           self._conn.scheme, self._conn.socket, self.id, name),
+                                       self._conn, json={})
+        _utils.raise_for_http_error(response)
