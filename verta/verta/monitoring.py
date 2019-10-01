@@ -386,13 +386,13 @@ class _BinaryHistogramProcessor(_DiscreteHistogramProcessor):
 
 class _MissingHistogramProcessor(_HistogramProcessor):
     """
-    :class:`HistogramProcessor` for tracking how often a feature value is missing from data.
+    :class:`HistogramProcessor` for tracking how often a feature value is present in data.
 
     Parameters
     ----------
     reference_proportion : float, optional
-        Proportion of missing values for the feature in a reference distribution. This value cannot
-        be greater than 1.
+        Proportion of how often the feature is present in a reference distribution. This value
+        cannot be greater than 1.
     feature_name : str : optional
         Name of the feature to track in the histogram.
     feature_index : int, optional
@@ -416,7 +416,7 @@ class _MissingHistogramProcessor(_HistogramProcessor):
         feature_val = self._get_feature_value(data)
 
         # increment feature presence count
-        if feature_val is None:
+        if feature_val is not None:
             state['feature_count'] += 1
 
         return state
