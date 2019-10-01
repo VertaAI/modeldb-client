@@ -161,6 +161,27 @@ class _HistogramProcessor(_BaseProcessor):
     Object for processing histogram states and handling incoming values.
 
     """
+    def _get_feature_value(self, data):
+        feature_name = self.config['feature_name']
+        if isinstance(data, dict):
+            feature_val = data.get(feature_name, None)
+        elif isinstance(data, list):
+            feature_index = self.config['feature_index']
+            if feature_index is None:
+                raise TypeError("data is a list, but this Processor"
+                                " doesn't have an index for its feature")
+            try:
+                feature_val = data[feature_index]
+            except IndexError:
+                six.raise_from(IndexError("index '{}' out of bounds for"
+                                          " data of length {}".format(feature_index, len(data))), None)
+        elif feature_name is None and feature_index is None:  # probably intentional scalar
+            feature_val = data
+        else:
+            raise TypeError("data {} is neither a dict nor a list".format(data))
+
+        return feature_val
+
     def reduce_states(self, state1, state2):
         if len(state1['bins']) != len(state2['bins']):
             raise ValueError("states have unidentical numbers of bins")
@@ -199,24 +220,8 @@ class _FloatHistogramProcessor(_HistogramProcessor):
         super(_FloatHistogramProcessor, self).__init__(**kwargs)
 
     def _reduce_data(self, state, data):
-        # get feature value
-        feature_name = self.config['feature_name']
-        if isinstance(data, dict):
-            feature_val = data.get(feature_name, None)
-        elif isinstance(data, list):
-            feature_index = self.config['feature_index']
-            if feature_index is None:
-                raise RuntimeError("data is a list, but this Processor"
-                                   " doesn't have an index for its feature")
-            try:
-                feature_val = data[feature_index]
-            except IndexError:
-                six.raise_from(IndexError("index '{}' out of bounds for"
-                                          " data of length {}".format(feature_index, len(data))), None)
-        elif feature_name is None and feature_index is None:  # probably intentional scalar
-            feature_val = data
-        else:
-            raise TypeError("data {} is neither a dict nor a list".format(data))
+        feature_val = self._get_feature_value(data)
+
         if feature_val is None:  # missing data
             return state
 
@@ -285,24 +290,8 @@ class _DiscreteHistogramProcessor(_HistogramProcessor):
         super(_DiscreteHistogramProcessor, self).__init__(**kwargs)
 
     def _reduce_data(self, state, data):
-        # get feature value
-        feature_name = self.config['feature_name']
-        if isinstance(data, dict):
-            feature_val = data.get(feature_name, None)
-        elif isinstance(data, list):
-            feature_index = self.config['feature_index']
-            if feature_index is None:
-                raise RuntimeError("data is a list, but this Processor"
-                                   " doesn't have an index for its feature")
-            try:
-                feature_val = data[feature_index]
-            except IndexError:
-                six.raise_from(IndexError("index '{}' out of bounds for"
-                                          " data of length {}".format(feature_index, len(data))), None)
-        elif feature_name is None and feature_index is None:  # probably intentional scalar
-            feature_val = data
-        else:
-            raise TypeError("data {} is neither a dict nor a list".format(data))
+        feature_val = self._get_feature_value(data)
+
         if feature_val is None:  # missing data
             return state
 
