@@ -26,6 +26,7 @@ from ._protos.public.modeldb import CommonService_pb2 as _CommonService
 from ._protos.public.modeldb import ProjectService_pb2 as _ProjectService
 from ._protos.public.modeldb import ExperimentService_pb2 as _ExperimentService
 from ._protos.public.modeldb import ExperimentRunService_pb2 as _ExperimentRunService
+from . import __about__
 from . import _dataset
 from . import _utils
 from . import _artifact_utils
@@ -2421,10 +2422,24 @@ class ExperimentRun(_ModelDBEntity):
         # prehandle requirements
         _artifact_utils.reset_stream(requirements)  # reset cursor to beginning in case user forgot
         _artifact_utils.validate_requirements_txt(requirements)
-        if method == "cloudpickle":  # if cloudpickle used, add to requirements
+        req_deps = six.ensure_str(requirements.read()).splitlines()  # get list repr of reqs
+        _artifact_utils.reset_stream(requirements)  # reset cursor to beginning as a courtesy
+        # add verta to requirements
+        verta_dep = "verta=={}".format(__about__.__version__)
+        for req_dep in req_deps:
+            if req_dep.startswith("verta"):  # if present, check version
+                our_ver = verta_dep.split('==')[-1]
+                their_ver = req_dep.split('==')[-1]
+                if our_ver != their_ver:  # versions conflict, so raise exception
+                    raise ValueError("Client is running with verta v{}, but the provided requirements specify v{}; "
+                                     "these must match".format(our_ver, their_ver))
+                else:  # versions match, so proceed
+                    break
+        else:  # if not present, add
+            req_deps.append(verta_dep)
+        # if cloudpickle used, add to requirements
+        if method == "cloudpickle":
             cloudpickle_dep = "cloudpickle=={}".format(_artifact_utils.cloudpickle.__version__)
-            req_deps = six.ensure_str(requirements.read()).splitlines()
-            _artifact_utils.reset_stream(requirements)  # reset cursor to beginning as a courtesy
             for req_dep in req_deps:
                 if req_dep.startswith("cloudpickle"):  # if present, check version
                     our_ver = cloudpickle_dep.split('==')[-1]
@@ -2436,8 +2451,8 @@ class ExperimentRun(_ModelDBEntity):
                         break
             else:  # if not present, add
                 req_deps.append(cloudpickle_dep)
-            # recreate stream
-            requirements = six.BytesIO(six.ensure_binary('\n'.join(req_deps)))
+        # recreate stream
+        requirements = six.BytesIO(six.ensure_binary('\n'.join(req_deps)))
         if self._conf.debug:
             print("[DEBUG] requirements are:")
             print(six.ensure_str(requirements.read()))
