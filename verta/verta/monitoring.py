@@ -468,7 +468,7 @@ class GroundTruthHistogramProcessor(_HistogramProcessor):
     reference_counts : list of int of length N, optional
         Prediction counts for a precomputed reference distribution.
     reference_gt_counts : list of int of length N, optional
-        Grount Truth counts for a precomputed reference distribution.
+        Ground truth counts for a precomputed reference distribution.
     feature_name : str, optional
         Name of the feature to track in the histogram.
     feature_index : int, optional
