@@ -384,6 +384,75 @@ class _BinaryHistogramProcessor(_DiscreteHistogramProcessor):
         }
 
 
+class _MissingHistogramProcessor(_HistogramProcessor):
+    """
+    :class:`HistogramProcessor` for tracking how often a feature value is present in data.
+
+    Parameters
+    ----------
+    reference_proportion : float, optional
+        Proportion of how often the feature is present in a reference distribution. This value
+        cannot be greater than 1.
+    feature_name : str : optional
+        Name of the feature to track in the histogram.
+    feature_index : int, optional
+        Index of the feature for when the data is passed as a list instead of a dictionary.
+
+    """
+    def __init__(self, reference_proportion=None, feature_name=None, feature_index=None, **kwargs):
+        if (reference_proportion is not None
+                and reference_proportion > 1):
+            raise ValueError("`reference_proportion` cannot be greater than 1")
+
+        kwargs['reference_proportion'] = reference_proportion
+        kwargs['feature_name'] = feature_name
+        kwargs['feature_index'] = feature_index
+        super(_MissingHistogramProcessor, self).__init__(**kwargs)
+
+    def _reduce_data(self, state, data):
+        # increment processor call count
+        state['call_count'] += 1
+
+        feature_val = self._get_feature_value(data)
+
+        # increment feature presence count
+        if feature_val is not None:
+            state['feature_count'] += 1
+
+        return state
+
+    def new_state(self):
+        state = {}
+
+        state['call_count'] = 0  # number of times processor is called
+        state['feature_count'] = 0  # number of times feature is present
+
+        return state
+
+    def reduce_states(self, state1, state2):
+        state1['call_count'] += state2['call_count']
+        state1['feature_count'] += state2['feature_count']
+
+        return state1
+
+    def get_from_state(self, state):
+        if not state:
+            state = self.new_state()
+
+        value = {}
+        if state['call_count'] == 0:
+            value['live'] = 0
+        else:
+            value['live'] = (state['feature_count']/state['call_count'])*100
+        if self.config['reference_proportion'] is not None:
+            value['reference'] = self.config['reference_proportion']*100
+
+        return {
+            'type': "percentage",
+            'value': value,
+        }
+
+
 class FloatInputHistogramProcessor(_FloatHistogramProcessor):
     def reduce_on_input(self, state, input):
         return self._reduce_data(state, input)
@@ -410,5 +479,15 @@ class BinaryInputHistogramProcessor(_BinaryHistogramProcessor):
 
 
 class BinaryPredictionHistogramProcessor(_BinaryHistogramProcessor):
+    def reduce_on_prediction(self, state, prediction):
+        return self._reduce_data(state, prediction)
+
+
+class MissingInputHistogramProcessor(_MissingHistogramProcessor):
+    def reduce_on_input(self, state, input):
+        return self._reduce_data(state, input)
+
+
+class MissingPredictionHistogramProcessor(_MissingHistogramProcessor):
     def reduce_on_prediction(self, state, prediction):
         return self._reduce_data(state, prediction)
