@@ -253,7 +253,7 @@ class _FloatHistogramProcessor(_HistogramProcessor):
         histogram['live'] = state['bins']
         if self.config['reference_counts'] is not None:
             histogram['reference'] = [0] + self.config['reference_counts'] + [0]
-        histogram['bucket_limits'] = [-1] + self.config['bin_boundaries'] + [-1]
+        histogram['bucket_limits'] = self.config['bin_boundaries']
 
         return {
             'type': "float",
