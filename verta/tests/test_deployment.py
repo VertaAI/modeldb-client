@@ -48,6 +48,7 @@ class TestLogModelForDeployment:
         with pytest.raises(ValueError):
             experiment_run.log_model_for_deployment(**model_for_deployment)
 
+    @pytest.mark.skip(reason="data processors not yet available on dev")
     def test_with_data(self, experiment_run, model_for_deployment):
         """`train_features` and `train_targets` have associated data processors"""
         experiment_run.log_model_for_deployment(**model_for_deployment)
