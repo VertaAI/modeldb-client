@@ -2917,6 +2917,42 @@ class ExperimentRun(_ModelDBEntity):
 
         self._log_artifact("custom_modules", bytestream, _CommonService.ArtifactTypeEnum.BLOB, 'zip')
 
+    def log_setup_script(self, script):
+        """
+        Associate a model deployment setup script with this Experiment Run.
+
+        Parameters
+        ----------
+        script : str
+            String composed of valid Python code for executing setup steps at the beginning of model
+            deployment. An on-disk file can be passed in using ``open("path/to/file.py", 'r').read()``.
+
+        Raises
+        ------
+        SyntaxError
+            If `script` contains invalid Python.
+
+        """
+        # validate `script`'s syntax
+        try:
+            ast.parse(script)
+        except SyntaxError as e:
+            # clarify that the syntax error comes from `script`, and propagate details
+            reason = e.args[0]
+            line_no = e.args[1][1]
+            line = script.splitlines()[line_no-1]
+            six.raise_from(SyntaxError("{} in provided script on line {}:\n{}"
+                                       .format(reason, line_no, line)),
+                           e)
+
+        # convert into bytes for upload
+        script = six.ensure_binary(script)
+
+        # convert to file-like for `_log_artifact()`
+        script = six.BytesIO(script)
+
+        self._log_artifact("setup_script", script, _CommonService.ArtifactTypeEnum.BLOB, 'py')
+
     def add_monitoring_processor(self, name, processor):
         """
         Associate a :class:`~verta.monitoring.Processor` with this Experiment Run.

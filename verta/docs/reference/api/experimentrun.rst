@@ -116,3 +116,4 @@ Deployment
 ^^^^^^^^^^
 .. automethod:: ExperimentRun.log_model_for_deployment
 .. automethod:: ExperimentRun.log_modules
+.. automethod:: ExperimentRun.log_setup_script
