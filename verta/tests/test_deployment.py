@@ -6,6 +6,7 @@ import os
 import pytest
 
 import verta
+from verta import monitoring
 
 
 class TestLogModelForDeployment:
@@ -48,11 +49,15 @@ class TestLogModelForDeployment:
             experiment_run.log_model_for_deployment(**model_for_deployment)
 
     def test_with_data(self, experiment_run, model_for_deployment):
-        """`train_features` and `train_targets` are joined into a single CSV"""
+        """`train_features` and `train_targets` have associated data processors"""
         experiment_run.log_model_for_deployment(**model_for_deployment)
 
-        data_csv = experiment_run.get_artifact("train_data").read()
+        # check feature DataFrame processors
+        for col_name in model_for_deployment['train_features']:
+            processor_key = "data-processor--{}".format(col_name)
+            assert isinstance(experiment_run.get_artifact(processor_key), monitoring._BaseProcessor)
 
-        X_train = model_for_deployment['train_features']
-        y_train = model_for_deployment['train_targets']
-        assert X_train.join(y_train).to_csv(index=False) == six.ensure_str(data_csv)
+        # check label Series processor
+        col_name = model_for_deployment['train_targets'].name
+        processor_key = "data-processor--{}".format(col_name)
+        assert isinstance(experiment_run.get_artifact(processor_key), monitoring._BaseProcessor)
