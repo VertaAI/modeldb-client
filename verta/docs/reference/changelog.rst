@@ -32,6 +32,22 @@ Release Notes
      <>`_
 
 
+v0.13.8 (2019-10-03)
+--------------------
+
+New Features
+^^^^^^^^^^^^
+- `enable logging a setup script for the beginning of model deployment
+  <https://github.com/VertaAI/modeldb-client/pull/259>`_
+- `add verta to uploaded requirements if not present
+  <https://github.com/VertaAI/modeldb-client/pull/260>`_
+
+Internal Changes
+^^^^^^^^^^^^^^^^
+- `revise pytests
+  <https://github.com/VertaAI/modeldb-client/pull/232>`_
+
+
 v0.13.7 (2019-09-18)
 --------------------
 
