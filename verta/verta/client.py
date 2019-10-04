@@ -2889,6 +2889,8 @@ class ExperimentRun(_ModelDBEntity):
         """
         Associate a model deployment setup script with this Experiment Run.
 
+        .. versionadded:: 0.13.8
+
         Parameters
         ----------
         script : str
