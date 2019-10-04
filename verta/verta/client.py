@@ -2973,7 +2973,7 @@ class ExperimentRun(_ModelDBEntity):
                 zipf.printdir()
         zipstream.seek(0)
 
-        self._log_artifact("data-processors", zipstream, _CommonService.ArtifactTypeEnum.BLOB, 'zip')
+        self._log_artifact("data_processors", zipstream, _CommonService.ArtifactTypeEnum.BLOB, 'zip')
 
         # TODO: register processors to data API
         # response = _utils.make_request("PUT",
