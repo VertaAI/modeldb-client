@@ -17,6 +17,7 @@ import zipfile
 
 import requests
 
+import cloudpickle
 try:
     import PIL
 except ImportError:  # Pillow not installed
@@ -2433,7 +2434,7 @@ class ExperimentRun(_ModelDBEntity):
             req_deps.append(verta_dep)
         # if cloudpickle used, add to requirements
         if method == "cloudpickle":
-            cloudpickle_dep = "cloudpickle=={}".format(_artifact_utils.cloudpickle.__version__)
+            cloudpickle_dep = "cloudpickle=={}".format(cloudpickle.__version__)
             for req_dep in req_deps:
                 if req_dep.startswith("cloudpickle"):  # if present, check version
                     our_ver = cloudpickle_dep.split('==')[-1]
@@ -2503,8 +2504,7 @@ class ExperimentRun(_ModelDBEntity):
         self._log_artifact("model.pkl", model, _CommonService.ArtifactTypeEnum.MODEL, model_extension)
         self._log_artifact("model_api.json", model_api, _CommonService.ArtifactTypeEnum.BLOB, 'json')
         self._log_artifact("requirements.txt", requirements, _CommonService.ArtifactTypeEnum.BLOB, 'txt')
-        for processor_name, processor in six.viewitems(processors):
-            self.add_monitoring_processor(processor_name, processor)
+        self.add_monitoring_processors(processors)
 
     def log_model(self, key, model):
         """
@@ -2953,21 +2953,31 @@ class ExperimentRun(_ModelDBEntity):
 
         self._log_artifact("setup_script", script, _CommonService.ArtifactTypeEnum.BLOB, 'py')
 
-    def add_monitoring_processor(self, name, processor):
+    def add_monitoring_processors(self, processors):
         """
-        Associate a :class:`~verta.monitoring.Processor` with this Experiment Run.
+        Associate :class:`~verta.monitoring._BaseProcessor`\ s with this Experiment Run.
 
         Parameters
         ----------
-        name : str
-            Name to assign to the processor.
-        processor : :class:`~verta.monitoring.Processor`
-            Data processor.
+        processors : dict of str to :class:`~verta.monitoring._BaseProcessor`
+            Mapping of names to data processor objects.
 
         """
-        self._log_artifact("data-processor--{}".format(name), processor, _CommonService.ArtifactTypeEnum.BLOB)
-        response = _utils.make_request("PUT",
-                                       "{}://{}/api/v1/monitoring/data/{}/processors/{}".format(
-                                           self._conn.scheme, self._conn.socket, self.id, name),
-                                       self._conn, json={})
-        _utils.raise_for_http_error(response)
+        # compress processors together
+        zipstream = six.BytesIO()
+        with zipfile.ZipFile(zipstream, 'w') as zipf:
+            for name, processor in six.viewitems(processors):
+                zipf.writestr(name, cloudpickle.dumps(processor))
+            if self._conf.debug:
+                print("[DEBUG] archive contains:")
+                zipf.printdir()
+        zipstream.seek(0)
+
+        self._log_artifact("data-processors", zipstream, _CommonService.ArtifactTypeEnum.BLOB, 'zip')
+
+        # TODO: register processors to data API
+        # response = _utils.make_request("PUT",
+        #                                "{}://{}/api/v1/monitoring/data/{}/processors/{}".format(
+        #                                    self._conn.scheme, self._conn.socket, self.id, name),
+        #                                self._conn, json={})
+        # _utils.raise_for_http_error(response)
