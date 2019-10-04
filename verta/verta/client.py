@@ -2975,9 +2975,8 @@ class ExperimentRun(_ModelDBEntity):
 
         self._log_artifact("data_processors", zipstream, _CommonService.ArtifactTypeEnum.BLOB, 'zip')
 
-        # TODO: register processors to data API
-        # response = _utils.make_request("PUT",
-        #                                "{}://{}/api/v1/monitoring/data/{}/processors/{}".format(
-        #                                    self._conn.scheme, self._conn.socket, self.id, name),
-        #                                self._conn, json={})
-        # _utils.raise_for_http_error(response)
+        response = _utils.make_request("PUT",
+                                       "{}://{}/api/v1/monitoring/data/{}/processors".format(
+                                           self._conn.scheme, self._conn.socket, self.id),
+                                       self._conn, json={"processors": list(processors.keys())})
+        _utils.raise_for_http_error(response)
