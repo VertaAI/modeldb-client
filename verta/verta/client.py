@@ -2978,5 +2978,5 @@ class ExperimentRun(_ModelDBEntity):
         response = _utils.make_request("PUT",
                                        "{}://{}/api/v1/monitoring/data/{}/processors".format(
                                            self._conn.scheme, self._conn.socket, self.id),
-                                       self._conn, json={"processors": processors.keys()})
+                                       self._conn, json={"processors": list(processors.keys())})
         _utils.raise_for_http_error(response)
