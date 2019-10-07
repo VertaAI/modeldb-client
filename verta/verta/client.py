@@ -2954,7 +2954,7 @@ class ExperimentRun(_ModelDBEntity):
         self._log_artifact("setup_script", script, _CommonService.ArtifactTypeEnum.BLOB, 'py')
 
     def add_monitoring_processors(self, processors):
-        """
+        r"""
         Associate :class:`~verta.monitoring._BaseProcessor`\ s with this Experiment Run.
 
         Parameters
