@@ -1633,7 +1633,9 @@ class ExperimentRun(_ModelDBEntity):
         # determine basename
         #     The key might already contain the file extension, thanks to our hard-coded deployment
         #     keys e.g. "model.pkl" and "model_api.json".
-        if key.endswith(os.extsep + extension):
+        if extension is None:
+            basename = key
+        elif key.endswith(os.extsep + extension):
             basename = key
         else:
             basename = key + os.extsep + extension

@@ -162,7 +162,7 @@ def raise_for_http_error(response):
     except requests.HTTPError as e:
         try:
             reason = response.json()['message']
-        except (json.JSONDecodeError,  # not JSON response
+        except (ValueError,  # not JSON response
                 KeyError):  # no 'message' from back end
             six.raise_from(e, None)  # use default reason
         else:
