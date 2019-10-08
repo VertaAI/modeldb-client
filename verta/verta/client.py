@@ -2397,6 +2397,12 @@ class ExperimentRun(_ModelDBEntity):
             if not hasattr(model, 'read'):
                 print("[DEBUG] model is type: {}".format(model.__class__))
         _artifact_utils.reset_stream(model)  # reset cursor to beginning in case user forgot
+        # create and track zipped SavedModel, if applicable
+        if isinstance(model, utils.TFSavedModel):
+            saved_model_zip = model._zip_saved_model()
+        else:
+            saved_model_zip = None
+        # obtain serialized model and info
         try:
             model_extension = _artifact_utils.get_file_ext(model)
         except (TypeError, ValueError):
@@ -2471,6 +2477,8 @@ class ExperimentRun(_ModelDBEntity):
             train_data = None
 
         self._log_artifact("model.pkl", model, _CommonService.ArtifactTypeEnum.MODEL, model_extension)
+        if saved_model_zip is not None:
+            self._log_artifact("tf_saved_model", saved_model_zip, _CommonService.ArtifactTypeEnum.BLOB, 'zip')
         self._log_artifact("model_api.json", model_api, _CommonService.ArtifactTypeEnum.BLOB, 'json')
         self._log_artifact("requirements.txt", requirements, _CommonService.ArtifactTypeEnum.BLOB, 'txt')
         if train_data is not None:
