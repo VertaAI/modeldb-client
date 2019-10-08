@@ -73,7 +73,11 @@ class ModelAPI(object):
                     data = data.item()
                 # TODO: probably should use dtype instead of inferring the type?
                 return ModelAPI._single_data_to_api(data, name)
-        return ModelAPI._single_data_to_api(data[0], name)
+        try:
+            first_datum = data[0]
+        except:
+            six.raise_from(ValueError("arguments to ModelAPI() must be lists of data"), None)
+        return ModelAPI._single_data_to_api(first_datum, name)
 
     @staticmethod
     def _single_data_to_api(data, name=""):
