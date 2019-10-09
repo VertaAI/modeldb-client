@@ -9,8 +9,7 @@ import os
 
 import cloudpickle
 
-from . import utils
-from . import _utils
+from verta import _utils
 
 try:
     import joblib
@@ -79,8 +78,6 @@ def ext_from_method(method):
     """
     if method == "keras":
         return 'hdf5'
-    elif method == "saved_model":
-        return 'pkl'  # TFSavedModel util is pickled
     elif method in ("joblib", "cloudpickle", "pickle"):
         return 'pkl'
     elif method is None:
@@ -190,9 +187,9 @@ def serialize_model(model):
     -------
     bytestream : file-like
         Buffered bytestream of the serialized model.
-    method : {"joblib", "cloudpickle", "pickle", "saved_model", "keras", None}
+    method : {"joblib", "cloudpickle", "pickle", "keras", None}
         Serialization method used to produce the bytestream.
-    model_type : {"torch", "sklearn", "xgboost", "pure_tensorflow", "tensorflow", "custom", "callable"}
+    model_type : {"torch", "sklearn", "xgboost", "tensorflow", "custom", "callable"}
         Framework with which the model was built.
 
     """
@@ -207,43 +204,38 @@ def serialize_model(model):
         finally:
             reset_stream(model)  # reset cursor to beginning as a courtesy
 
-    if isinstance(model, utils.TFSavedModel):
-        model_type = "pure_tensorflow"
-        bytestream, _ = ensure_bytestream(model)
-        method = "saved_model"
+    for class_obj in model.__class__.__mro__:
+        module_name = class_obj.__module__
+        if not module_name:
+            continue
+        elif module_name.startswith("torch"):
+            model_type = "torch"
+            bytestream, method = ensure_bytestream(model)
+            break
+        elif module_name.startswith("sklearn"):
+            model_type = "sklearn"
+            bytestream, method = ensure_bytestream(model)
+            break
+        elif module_name.startswith("xgboost"):
+            model_type = "xgboost"
+            bytestream, method = ensure_bytestream(model)
+            break
+        elif module_name.startswith("tensorflow.python.keras"):
+            model_type = "tensorflow"
+            bytestream = six.BytesIO()
+            model.save(bytestream)  # Keras provides this fn
+            bytestream.seek(0)
+            method = "keras"
+            break
     else:
-        for class_obj in model.__class__.__mro__:
-            module_name = class_obj.__module__
-            if not module_name:
-                continue
-            elif module_name.startswith("torch"):
-                model_type = "torch"
-                bytestream, method = ensure_bytestream(model)
-                break
-            elif module_name.startswith("sklearn"):
-                model_type = "sklearn"
-                bytestream, method = ensure_bytestream(model)
-                break
-            elif module_name.startswith("xgboost"):
-                model_type = "xgboost"
-                bytestream, method = ensure_bytestream(model)
-                break
-            elif module_name.startswith("tensorflow.python.keras"):
-                model_type = "tensorflow"
-                bytestream = six.BytesIO()
-                model.save(bytestream)  # Keras provides this fn
-                bytestream.seek(0)
-                method = "keras"
-                break
+        if hasattr(model, 'predict'):
+            model_type = "custom"
+            bytestream, method = ensure_bytestream(model)
+        elif callable(model):
+            model_type = "callable"
+            bytestream, method = ensure_bytestream(model)
         else:
-            if hasattr(model, 'predict'):
-                model_type = "custom"
-                bytestream, method = ensure_bytestream(model)
-            elif callable(model):
-                model_type = "callable"
-                bytestream, method = ensure_bytestream(model)
-            else:
-                raise TypeError("cannot determine the type for model argument")
+            raise TypeError("cannot determine the type for model argument")
     return bytestream, method, model_type
 
 
