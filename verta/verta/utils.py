@@ -76,7 +76,7 @@ class ModelAPI(object):
         try:
             first_datum = data[0]
         except:
-            six.raise_from(ValueError("arguments to ModelAPI() must be lists of data"), None)
+            six.raise_from(TypeError("arguments to ModelAPI() must be lists of data"), None)
         return ModelAPI._single_data_to_api(first_datum, name)
 
     @staticmethod
