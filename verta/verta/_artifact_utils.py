@@ -260,11 +260,11 @@ def deserialize_model(bytestring):
     try:
         return keras.models.load_model(bytestream)
     except (NameError,  # Tensorflow not installed
-            OSError):  # not a Keras model
+            IOError, OSError):  # not a Keras model
         bytestream.seek(0)
     try:
         return cloudpickle.load(bytestream)
-    except pickle.UnpicklingError:  # not a pickled object
+    except:  # not a pickled object
         bytestream.seek(0)
     return bytestream
 
