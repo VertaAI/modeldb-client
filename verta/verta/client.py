@@ -1598,7 +1598,7 @@ class ExperimentRun(_ModelDBEntity):
         else:
             _utils.raise_for_http_error(response)
 
-    def _log_artifact(self, key, artifact, artifact_type, extension=None):
+    def _log_artifact(self, key, artifact, artifact_type, extension=None, method=None):
         """
         Logs an artifact to this Experiment Run.
 
@@ -1616,12 +1616,16 @@ class ExperimentRun(_ModelDBEntity):
             Variant of `_CommonService.ArtifactTypeEnum`.
         extension : str, optional
             Filename extension associated with the artifact.
-
+        method : str, optional
+            Serialization method used to produce the bytestream, if `artifact` was already serialized by verta.
         """
         if isinstance(artifact, six.string_types):
             artifact = open(artifact, 'rb')
 
-        artifact_stream, method = _artifact_utils.ensure_bytestream(artifact)
+        if hasattr(artifact, 'read') and method is not None:  # already a verta-produced stream
+            artifact_stream = artifact
+        else:
+            artifact_stream, method = _artifact_utils.ensure_bytestream(artifact)
 
         if extension is None:
             extension = _artifact_utils.ext_from_method(method)
@@ -2471,7 +2475,7 @@ class ExperimentRun(_ModelDBEntity):
         else:
             train_data = None
 
-        self._log_artifact("model.pkl", model, _CommonService.ArtifactTypeEnum.MODEL, model_extension)
+        self._log_artifact("model.pkl", model, _CommonService.ArtifactTypeEnum.MODEL, model_extension, method)
         self._log_artifact("model_api.json", model_api, _CommonService.ArtifactTypeEnum.BLOB, 'json')
         self._log_artifact("requirements.txt", requirements, _CommonService.ArtifactTypeEnum.BLOB, 'txt')
         if train_data is not None:
@@ -2516,7 +2520,7 @@ class ExperimentRun(_ModelDBEntity):
         if extension is None:
             extension = _artifact_utils.ext_from_method(method)
 
-        self._log_artifact(key, model, _CommonService.ArtifactTypeEnum.MODEL, extension)
+        self._log_artifact(key, model, _CommonService.ArtifactTypeEnum.MODEL, extension, method)
 
     def log_model_path(self, key, model_path):
         """
