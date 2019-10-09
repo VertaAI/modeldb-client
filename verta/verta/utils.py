@@ -177,32 +177,3 @@ class TFSavedModel(object):
     An object representing a TensorFlow SavedModel for logging.
 
     """
-    def __init__(self, saved_model_dir, tags):
-        if tf is None:
-            raise ImportError("TensorFlow is not installed; try `pip install tensorflow`")
-
-        self.saved_model_dir = saved_model_dir
-        self.tags = tags
-
-    @classmethod
-    def from_simple_save(cls, export_dir):
-        return cls(
-            saved_model_dir=export_dir,
-            tags=[tf.saved_model.tag_constants.SERVING],
-        )
-
-    def _zip_saved_model(self):
-        """
-        Returns
-        -------
-        :class:`tempfile.TemporaryFile`
-
-        """
-        tempf = tempfile.TemporaryFile(mode='w+b')
-        with zipfile.ZipFile(tempf, 'w') as zipf:
-            for root, _, files in os.walk(self.saved_model_dir):
-                for filename in files:
-                    filepath = os.path.join(root, filename)
-                    zipf.write(filepath, os.path.relpath(filepath, self.saved_model_dir))
-        tempf.seek(0)
-        return tempf
