@@ -182,22 +182,9 @@ class TFSavedModel(object):
         self.saved_model_dir = saved_model_dir
         self.session = session or tf.Session()
 
-        # obtain info about input/output signature
-        meta_graph_def = tf.compat.v1.saved_model.load(self.session, ['serve'], self.saved_model_dir)
-        input_def = meta_graph_def.signature_def['serving_default'].inputs
-        output_def = meta_graph_def.signature_def['serving_default'].outputs
-
-        # map input names to tensors
-        self.input_tensors = {
-            input_name: self.session.graph.get_tensor_by_name(tensor_info.name)
-            for input_name, tensor_info in input_def.items()
-        }
-
-        # map output names to tensors
-        self.output_tensors = {
-            output_name: self.session.graph.get_tensor_by_name(tensor_info.name)
-            for output_name, tensor_info in output_def.items()
-        }
+        input_tensors, output_tensors = self._map_tensors()
+        self.input_tensors = input_tensors
+        self.output_tensors = output_tensors
 
     def __getstate__(self):
         if _utils.THREAD_LOCALS.active_experiment_run is not None:
@@ -206,18 +193,35 @@ class TFSavedModel(object):
             raise RuntimeError("this TFSavedModel is not being pickled in log_model_for_deployment(),"
                                " and will not be properly deserializable")
 
-        state = self.__dict__.copy()
-        del state['session']
-        del state['input_tensors']
-        del state['output_tensors']
+        return {}  # no state needs to be saved
 
-        return state
+    def __setstate__(self, state):
+        self.saved_model_dir = _utils.SAVED_MODEL_DIR
+        self.session = tf.Session()
 
-    # def __setstate__(self, state):
-    #     saved_model_dir = "/app/tf_saved_model/"
-    #     meta_graph_def = tf.compat.v1.saved_model.load(self.session, ['serve'], saved_model_dir)
+        input_tensors, output_tensors = self._map_tensors()
+        self.input_tensors = input_tensors
+        self.output_tensors = output_tensors
 
-    #     self.__dict__.update(state)
+    def _map_tensors(self):
+        # obtain info about input/output signature
+        meta_graph_def = tf.compat.v1.saved_model.load(self.session, ['serve'], self.saved_model_dir)
+
+        # map input names to tensors
+        input_def = meta_graph_def.signature_def['serving_default'].inputs
+        input_tensors = {
+            input_name: self.session.graph.get_tensor_by_name(tensor_info.name)
+            for input_name, tensor_info in input_def.items()
+        }
+
+        # map output names to tensors
+        output_def = meta_graph_def.signature_def['serving_default'].outputs
+        output_tensors = {
+            output_name: self.session.graph.get_tensor_by_name(tensor_info.name)
+            for output_name, tensor_info in output_def.items()
+        }
+
+        return input_tensors, output_tensors
 
     def predict(self, **kwargs):
         """
