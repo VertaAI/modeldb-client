@@ -203,7 +203,7 @@ class TFSavedModel(object):
     # def __setstate__(self, state):
     #     pass
 
-    def predict(self, *args, **kwargs):
+    def predict(self, **kwargs):
         """
         Parameters
         ----------
