@@ -64,7 +64,7 @@ class Connection:
             Verta authentication headers.
         max_retries : int, default 0
             Maximum number of times to retry a request on a connection failure. This only attempts retries
-            on HTTP codes {403, 503, 504} which commonly occur during back end connection lapses.
+            on HTTP codes {403, 502, 503, 504} which commonly occur during back end connection lapses.
         ignore_conn_err : bool, default False
             Whether to ignore connection errors and instead return successes with empty contents.
 
@@ -76,7 +76,7 @@ class Connection:
         self.retry = Retry(total=max_retries,
                            backoff_factor=1,  # each retry waits (2**retry_num) seconds
                            method_whitelist=False,  # retry on all HTTP methods
-                           status_forcelist=(403, 503, 504),  # only retry on these status codes
+                           status_forcelist=(403, 502, 503, 504),  # only retry on these status codes
                            raise_on_redirect=False,  # return Response instead of raising after max retries
                            raise_on_status=False)  # return Response instead of raising after max retries
         self.ignore_conn_err = ignore_conn_err
