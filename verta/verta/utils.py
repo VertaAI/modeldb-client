@@ -173,7 +173,42 @@ class ModelAPI(object):
 
 
 class TFSavedModel(object):
-    """
-    An object representing a TensorFlow SavedModel for logging.
+    def __init__(self, saved_model_dir):
+        if tf is None:
+            raise ImportError("TensorFlow is not installed; try `pip install tensorflow`")
 
-    """
+        self.saved_model_dir = saved_model_dir
+        self.session = tf.Session()
+
+        self.meta_graph_def = tf.compat.v1.saved_model.load(self.session, ['serve'], self.saved_model_dir)
+
+    def __getstate__(self):
+        pass
+
+    def __setstate__(self, state):
+        pass
+
+    def predict(self, x):
+        """
+        Parameters
+        ----------
+        x : dict of str to list
+            op/tensor names to input values
+
+        """
+        inputs = self.meta_graph_def.signature_def['serving_default'].inputs
+        outputs = self.meta_graph_def.signature_def['serving_default'].outputs
+
+        # map input tensors to values
+        input_dict = {
+            self.session.graph.get_tensor_by_name(inputs[input_name].name): val
+            for input_name, val in x.items()
+        }
+
+        # map output names to tensors
+        output_dict = {
+            output_name: self.session.graph.get_tensor_by_name(tensor_info.name)
+            for output_name, tensor_info in outputs.items()
+        }
+
+        return self.session.run(output_dict, input_dict)
