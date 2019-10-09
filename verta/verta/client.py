@@ -2411,7 +2411,7 @@ class ExperimentRun(_ModelDBEntity):
         try:
             model, method, model_type = _artifact_utils.serialize_model(model)
         finally:
-            del _utils.THREAD_LOCALS.active_experiment_run
+            _utils.THREAD_LOCALS.active_experiment_run = None
         # check serialization method
         if method is None:
             raise ValueError("will not be able to deploy model due to unknown serialization method")

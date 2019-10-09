@@ -200,7 +200,7 @@ class TFSavedModel(object):
         }
 
     def __getstate__(self):
-        if hasattr(_utils.THREAD_LOCALS, 'active_experiment_run'):
+        if _utils.THREAD_LOCALS.active_experiment_run is not None:
             _utils.THREAD_LOCALS.active_experiment_run.log_tf_saved_model(self.saved_model_dir)
         else:
             raise RuntimeError("this TFSavedModel is not being pickled in log_model_for_deployment(),"
