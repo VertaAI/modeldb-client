@@ -203,18 +203,18 @@ class TFSavedModel(object):
     # def __setstate__(self, state):
     #     pass
 
-    def predict(self, x):
+    def predict(self, *args, **kwargs):
         """
         Parameters
         ----------
-        x : dict of str to list
-            op/tensor names to input values
+        **kwargs
+            Values for input tensors.
 
         """
         # map input tensors to values
         input_dict = {
             self.input_tensors[input_name]: val
-            for input_name, val in x.items()
+            for input_name, val in kwargs.items()
         }
 
         return self.session.run(self.output_tensors, input_dict)
