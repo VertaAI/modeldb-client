@@ -2406,7 +2406,13 @@ class ExperimentRun(_ModelDBEntity):
             model_extension = _artifact_utils.get_file_ext(model)
         except (TypeError, ValueError):
             model_extension = None
-        model, method, model_type = _artifact_utils.serialize_model(model)
+        # serialize model
+        _utils.THREAD_LOCALS.active_experiment_run = self
+        try:
+            model, method, model_type = _artifact_utils.serialize_model(model)
+        finally:
+            del _utils.THREAD_LOCALS.active_experiment_run
+        # check serialization method
         if method is None:
             raise ValueError("will not be able to deploy model due to unknown serialization method")
         if model_extension is None:
