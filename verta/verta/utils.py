@@ -180,7 +180,7 @@ class TFSavedModel(object):
         self.saved_model_dir = saved_model_dir
         self.session = session or tf.Session()
 
-        # save info about input/output signature
+        # obtain info about input/output signature
         meta_graph_def = tf.compat.v1.saved_model.load(self.session, ['serve'], self.saved_model_dir)
         input_def = meta_graph_def.signature_def['serving_default'].inputs
         output_def = meta_graph_def.signature_def['serving_default'].outputs
