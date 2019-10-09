@@ -8,9 +8,16 @@ import json
 import numbers
 import os
 import pathlib2
+import tempfile
+import zipfile
+
+try:
+    import tensorflow as tf
+except ImportError:  # TensorFlow not installed
+    tf = None
 
 
-class ModelAPI:
+class ModelAPI(object):
     """
     A file-like and partially dict-like object representing a Verta model API.
 
@@ -66,7 +73,11 @@ class ModelAPI:
                     data = data.item()
                 # TODO: probably should use dtype instead of inferring the type?
                 return ModelAPI._single_data_to_api(data, name)
-        return ModelAPI._single_data_to_api(data[0], name)
+        try:
+            first_datum = data[0]
+        except:
+            six.raise_from(TypeError("arguments to ModelAPI() must be lists of data"), None)
+        return ModelAPI._single_data_to_api(first_datum, name)
 
     @staticmethod
     def _single_data_to_api(data, name=""):
@@ -159,3 +170,51 @@ class ModelAPI:
 
         """
         return json.loads(self.__str__())
+
+
+class TFSavedModel(object):
+    def __init__(self, saved_model_dir, session=None):
+        if tf is None:
+            raise ImportError("TensorFlow is not installed; try `pip install tensorflow`")
+
+        self.saved_model_dir = saved_model_dir
+        self.session = session or tf.Session()
+
+        # obtain info about input/output signature
+        meta_graph_def = tf.compat.v1.saved_model.load(self.session, ['serve'], self.saved_model_dir)
+        input_def = meta_graph_def.signature_def['serving_default'].inputs
+        output_def = meta_graph_def.signature_def['serving_default'].outputs
+
+        # map input names to tensors
+        self.input_tensors = {
+            input_name: self.session.graph.get_tensor_by_name(tensor_info.name)
+            for input_name, tensor_info in input_def.items()
+        }
+
+        # map output names to tensors
+        self.output_tensors = {
+            output_name: self.session.graph.get_tensor_by_name(tensor_info.name)
+            for output_name, tensor_info in output_def.items()
+        }
+
+    # def __getstate__(self):
+    #     pass
+
+    # def __setstate__(self, state):
+    #     pass
+
+    def predict(self, **kwargs):
+        """
+        Parameters
+        ----------
+        **kwargs
+            Values for input tensors.
+
+        """
+        # map input tensors to values
+        input_dict = {
+            self.input_tensors[input_name]: val
+            for input_name, val in kwargs.items()
+        }
+
+        return self.session.run(self.output_tensors, input_dict)
