@@ -173,14 +173,29 @@ class ModelAPI(object):
 
 
 class TFSavedModel(object):
-    def __init__(self, saved_model_dir):
+    def __init__(self, saved_model_dir, session=None):
         if tf is None:
             raise ImportError("TensorFlow is not installed; try `pip install tensorflow`")
 
         self.saved_model_dir = saved_model_dir
-        self.session = tf.Session()
+        self.session = session or tf.Session()
 
-        self.meta_graph_def = tf.compat.v1.saved_model.load(self.session, ['serve'], self.saved_model_dir)
+        # save info about input/output signature
+        meta_graph_def = tf.compat.v1.saved_model.load(self.session, ['serve'], self.saved_model_dir)
+        input_def = meta_graph_def.signature_def['serving_default'].inputs
+        output_def = meta_graph_def.signature_def['serving_default'].outputs
+
+        # map input names to tensors
+        self.input_tensors = {
+            input_name: self.session.graph.get_tensor_by_name(tensor_info.name)
+            for input_name, tensor_info in input_def.items()
+        }
+
+        # map output names to tensors
+        self.output_tensors = {
+            output_name: self.session.graph.get_tensor_by_name(tensor_info.name)
+            for output_name, tensor_info in output_def.items()
+        }
 
     def __getstate__(self):
         pass
@@ -196,19 +211,10 @@ class TFSavedModel(object):
             op/tensor names to input values
 
         """
-        input_def = self.meta_graph_def.signature_def['serving_default'].inputs
-        output_def = self.meta_graph_def.signature_def['serving_default'].outputs
-
         # map input tensors to values
         input_dict = {
-            self.session.graph.get_tensor_by_name(input_def[input_name].name): val
+            self.input_tensors[input_name]: val
             for input_name, val in x.items()
         }
 
-        # map output names to tensors
-        output_dict = {
-            output_name: self.session.graph.get_tensor_by_name(tensor_info.name)
-            for output_name, tensor_info in output_def.items()
-        }
-
-        return self.session.run(output_dict, input_dict)
+        return self.session.run(self.output_tensors, input_dict)
