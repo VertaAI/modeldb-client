@@ -196,19 +196,19 @@ class TFSavedModel(object):
             op/tensor names to input values
 
         """
-        inputs = self.meta_graph_def.signature_def['serving_default'].inputs
-        outputs = self.meta_graph_def.signature_def['serving_default'].outputs
+        input_def = self.meta_graph_def.signature_def['serving_default'].inputs
+        output_def = self.meta_graph_def.signature_def['serving_default'].outputs
 
         # map input tensors to values
         input_dict = {
-            self.session.graph.get_tensor_by_name(inputs[input_name].name): val
+            self.session.graph.get_tensor_by_name(input_def[input_name].name): val
             for input_name, val in x.items()
         }
 
         # map output names to tensors
         output_dict = {
             output_name: self.session.graph.get_tensor_by_name(tensor_info.name)
-            for output_name, tensor_info in outputs.items()
+            for output_name, tensor_info in output_def.items()
         }
 
         return self.session.run(output_dict, input_dict)
