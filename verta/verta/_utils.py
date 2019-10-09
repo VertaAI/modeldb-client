@@ -12,6 +12,7 @@ import re
 import string
 import subprocess
 import sys
+import threading
 import time
 
 import requests
@@ -47,6 +48,9 @@ else:
 
 _VALID_HTTP_METHODS = {'GET', 'POST', 'PUT', 'DELETE'}
 _VALID_FLAT_KEY_CHARS = set(string.ascii_letters + string.digits + '_-')
+
+THREAD_LOCALS = threading.local()
+THREAD_LOCALS.active_experiment_run = None
 
 
 class Connection:

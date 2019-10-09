@@ -16,6 +16,8 @@ try:
 except ImportError:  # TensorFlow not installed
     tf = None
 
+from . import _utils
+
 
 class ModelAPI(object):
     """
@@ -197,11 +199,25 @@ class TFSavedModel(object):
             for output_name, tensor_info in output_def.items()
         }
 
-    # def __getstate__(self):
-    #     pass
+    def __getstate__(self):
+        if _utils.THREAD_LOCALS.active_experiment_run is not None:
+            _utils.THREAD_LOCALS.active_experiment_run.log_tf_saved_model(self.saved_model_dir)
+        else:
+            raise RuntimeError("this TFSavedModel is not being pickled in log_model_for_deployment(),"
+                               " and will not be properly deserializable")
+
+        state = self.__dict__.copy()
+        del state['session']
+        del state['input_tensors']
+        del state['output_tensors']
+
+        return state
 
     # def __setstate__(self, state):
-    #     pass
+    #     saved_model_dir = "/app/tf_saved_model/"
+    #     meta_graph_def = tf.compat.v1.saved_model.load(self.session, ['serve'], saved_model_dir)
+
+    #     self.__dict__.update(state)
 
     def predict(self, **kwargs):
         """
