@@ -197,11 +197,11 @@ class TFSavedModel(object):
             for output_name, tensor_info in output_def.items()
         }
 
-    def __getstate__(self):
-        pass
+    # def __getstate__(self):
+    #     pass
 
-    def __setstate__(self, state):
-        pass
+    # def __setstate__(self, state):
+    #     pass
 
     def predict(self, x):
         """
