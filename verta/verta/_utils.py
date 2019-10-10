@@ -52,6 +52,8 @@ _VALID_FLAT_KEY_CHARS = set(string.ascii_letters + string.digits + '_-')
 THREAD_LOCALS = threading.local()
 THREAD_LOCALS.active_experiment_run = None
 
+SAVED_MODEL_DIR = "/app/tf_saved_model/"
+
 
 class Connection:
     def __init__(self, scheme=None, socket=None, auth=None, max_retries=0, ignore_conn_err=False):
