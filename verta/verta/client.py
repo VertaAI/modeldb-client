@@ -2886,6 +2886,8 @@ class ExperimentRun(_ModelDBEntity):
         with zipfile.ZipFile(bytestream, 'w') as zipf:
             for filepath in filepaths:
                 zipf.write(filepath, os.path.relpath(filepath, common_dir))
+
+            # add verta config file for sys.path and chdir
             working_dir = os.path.join(CUSTOM_MODULES_DIR, os.path.relpath(curr_dir, common_dir))
             zipf.writestr(
                 "_verta_config.py",
@@ -2902,6 +2904,12 @@ class ExperimentRun(_ModelDBEntity):
                     "os.chdir(\"{}\")".format(working_dir),
                 ]))
             )
+
+            # add __init__.py
+            init_filename = "__init__.py"
+            if init_filename not in zipf.namelist():
+                zipf.writestr(init_filename, b"")
+
             if self._conf.debug:
                 print("[DEBUG] archive contains:")
                 zipf.printdir()
