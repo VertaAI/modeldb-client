@@ -48,7 +48,7 @@ class DeployedModel:
     <DeployedModel 01234567-0123-0123-0123-012345678901>
 
     """
-    def __init__(self, _host=None, _run_id=None, **kwargs):
+    def __init__(self, _host=None, _run_id=None, _from_url=False, **kwargs):
         # this is to temporarily maintain compatibility with anyone passing in `socket` and `model_id` as kwargs
         # TODO v0.14.0: instate `host` and `run_id` params
         # TODO v0.14.0: remove the following block of param checks
@@ -67,15 +67,16 @@ class DeployedModel:
             raise TypeError("missing required argument: `run_id`")
 
         self._session = requests.Session()
-        self._session.headers.update({_GRPC_PREFIX+'source': "PythonClient"})
-        try:
-            self._session.headers.update({_GRPC_PREFIX+'email': os.environ['VERTA_EMAIL']})
-        except KeyError:
-            six.raise_from(EnvironmentError("${} not found in environment".format('VERTA_EMAIL')), None)
-        try:
-            self._session.headers.update({_GRPC_PREFIX+'developer_key': os.environ['VERTA_DEV_KEY']})
-        except KeyError:
-            six.raise_from(EnvironmentError("${} not found in environment".format('VERTA_DEV_KEY')), None)
+        if not _from_url:
+            self._session.headers.update({_GRPC_PREFIX+'source': "PythonClient"})
+            try:
+                self._session.headers.update({_GRPC_PREFIX+'email': os.environ['VERTA_EMAIL']})
+            except KeyError:
+                six.raise_from(EnvironmentError("${} not found in environment".format('VERTA_EMAIL')), None)
+            try:
+                self._session.headers.update({_GRPC_PREFIX+'developer_key': os.environ['VERTA_DEV_KEY']})
+            except KeyError:
+                six.raise_from(EnvironmentError("${} not found in environment".format('VERTA_DEV_KEY')), None)
 
         back_end_url = urlparse(host)
         self._scheme = back_end_url.scheme or "https"
@@ -123,7 +124,7 @@ class DeployedModel:
         """
         parsed_url = urlparse(url)
 
-        deployed_model = cls(parsed_url.netloc, "")
+        deployed_model = cls(parsed_url.netloc, "", _from_url=True)
         deployed_model._id = None
         deployed_model._status_url = None
 
