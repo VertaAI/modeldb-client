@@ -175,6 +175,36 @@ class ModelAPI(object):
 
 
 class TFSavedModel(object):
+    """
+    Wrapper around a TensorFlow SavedModel for compatibility with Verta deployment.
+
+    Parameters
+    ----------
+    saved_model_dir : str
+        Directory containing a SavedModel.
+    session: :class:`tf.Session`, optional
+        Session to load the SavedModel into. This parameter is for using the model locally; the
+        session will be handled automatically during deployment.
+
+    Examples
+    --------
+    >>> class TextVectorizer(object):
+    ...     def __init__(self, saved_model_dir, word_to_index, max_input_length):
+    ...         self.saved_model = TFSavedModel(saved_model_dir)  # text embedding model
+    ...         self.word_to_index = word_to_index
+    ...         self.max_input_length = max_input_length
+    ...
+    ...     def predict(self, input_strs):
+    ...         predictions = []
+    ...         for input_str in input_strs:
+    ...             words = input_str.split()
+    ...             batch_indices = list(map(self.word_to_index.get, words))
+    ...             padding = [self.word_to_index("<UNK>")]*(self.max_input_length - len(batch_indices))
+    ...
+    ...             predictions.append(self.saved_model.predict(batch_indices=batch_indices+padding))
+    ...         return predictions
+
+    """
     def __init__(self, saved_model_dir, session=None):
         if tf is None:
             raise ImportError("TensorFlow is not installed; try `pip install tensorflow`")
@@ -196,6 +226,8 @@ class TFSavedModel(object):
         return {}  # no state needs to be saved
 
     def __setstate__(self, state):
+        self.__dict__.update(state)
+
         self.saved_model_dir = _utils.SAVED_MODEL_DIR
         self.session = tf.Session()
 
@@ -229,6 +261,16 @@ class TFSavedModel(object):
         ----------
         **kwargs
             Values for input tensors.
+
+        Returns
+        -------
+        dict of string to :class:`np.array`
+            Map of output names to values.
+
+        Examples
+        --------
+        >>> tf_saved_model.predict(x=[1], y=[2])
+        {'x_plus_y': array([3], dtype=int32)}
 
         """
         # map input tensors to values
