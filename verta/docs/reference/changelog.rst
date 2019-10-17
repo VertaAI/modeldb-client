@@ -32,6 +32,28 @@ Release Notes
      <>`_
 
 
+v0.13.9 (2019-10-17)
+--------------------
+
+Bug Fixes
+^^^^^^^^^
+- `replace json.JSONDecodeError for Python 2
+  <https://github.com/VertaAI/modeldb-client/pull/262>`_
+- `remove check for Verta credentials from DeployedModel::from_url()
+  <https://github.com/VertaAI/modeldb-client/pull/268>`_
+- `properly resolve relative paths in deployment for custom modules
+  <https://github.com/VertaAI/modeldb-client/pull/267>`_
+- `enable uploading non-Python artifacts
+  <https://github.com/VertaAI/modeldb-client/pull/262>`_
+- `enable consistent retrieval of models for Python 2
+  <https://github.com/VertaAI/modeldb-client/pull/270>`_
+
+Internal Changes
+^^^^^^^^^^^^^^^^
+- `add retries for HTTP 502s
+  <https://github.com/VertaAI/modeldb-client/pull/264/files>`_
+
+
 v0.13.8 (2019-10-03)
 --------------------
 
