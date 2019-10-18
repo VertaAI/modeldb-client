@@ -9,7 +9,6 @@ import verta
 
 
 class TestLogModelForDeployment:
-    @pytest.mark.skipif(six.PY2, reason="run.get_model() doesn't work in Python 2")
     def test_model(self, experiment_run, model_for_deployment):
         experiment_run.log_model_for_deployment(**model_for_deployment)
         retrieved_model = experiment_run.get_model("model.pkl")

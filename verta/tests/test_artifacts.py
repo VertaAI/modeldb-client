@@ -86,7 +86,6 @@ class TestArtifacts:
                 experiment_run.log_artifact(key, artifact)
 
 
-@pytest.mark.skipif(six.PY2, reason="run.get_model() doesn't work in Python 2")
 class TestModels:
     def test_sklearn(self, seed, experiment_run, strs):
         np.random.seed(seed)

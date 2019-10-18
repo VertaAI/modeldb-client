@@ -6,6 +6,7 @@ import six.moves.cPickle as pickle
 import csv
 import json
 import os
+import tempfile
 
 import cloudpickle
 
@@ -222,9 +223,10 @@ def serialize_model(model):
             break
         elif module_name.startswith("tensorflow.python.keras"):
             model_type = "tensorflow"
-            bytestream = six.BytesIO()
-            model.save(bytestream)  # Keras provides this fn
-            bytestream.seek(0)
+            tempf = tempfile.NamedTemporaryFile()
+            model.save(tempf.name)  # Keras provides this fn
+            tempf.seek(0)
+            bytestream = tempf
             method = "keras"
             break
     else:
@@ -256,16 +258,23 @@ def deserialize_model(bytestring):
         Model or buffered bytestream representing the model.
 
     """
+    # try deserializing with Keras (HDF5)
+    with tempfile.NamedTemporaryFile() as tempf:
+        tempf.write(bytestring)
+        tempf.seek(0)
+        try:
+            return keras.models.load_model(tempf.name)
+        except (NameError,  # Tensorflow not installed
+                IOError, OSError):  # not a Keras model
+            pass
+
+    # try deserializing with cloudpickle
     bytestream = six.BytesIO(bytestring)
-    try:
-        return keras.models.load_model(bytestream)
-    except (NameError,  # Tensorflow not installed
-            IOError, OSError):  # not a Keras model
-        bytestream.seek(0)
     try:
         return cloudpickle.load(bytestream)
     except:  # not a pickled object
         bytestream.seek(0)
+
     return bytestream
 
 
