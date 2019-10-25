@@ -1,6 +1,6 @@
 import six
 
-from multiprocessing import Pool
+import multiprocessing
 
 import pytest
 
@@ -39,5 +39,6 @@ class TestLoad:
     def test_load(self, client, floats):
         client.set_project()
         client.set_experiment()
-        with Pool(36) as pool:
-            pool.map(self.run_fake_experiment, [(client, floats)]*144)
+        pool = multiprocessing.Pool(36)
+        pool.map(self.run_fake_experiment, [(client, floats)]*144)
+        pool.close()
