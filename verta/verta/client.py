@@ -1672,6 +1672,15 @@ class ExperimentRun(_ModelDBEntity):
         if self._conf.debug:
             print("[DEBUG] uploading {} bytes ({})".format(len(artifact_stream.read()), basename))
             artifact_stream.seek(0)
+
+        # accommodate port-forwarded NFS store
+        if 'https://localhost' in url[:20]:
+            url = 'http' + url[5:]
+        if 'localhost%3a' in url[:20]:
+            url = url.replace('localhost%3a', 'localhost:')
+        if 'localhost%3A' in url[:20]:
+            url = url.replace('localhost%3A', 'localhost:')
+
         response = _utils.make_request("PUT", url, self._conn, data=artifact_stream)
         _utils.raise_for_http_error(response)
         print("upload complete ({})".format(basename))
