@@ -733,6 +733,15 @@ class _ModelDBEntity(object):
         if msg.code_version.WhichOneof("code") == 'code_archive':
             # upload artifact to artifact store
             url = self._get_url_for_artifact("verta_code_archive", "PUT", msg.code_version.code_archive.artifact_type)
+
+            # accommodate port-forwarded NFS store
+            if 'https://localhost' in url[:20]:
+                url = 'http' + url[5:]
+            if 'localhost%3a' in url[:20]:
+                url = url.replace('localhost%3a', 'localhost:')
+            if 'localhost%3A' in url[:20]:
+                url = url.replace('localhost%3A', 'localhost:')
+
             response = _utils.make_request("PUT", url, self._conn, data=zipstream)
             _utils.raise_for_http_error(response)
 
@@ -787,6 +796,15 @@ class _ModelDBEntity(object):
         elif which_code == 'code_archive':
             # download artifact from artifact store
             url = self._get_url_for_artifact("verta_code_archive", "GET", code_ver_msg.code_archive.artifact_type)
+
+            # accommodate port-forwarded NFS store
+            if 'https://localhost' in url[:20]:
+                url = 'http' + url[5:]
+            if 'localhost%3a' in url[:20]:
+                url = url.replace('localhost%3a', 'localhost:')
+            if 'localhost%3A' in url[:20]:
+                url = url.replace('localhost%3A', 'localhost:')
+
             response = _utils.make_request("GET", url, self._conn)
             _utils.raise_for_http_error(response)
 
