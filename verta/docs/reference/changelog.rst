@@ -32,6 +32,20 @@ Release Notes
      <>`_
 
 
+v0.13.10 (2019-10-27)
+---------------------
+
+Bug Fixes
+^^^^^^^^^
+- `fix bug with locally-hosted artifact stores
+  <https://github.com/VertaAI/modeldb-client/compare/f32b5a0...8e13822>`_
+
+Internal Changes
+^^^^^^^^^^^^^^^^
+- `update notebooks
+  <https://github.com/VertaAI/modeldb-client/compare/a6ccf9c...f32b5a0>`_
+
+
 v0.13.9 (2019-10-17)
 --------------------
 
