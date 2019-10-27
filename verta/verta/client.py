@@ -1754,6 +1754,15 @@ class ExperimentRun(_ModelDBEntity):
         else:
             # download artifact from artifact store
             url = self._get_url_for_artifact(key, "GET")
+
+            # accommodate port-forwarded NFS store
+            if 'https://localhost' in url[:20]:
+                url = 'http' + url[5:]
+            if 'localhost%3a' in url[:20]:
+                url = url.replace('localhost%3a', 'localhost:')
+            if 'localhost%3A' in url[:20]:
+                url = url.replace('localhost%3A', 'localhost:')
+
             response = _utils.make_request("GET", url, self._conn)
             _utils.raise_for_http_error(response)
 
