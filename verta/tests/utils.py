@@ -119,3 +119,8 @@ def delete_experiment_run(id_, conn):
     request_url = "{}://{}/v1/experiment-run/deleteExperimentRun".format(conn.scheme, conn.socket)
     response = requests.delete(request_url, json={'id': id_}, headers=conn.auth)
     response.raise_for_status()
+
+def delete_datasets(ids, conn):
+    request_url = "{}://{}/v1/dataset/deleteDatasets".format(conn.scheme, conn.socket)
+    response = requests.delete(request_url, json={'ids': ids}, headers=conn.auth)
+    response.raise_for_status()
