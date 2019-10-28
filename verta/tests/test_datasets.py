@@ -149,9 +149,6 @@ class TestClientDatasetFunctions:
         # assert datasets[1].id == dataset2.id
         # assert datasets[2].id == dataset3.id
 
-        datasets = client.find_datasets()
-        assert len(datasets) >= 2 # at least 2 because they were just created. Needs to be updated
-
         datasets = client.find_datasets(tags=["test1-" + name1,
             "test2-" + name1])
         assert len(datasets) == 1
