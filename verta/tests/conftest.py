@@ -221,6 +221,17 @@ def experiment_run(client):
     return client.set_experiment_run()
 
 
+@pytest.fixture
+def created_datasets(client):
+    """Container to track and clean up Datasets created during tests."""
+    created_datasets = []
+
+    yield created_datasets
+
+    if created_datasets:
+        utils.delete_datasets(list(set(dataset.id for dataset in created_datasets)), client._conn)
+
+
 @pytest.fixture(scope='session')
 def s3_bucket():
     return os.environ.get("VERTA_S3_TEST_BUCKET", DEFAULT_S3_TEST_BUCKET)
