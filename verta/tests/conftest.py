@@ -6,7 +6,6 @@ import os
 import shutil
 import string
 
-from google.cloud import bigquery
 import numpy as np
 
 import verta
@@ -24,10 +23,6 @@ DEFAULT_HOST = None
 DEFAULT_PORT = None
 DEFAULT_EMAIL = None
 DEFAULT_DEV_KEY = None
-
-DEFAULT_S3_TEST_BUCKET = "bucket"
-DEFAULT_S3_TEST_OBJECT = "object"
-DEFAULT_GOOGLE_APPLICATION_CREDENTIALS = "credentials.json"
 
 
 # hypothesis on Jenkins is apparently too slow
@@ -227,27 +222,3 @@ def created_datasets(client):
 
     if created_datasets:
         utils.delete_datasets(list(set(dataset.id for dataset in created_datasets)), client._conn)
-
-
-@pytest.fixture(scope='session')
-def s3_bucket():
-    return os.environ.get("VERTA_S3_TEST_BUCKET", DEFAULT_S3_TEST_BUCKET)
-
-
-@pytest.fixture(scope='session')
-def s3_object():
-    return os.environ.get("VERTA_S3_TEST_OBJECT", DEFAULT_S3_TEST_OBJECT)
-
-
-@pytest.fixture(scope='session')
-def bq_query():
-    return (
-        "SELECT id, `by`, score, time, time_ts, title, url, text, deleted, dead, descendants, author"
-        " FROM `bigquery-public-data.hacker_news.stories`"
-        " LIMIT 1000"
-    )
-
-
-@pytest.fixture(scope='session')
-def bq_location():
-    return "US"
