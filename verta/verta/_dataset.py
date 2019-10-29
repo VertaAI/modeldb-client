@@ -753,7 +753,7 @@ class S3DatasetVersionInfo(PathDatasetVersionInfo):
         dataset_part_info.path = object_info['Key'] if key is None else key
         dataset_part_info.size = object_info['Size'] if key is None else object_info['ContentLength']
         dataset_part_info.checksum = object_info['ETag']
-        dataset_part_info.last_modified_at_source = _utils.timestamp_to_ms(int(object_info['LastModified'].timestamp()))
+        dataset_part_info.last_modified_at_source = _utils.timestamp_to_ms(_utils.ensure_timestamp(object_info['LastModified']))
         return dataset_part_info
 
 
@@ -862,7 +862,7 @@ class BigQueryDatasetVersionInfo(QueryDatasetVersionInfo):
         if job_id is not None and location:
             self.job_id = job_id
             job = self.get_bq_job(job_id, location)
-            self.execution_timestamp = _utils.timestamp_to_ms(int(job.started.timestamp()))
+            self.execution_timestamp = _utils.timestamp_to_ms(_utils.ensure_timestamp(job.started))
             self.data_source_uri = job.self_link
             self.query = job.query
             #TODO: extract the query template

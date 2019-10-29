@@ -495,6 +495,18 @@ def generate_default_name():
     return "{}{}".format(os.getpid(), str(time.time()).replace('.', ''))
 
 
+class UTC(datetime.tzinfo):
+    """UTC timezone class for Python 2 timestamp calculations"""
+    def utcoffset(self, dt):
+        return datetime.timedelta(0)
+
+    def tzname(self, dt):
+        return "UTC"
+
+    def dst(self, dt):
+        return datetime.timedelta(0)
+
+
 def timestamp_to_ms(timestamp):
     """
     Converts a Unix timestamp into one with millisecond resolution.
@@ -545,6 +557,13 @@ def ensure_timestamp(timestamp):
                            None)
     elif isinstance(timestamp, numbers.Real):
         return timestamp_to_ms(timestamp)
+    elif isinstance(timestamp, datetime.datetime):
+        if six.PY2:
+            # replicate https://docs.python.org/3/library/datetime.html#datetime.datetime.timestamp
+            seconds = (timestamp - datetime.datetime(1970, 1, 1, tzinfo=UTC())).total_seconds()
+        else:  # Python 3
+            seconds = timestamp.timestamp()
+        return timestamp_to_ms(seconds)
     else:
         raise TypeError("unable to parse timestamp of type {}".format(type(timestamp)))
 
