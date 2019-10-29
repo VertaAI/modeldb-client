@@ -1,7 +1,5 @@
 import six
 
-import numpy as np
-
 import pytest
 
 import verta
@@ -92,7 +90,7 @@ class TestFind:
     def test_end_time(self, client):
         key = "end_time"
 
-    def test_tags(self, client, seed, strs):
+    def test_tags(self, client, strs):
         tags = strs[:5]
         proj = client.set_project()
         client.set_experiment()
