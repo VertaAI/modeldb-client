@@ -28,7 +28,7 @@ setup(
     install_requires=[
         "cloudpickle",
         "googleapis-common-protos>=1.5",
-        "pathlib2>=2.1",
+        "pathlib2>=2.2",
         "protobuf>=3.6",
         "requests>=2.21, <3.0",
         "six>=1.12",
