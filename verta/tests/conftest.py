@@ -3,14 +3,9 @@ from __future__ import division
 import six
 
 import os
+import random
 import shutil
 import string
-
-from google.cloud import bigquery
-import numpy as np
-import pandas as pd
-import sklearn
-from sklearn import linear_model
 
 import verta
 from verta import Client
@@ -27,10 +22,6 @@ DEFAULT_HOST = None
 DEFAULT_PORT = None
 DEFAULT_EMAIL = None
 DEFAULT_DEV_KEY = None
-
-DEFAULT_S3_TEST_BUCKET = "bucket"
-DEFAULT_S3_TEST_OBJECT = "object"
-DEFAULT_GOOGLE_APPLICATION_CREDENTIALS = "credentials.json"
 
 
 # hypothesis on Jenkins is apparently too slow
@@ -70,27 +61,27 @@ def nones():
 
 @pytest.fixture
 def bools(seed):
-    np.random.seed(seed)
-    return np.random.randint(0, 2, INPUT_LENGTH).astype(bool).tolist()
+    random.seed(seed)
+    return [bool(random.randint(0, 1)) for _ in range(INPUT_LENGTH)]
 
 
 @pytest.fixture
 def floats(seed):
-    np.random.seed(seed)
-    return np.linspace(-3**2, 3**3, num=INPUT_LENGTH).tolist()
+    random.seed(seed)
+    return [random.uniform(-3**2, 3**3) for _ in range(INPUT_LENGTH)]
 
 
 @pytest.fixture
 def ints(seed):
-    np.random.seed(seed)
-    return np.linspace(-3**4, 3**5, num=INPUT_LENGTH).astype(int).tolist()
+    random.seed(seed)
+    return [random.randint(-3**4, 3**5) for _ in range(INPUT_LENGTH)]
 
 
 @pytest.fixture
 def strs(seed):
     """no duplicates"""
-    np.random.seed(seed)
-    gen_str = lambda: ''.join(np.random.choice(list(string.ascii_letters), size=INPUT_LENGTH))
+    random.seed(seed)
+    gen_str = lambda: ''.join(random.choice(string.ascii_letters) for _ in range(INPUT_LENGTH))
     result = set()
     while len(result) < INPUT_LENGTH:
         single_str = gen_str()
@@ -103,11 +94,11 @@ def strs(seed):
 
 @pytest.fixture
 def flat_lists(seed, nones, bools, floats, ints, strs):
-    np.random.seed(seed)
+    random.seed(seed)
     values = (nones, bools, floats, ints, strs)
     return [
         [
-            values[np.random.choice(len(values))][i]
+            values[random.choice(range(len(values)))][i]
             for i in range(INPUT_LENGTH)
         ]
         for _ in range(INPUT_LENGTH)
@@ -116,11 +107,11 @@ def flat_lists(seed, nones, bools, floats, ints, strs):
 
 @pytest.fixture
 def flat_dicts(seed, nones, bools, floats, ints, strs):
-    np.random.seed(seed)
+    random.seed(seed)
     values = (nones, bools, floats, ints, strs)
     return [
         {
-            strs[i]: values[np.random.choice(len(values))][i]
+            strs[i]: values[random.choice(range(len(values)))][i]
             for i in range(INPUT_LENGTH)
         }
         for _ in range(INPUT_LENGTH)
@@ -129,21 +120,21 @@ def flat_dicts(seed, nones, bools, floats, ints, strs):
 
 @pytest.fixture
 def nested_lists(seed, nones, bools, floats, ints, strs):
-    np.random.seed(seed)
+    random.seed(seed)
     values = (nones, bools, floats, ints, strs)
     flat_values = [value for type_values in values for value in type_values]
     def gen_value(p=1):
-        if np.random.random() < p:
+        if random.random() < p:
             return [
                 gen_value(p/2)
-                for _ in range(np.random.choice(4))
+                for _ in range(random.choice(range(4)))
             ]
         else:
-            return np.random.choice(flat_values)
+            return random.choice(flat_values)
     return [
         [
             gen_value()
-            for _ in range(np.random.choice(3)+1)
+            for _ in range(random.choice(range(3))+1)
         ]
         for _ in range(INPUT_LENGTH)
     ]
@@ -151,21 +142,21 @@ def nested_lists(seed, nones, bools, floats, ints, strs):
 
 @pytest.fixture
 def nested_dicts(seed, nones, bools, floats, ints, strs):
-    np.random.seed(seed)
+    random.seed(seed)
     values = (nones, bools, floats, ints, strs)
     flat_values = [value for type_values in values for value in type_values]
     def gen_value(p=1):
-        if np.random.random() < p:
+        if random.random() < p:
             return {
                 key: gen_value(p/2)
-                for key, _ in zip(strs, range(np.random.choice(4)))
+                for key, _ in zip(strs, range(random.choice(range(4))))
             }
         else:
-            return np.random.choice(flat_values)
+            return random.choice(flat_values)
     return [
         {
             key: gen_value()
-            for key, _ in zip(strs, range(np.random.choice(3)+1))
+            for key, _ in zip(strs, range(random.choice(range(3))+1))
         }
         for _ in range(INPUT_LENGTH)
     ]
@@ -230,46 +221,3 @@ def created_datasets(client):
 
     if created_datasets:
         utils.delete_datasets(list(set(dataset.id for dataset in created_datasets)), client._conn)
-
-
-@pytest.fixture(scope='session')
-def s3_bucket():
-    return os.environ.get("VERTA_S3_TEST_BUCKET", DEFAULT_S3_TEST_BUCKET)
-
-
-@pytest.fixture(scope='session')
-def s3_object():
-    return os.environ.get("VERTA_S3_TEST_OBJECT", DEFAULT_S3_TEST_OBJECT)
-
-
-@pytest.fixture(scope='session')
-def bq_query():
-    return (
-        "SELECT id, `by`, score, time, time_ts, title, url, text, deleted, dead, descendants, author"
-        " FROM `bigquery-public-data.hacker_news.stories`"
-        " LIMIT 1000"
-    )
-
-
-@pytest.fixture(scope='session')
-def bq_location():
-    return "US"
-
-
-@pytest.fixture
-def model_for_deployment(strs):
-    num_rows, num_cols = 36, 6
-
-    data = pd.DataFrame(np.tile(np.arange(num_rows).reshape(-1, 1),
-                                num_cols),
-                        columns=strs[:num_cols])
-    X_train = data.iloc[:,:-1]  # pylint: disable=bad-whitespace
-    y_train = data.iloc[:, -1]
-
-    return {
-        'model': sklearn.linear_model.LogisticRegression(),
-        'model_api': verta.utils.ModelAPI(X_train, y_train),
-        'requirements': six.StringIO("scikit-learn=={}".format(sklearn.__version__)),
-        'train_features': X_train,
-        'train_targets': y_train,
-    }

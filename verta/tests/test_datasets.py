@@ -1,19 +1,49 @@
+import pytest
+
 import six
 
-import numpy as np
 import os
 import time
 import shutil
 
-import botocore
-import google
+np = pytest.importorskip("numpy")
+botocore = pytest.importorskip("botocore")
+google = pytest.importorskip("google")
 
-import pytest
 import utils
 
 from verta._dataset import Dataset, DatasetVersion, S3DatasetVersionInfo, FilesystemDatasetVersionInfo
 from verta._protos.public.modeldb import DatasetService_pb2 as _DatasetService
 from verta._protos.public.modeldb import DatasetVersionService_pb2 as _DatasetVersionService
+
+
+DEFAULT_S3_TEST_BUCKET = "bucket"
+DEFAULT_S3_TEST_OBJECT = "object"
+DEFAULT_GOOGLE_APPLICATION_CREDENTIALS = "credentials.json"
+
+
+@pytest.fixture(scope='session')
+def s3_bucket():
+    return os.environ.get("VERTA_S3_TEST_BUCKET", DEFAULT_S3_TEST_BUCKET)
+
+
+@pytest.fixture(scope='session')
+def s3_object():
+    return os.environ.get("VERTA_S3_TEST_OBJECT", DEFAULT_S3_TEST_OBJECT)
+
+
+@pytest.fixture(scope='session')
+def bq_query():
+    return (
+        "SELECT id, `by`, score, time, time_ts, title, url, text, deleted, dead, descendants, author"
+        " FROM `bigquery-public-data.hacker_news.stories`"
+        " LIMIT 1000"
+    )
+
+
+@pytest.fixture(scope='session')
+def bq_location():
+    return "US"
 
 
 class TestBaseDatasets:

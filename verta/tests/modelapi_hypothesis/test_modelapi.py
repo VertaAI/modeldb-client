@@ -1,4 +1,9 @@
+import pytest
+
 import json
+
+pytest.importorskip("numpy")
+pytest.importorskip("pandas")
 
 from verta.utils import ModelAPI
 

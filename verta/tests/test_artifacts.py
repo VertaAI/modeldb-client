@@ -1,23 +1,25 @@
+import pytest
+
 import six
 
 import os
 import sys
 
-import matplotlib
+matplotlib = pytest.importorskip("matplotlib")
 matplotlib.use("Agg")  # https://stackoverflow.com/a/37605654
 import matplotlib.pyplot as plt
-import numpy as np
-import PIL
+np = pytest.importorskip("numpy")
+PIL = pytest.importorskip("PIL")
 import PIL.ImageDraw
-import sklearn
+sklearn = pytest.importorskip("sklearn")
 from sklearn import cluster, naive_bayes, pipeline, preprocessing
+tensorflow = pytest.importorskip("tensorflow")
 from tensorflow import keras
-import torch
+torch = pytest.importorskip("torch")
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
-import pytest
 import utils
 
 
