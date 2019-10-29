@@ -3,9 +3,33 @@ import six
 import json
 import os
 
-import pytest
+import numpy as np
+import pandas as pd
+import sklearn
+from sklearn import linear_model
 
 import verta
+
+import pytest
+
+
+@pytest.fixture
+def model_for_deployment(strs):
+    num_rows, num_cols = 36, 6
+
+    data = pd.DataFrame(np.tile(np.arange(num_rows).reshape(-1, 1),
+                                num_cols),
+                        columns=strs[:num_cols])
+    X_train = data.iloc[:,:-1]  # pylint: disable=bad-whitespace
+    y_train = data.iloc[:, -1]
+
+    return {
+        'model': sklearn.linear_model.LogisticRegression(),
+        'model_api': verta.utils.ModelAPI(X_train, y_train),
+        'requirements': six.StringIO("scikit-learn=={}".format(sklearn.__version__)),
+        'train_features': X_train,
+        'train_targets': y_train,
+    }
 
 
 class TestLogModelForDeployment:
