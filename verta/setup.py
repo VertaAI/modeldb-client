@@ -29,7 +29,7 @@ setup(
         "cloudpickle",
         "googleapis-common-protos>=1.5",
         "pathlib2>=2.2",
-        "protobuf>=3.6",
+        "protobuf>=3.8",
         "requests>=2.21, <3.0",
         "six>=1.12",
     ],
