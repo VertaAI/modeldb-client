@@ -1,14 +1,15 @@
+import pytest
+
 import six
 
-import numpy as np
 import os
 import time
 import shutil
 
-import botocore
-import google
+np = pytest.importorskip("numpy")
+botocore = pytest.importorskip("botocore")
+google = pytest.importorskip("google")
 
-import pytest
 import utils
 
 from verta._dataset import Dataset, DatasetVersion, S3DatasetVersionInfo, FilesystemDatasetVersionInfo

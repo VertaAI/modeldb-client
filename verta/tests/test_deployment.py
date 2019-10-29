@@ -1,16 +1,16 @@
+import pytest
+
 import six
 
 import json
 import os
 
-import numpy as np
-import pandas as pd
-import sklearn
+np = pytest.importorskip("numpy")
+pd = pytest.importorskip("pandas")
+sklearn = pytest.importorskip("sklearn")
 from sklearn import linear_model
 
 import verta
-
-import pytest
 
 
 @pytest.fixture
