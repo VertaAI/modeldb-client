@@ -32,6 +32,27 @@ Release Notes
      <>`_
 
 
+v0.13.11 (2019-10-30)
+---------------------
+
+Backwards Incompatibilities
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+- `slightly bump dependency versions and remove grpcio
+  <https://github.com/VertaAI/modeldb-client/pull/280>`_
+
+Bug Fixes
+^^^^^^^^^
+- `obtain DatasetVersion timestamps robustly for Python 2
+  <https://github.com/VertaAI/modeldb-client/pull/277>`_
+
+Internal Changes
+^^^^^^^^^^^^^^^^
+- `clean up Datasets generated during tests
+  <https://github.com/VertaAI/modeldb-client/pull/278>`_
+- `skip tests on missing imports instead of failing
+  <https://github.com/VertaAI/modeldb-client/pull/279>`_
+
+
 v0.13.10 (2019-10-27)
 ---------------------
 
