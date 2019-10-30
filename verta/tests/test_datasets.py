@@ -6,10 +6,6 @@ import os
 import time
 import shutil
 
-np = pytest.importorskip("numpy")
-botocore = pytest.importorskip("botocore")
-google = pytest.importorskip("google")
-
 import utils
 
 from verta._dataset import Dataset, DatasetVersion, S3DatasetVersionInfo, FilesystemDatasetVersionInfo
@@ -384,6 +380,8 @@ class TestFileSystemDatasetVersionInfo:
 
 class TestS3DatasetVersionInfo:
     def test_single_object(self, s3_bucket, s3_object):
+        botocore = pytest.importorskip("botocore")
+
         try:
             s3dvi = S3DatasetVersionInfo(s3_bucket, s3_object)
             assert len(s3dvi.dataset_part_infos) == 1
@@ -392,6 +390,8 @@ class TestS3DatasetVersionInfo:
             pytest.skip("insufficient AWS credentials")
 
     def test_bucket(self, s3_bucket):
+        botocore = pytest.importorskip("botocore")
+
         try:
             s3dvi = S3DatasetVersionInfo(s3_bucket)
             assert len(s3dvi.dataset_part_infos) >= 1
@@ -402,6 +402,8 @@ class TestS3DatasetVersionInfo:
 
 class TestS3ClientFunctions:
     def test_s3_dataset_creation(self, client, created_datasets):
+        botocore = pytest.importorskip("botocore")
+
         try:
             name = utils.gen_str()
             dataset = client.set_dataset("s3-" + name, type="s3")
@@ -411,6 +413,8 @@ class TestS3ClientFunctions:
             pytest.skip("insufficient AWS credentials")
 
     def test_s3_dataset_version_creation(self, client, s3_bucket, created_datasets):
+        botocore = pytest.importorskip("botocore")
+
         try:
             name = utils.gen_str()
             dataset = client.set_dataset("s3-" + name, type="s3")
@@ -459,6 +463,9 @@ class TestBigQueryDatasetVersionInfo:
         assert dataset.dataset_type == _DatasetService.DatasetTypeEnum.QUERY
 
     def test_big_query_dataset_version_creation(self, client, bq_query, bq_location, created_datasets):
+        google = pytest.importorskip("google")
+        bigquery = pytest.importorskip("google.cloud.bigquery")
+
         try:
             query_job = google.cloud.bigquery.Client().query(
                 bq_query,
@@ -496,6 +503,8 @@ class TestRDBMSDatasetVersionInfo:
 
 class TestLogDatasetVersion:
     def test_log_dataset_version(self, client, created_datasets, experiment_run, s3_bucket):
+        botocore = pytest.importorskip("botocore")
+
         try:
             name = utils.gen_str()
             dataset = client.set_dataset("s3-" + name, type="s3")

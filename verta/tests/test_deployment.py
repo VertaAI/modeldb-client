@@ -5,16 +5,16 @@ import six
 import json
 import os
 
-np = pytest.importorskip("numpy")
-pd = pytest.importorskip("pandas")
-sklearn = pytest.importorskip("sklearn")
-from sklearn import linear_model
-
 import verta
 
 
 @pytest.fixture
 def model_for_deployment(strs):
+    np = pytest.importorskip("numpy")
+    pd = pytest.importorskip("pandas")
+    sklearn = pytest.importorskip("sklearn")
+    from sklearn import linear_model
+
     num_rows, num_cols = 36, 6
 
     data = pd.DataFrame(np.tile(np.arange(num_rows).reshape(-1, 1),

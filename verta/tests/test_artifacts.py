@@ -5,21 +5,6 @@ import six
 import os
 import sys
 
-matplotlib = pytest.importorskip("matplotlib")
-matplotlib.use("Agg")  # https://stackoverflow.com/a/37605654
-import matplotlib.pyplot as plt
-np = pytest.importorskip("numpy")
-PIL = pytest.importorskip("PIL")
-import PIL.ImageDraw
-sklearn = pytest.importorskip("sklearn")
-from sklearn import cluster, naive_bayes, pipeline, preprocessing
-tensorflow = pytest.importorskip("tensorflow")
-from tensorflow import keras
-torch = pytest.importorskip("torch")
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-
 import utils
 
 
@@ -90,6 +75,10 @@ class TestArtifacts:
 
 class TestModels:
     def test_sklearn(self, seed, experiment_run, strs):
+        np = pytest.importorskip("numpy")
+        sklearn = pytest.importorskip("sklearn")
+        from sklearn import cluster, naive_bayes, pipeline, preprocessing
+
         np.random.seed(seed)
         key = strs[0]
         num_data_rows = 36
@@ -114,6 +103,12 @@ class TestModels:
             assert step[1].get_params() == retrieved_step[1].get_params()  # step model
 
     def test_torch(self, seed, experiment_run, strs):
+        np = pytest.importorskip("numpy")
+        torch = pytest.importorskip("torch")
+        import torch.nn as nn
+        import torch.nn.functional as F
+        import torch.optim as optim
+
         np.random.seed(seed)
         key = strs[0]
         num_data_rows = 36
@@ -158,6 +153,10 @@ class TestModels:
             assert torch.allclose(weight, retrieved_net.state_dict()[key])
 
     def test_keras(self, seed, experiment_run, strs):
+        np = pytest.importorskip("numpy")
+        tensorflow = pytest.importorskip("tensorflow")
+        from tensorflow import keras
+
         np.random.seed(seed)
         key = strs[0]
         num_data_rows = 36
@@ -223,6 +222,8 @@ class TestModels:
 class TestImages:
     @staticmethod
     def matplotlib_to_pil(fig):
+        PIL = pytest.importorskip("PIL")
+
         bytestream = six.BytesIO()
         fig.savefig(bytestream)
         return PIL.Image.open(bytestream)
@@ -240,6 +241,8 @@ class TestImages:
             experiment_run.get_image(holdout)
 
     def test_upload_blank_warning(self, experiment_run, strs):
+        PIL = pytest.importorskip("PIL")
+
         key = strs[0]
         img = PIL.Image.new('RGB', (64, 64), 'white')
 
@@ -247,6 +250,11 @@ class TestImages:
             experiment_run.log_image(key, img)
 
     def test_upload_plt(self, experiment_run, strs):
+        np = pytest.importorskip("numpy")
+        matplotlib = pytest.importorskip("matplotlib")
+        matplotlib.use("Agg")  # https://stackoverflow.com/a/37605654
+        import matplotlib.pyplot as plt
+
         key = strs[0]
         plt.scatter(*np.random.random((2, 10)))
 
@@ -255,6 +263,11 @@ class TestImages:
                               np.asarray(self.matplotlib_to_pil(plt).getdata()))
 
     def test_upload_fig(self, experiment_run, strs):
+        np = pytest.importorskip("numpy")
+        matplotlib = pytest.importorskip("matplotlib")
+        matplotlib.use("Agg")  # https://stackoverflow.com/a/37605654
+        import matplotlib.pyplot as plt
+
         key = strs[0]
         fig, ax = plt.subplots()
         ax.scatter(*np.random.random((2, 10)))
@@ -264,6 +277,10 @@ class TestImages:
                               np.asarray(self.matplotlib_to_pil(fig).getdata()))
 
     def test_upload_pil(self, experiment_run, strs):
+        np = pytest.importorskip("numpy")
+        PIL = pytest.importorskip("PIL")
+        import PIL.ImageDraw
+
         key = strs[0]
         img = PIL.Image.new('RGB', (64, 64), 'gray')
         PIL.ImageDraw.Draw(img).arc(np.r_[np.random.randint(32, size=(2)),
@@ -276,6 +293,8 @@ class TestImages:
                               np.asarray(img.getdata())))
 
     def test_conflict(self, experiment_run, strs):
+        PIL = pytest.importorskip("PIL")
+
         images = dict(zip(strs, [PIL.Image.new('RGB', (64, 64), 'gray')]*3))
 
         for key, image in six.viewitems(images):
