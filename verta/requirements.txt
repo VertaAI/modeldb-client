@@ -1,3 +1,6 @@
+# development
+pylint
+
 # packaging
 setuptools>=40.8
 twine>=1.13
