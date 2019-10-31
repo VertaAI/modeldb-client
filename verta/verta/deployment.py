@@ -204,7 +204,7 @@ class DeployedModel:
             elif not (response.status_code >= 500 or response.status_code == 429):  # clientside error
                 break
             else:
-                if response.status_code != 429:  # too many requests
+                if response.status_code == 429:  # too many requests
                     # retry 429s indefinitely; DeploymentService should handle replication
                     num_retries = max(num_retries, max_retries - 1)
                     print("WE GOT A 429 OMG TOO MANY REQUESTS")
