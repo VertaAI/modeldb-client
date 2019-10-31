@@ -117,6 +117,8 @@ class Client(object):
 
         back_end_url = urlparse(host)
         scheme = back_end_url.scheme or scheme
+        if auth is not None:
+            auth[_GRPC_PREFIX+'scheme'] = scheme
         socket = back_end_url.netloc + back_end_url.path.rstrip('/')
         if port is not None:
             warnings.warn("`port` (the second parameter) will removed in a later version;"
