@@ -191,18 +191,23 @@ class DeployedModel:
             If the server encounters an error while handing the HTTP request.
 
         """
-        for i_retry in range(max_retries):
+        num_retries = 0
+        while num_retries < max_retries:
             response = self._predict(x, compress)
+            num_retries += 1
             if response.ok:
                 return response.json()
             elif response.status_code == 502:  # bad gateway; the error happened in the model back end
                 data = response.json()
                 raise RuntimeError("deployed model encountered an error: {}"
                                    .format(data.get('message', "(no specific error message found)")))
-            elif response.status_code >= 500 or response.status_code == 429:
-                sleep = 0.3*(2**i_retry)  # 5 retries is 9.3 seconds total
+            elif not (response.status_code >= 500 or response.status_code == 429):  # clientside error
+                break
+            else:
+                if response.status_code != 429:
+                    # retry 429s indefinitely; DeploymentService should handle replication
+                    num_retries = max(num_retries, max_retries - 1)
+                sleep = 0.3*(2**num_retries)  # 5 retries is 9.3 seconds total
                 print("received status {}; retrying in {:.1f}s".format(response.status_code, sleep))
                 time.sleep(sleep)
-            else:
-                break
         _utils.raise_for_http_error(response)
