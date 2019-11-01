@@ -8,6 +8,7 @@ import shutil
 
 import utils
 
+import verta
 from verta._dataset import Dataset, DatasetVersion, S3DatasetVersionInfo, FilesystemDatasetVersionInfo
 from verta._protos.public.modeldb import DatasetService_pb2 as _DatasetService
 from verta._protos.public.modeldb import DatasetVersionService_pb2 as _DatasetVersionService
@@ -152,21 +153,18 @@ class TestClientDatasetFunctions:
         assert dataset.name == same_dataset.name
 
     def test_find_datasets_client_api(self, client, created_datasets):
-        name1 = utils.gen_str()
-        dataset1 = client.set_dataset(name=name1, type="big query",
-            tags=["test1-" + name1, "test2-" + name1])
+        tags = ["test1-{}".format(verta._utils.now()), "test2-{}".format(verta._utils.now())]
+        dataset1 = client.set_dataset(type="big query", tags=tags)
         created_datasets.append(dataset1)
         assert dataset1.dataset_type == _DatasetService.DatasetTypeEnum.QUERY
         assert dataset1.id
 
-        name2 = utils.gen_str()
-        dataset2 = client.set_dataset(name=name2, type="s3", tags=["test1"])
+        dataset2 = client.set_dataset(type="s3", tags=["test1"])
         created_datasets.append(dataset2)
         assert dataset2.dataset_type == _DatasetService.DatasetTypeEnum.PATH
         assert dataset2.id
 
         # TODO: update once RAW is supported
-        # name = utils.gen_str()
         # dataset3 = client.set_dataset(type="raw")
         # created_datasets.append(dataset3)
         # assert dataset3.dataset_type == _DatasetService.DatasetTypeEnum.RAW
@@ -178,19 +176,18 @@ class TestClientDatasetFunctions:
         # assert datasets[1].id == dataset2.id
         # assert datasets[2].id == dataset3.id
 
-        datasets = client.find_datasets(tags=["test1-" + name1,
-            "test2-" + name1])
+        datasets = client.find_datasets(tags=tags)
         assert len(datasets) == 1
         assert datasets[0].id == dataset1.id
 
-        datasets = client.find_datasets(name=name1)
+        datasets = client.find_datasets(name=dataset1.name)
         assert len(datasets) == 1
         assert datasets[0].id == dataset1.id
 
         datasets = client.find_datasets(dataset_ids=[dataset1.id, dataset2.id])
         assert len(datasets) == 2
 
-        datasets = client.find_datasets(dataset_ids=[dataset1.id, dataset2.id], name=name1)
+        datasets = client.find_datasets(dataset_ids=[dataset1.id, dataset2.id], name=dataset1.name)
         assert len(datasets) == 1
         assert datasets[0].id == dataset1.id
 
