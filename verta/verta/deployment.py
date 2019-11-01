@@ -206,7 +206,7 @@ class DeployedModel:
             else:
                 if response.status_code == 429:  # too many requests
                     # retry 429s indefinitely; DeploymentService should handle replication
-                    num_retries = max(num_retries, max_retries - 1)
+                    num_retries = min(num_retries, max_retries - 1)
                 sleep = 0.3*(2**num_retries)  # 5 retries is 9.3 seconds total
                 print("received status {}; retrying in {:.1f}s".format(response.status_code, sleep))
                 time.sleep(sleep)
