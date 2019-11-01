@@ -197,7 +197,6 @@ class DeployedModel:
         num_retries = 0
         while num_retries < max_retries:
             response = self._predict(x, compress)
-            num_retries += 1
             if response.ok:
                 return response.json()
             elif response.status_code == 502:  # bad gateway; the error happened in the model back end
@@ -207,9 +206,12 @@ class DeployedModel:
             elif not (response.status_code >= 500 or response.status_code == 429):  # clientside error
                 break
             else:
-                if response.status_code == 429 and always_retry_429:  # too many requests
-                    num_retries = min(num_retries, max_retries - 1)
                 sleep = 0.3*(2**(num_retries + 1))
                 print("received status {}; retrying in {:.1f}s".format(response.status_code, sleep))
                 time.sleep(sleep)
+                if response.status_code == 429 and always_retry_429:  # too many requests
+                    num_retries = min(num_retries + 1, max_retries - 1)
+                else:
+                    num_retries += 1
+
         _utils.raise_for_http_error(response)
