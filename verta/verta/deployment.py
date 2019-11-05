@@ -199,10 +199,14 @@ class DeployedModel:
             response = self._predict(x, compress)
             if response.ok:
                 return response.json()
-            elif response.status_code == 502:  # bad gateway; the error happened in the model back end
-                data = response.json()
-                raise RuntimeError("deployed model encountered an error: {}"
-                                   .format(data.get('message', "(no specific error message found)")))
+            elif response.status_code == 502:  # bad gateway; possibly error from the model back end
+                try:
+                    data = response.json()
+                except ValueError:  # not JSON response; 502 not from model back end
+                    break
+                else:  # from model back end; contains message (maybe)
+                    msg = data.get('message', "(no specific error message found)")
+                    six.raise_from(RuntimeError("deployed model encountered an error: {}".format(msg)), None)
             elif not (response.status_code >= 500 or response.status_code == 429):  # clientside error
                 break
             else:
