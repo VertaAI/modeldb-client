@@ -197,25 +197,26 @@ class DeployedModel:
         num_retries = 0
         while num_retries < max_retries:
             response = self._predict(x, compress)
+
             if response.ok:
                 return response.json()
             elif response.status_code == 502:  # bad gateway; possibly error from the model back end
                 try:
                     data = response.json()
                 except ValueError:  # not JSON response; 502 not from model back end
-                    break
+                    pass
                 else:  # from model back end; contains message (maybe)
                     msg = data.get('message', "(no specific error message found)")
-                    six.raise_from(RuntimeError("deployed model encountered an error: {}".format(msg)), None)
+                    raise RuntimeError("deployed model encountered an error: {}".format(msg))
             elif not (response.status_code >= 500 or response.status_code == 429):  # clientside error
                 break
+
+            sleep = 0.3*(2**(num_retries + 1))
+            print("received status {}; retrying in {:.1f}s".format(response.status_code, sleep))
+            time.sleep(sleep)
+            if response.status_code == 429 and always_retry_429:  # too many requests
+                num_retries = min(num_retries + 1, max_retries - 1)
             else:
-                sleep = 0.3*(2**(num_retries + 1))
-                print("received status {}; retrying in {:.1f}s".format(response.status_code, sleep))
-                time.sleep(sleep)
-                if response.status_code == 429 and always_retry_429:  # too many requests
-                    num_retries = min(num_retries + 1, max_retries - 1)
-                else:
-                    num_retries += 1
+                num_retries += 1
 
         _utils.raise_for_http_error(response)
