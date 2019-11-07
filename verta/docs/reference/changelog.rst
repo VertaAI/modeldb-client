@@ -32,6 +32,27 @@ Release Notes
      <>`_
 
 
+v0.13.12 (2019-11-07)
+---------------------
+
+New Features
+^^^^^^^^^^^^
+- `enable indefinite retries on prediction 429s
+  <https://github.com/VertaAI/modeldb-client/pull/283>`_
+
+Bug Fixes
+^^^^^^^^^
+- `accommodate external 502s on predictions
+  <https://github.com/VertaAI/modeldb-client/pull/285>`_
+
+Internal Changes
+^^^^^^^^^^^^^^^^
+- `pass host URL scheme to back end
+  <https://github.com/VertaAI/modeldb-client/pull/282>`_
+- `reduce dataset version name collisions in tests
+  <https://github.com/VertaAI/modeldb-client/pull/284>`_
+
+
 v0.13.11 (2019-10-30)
 ---------------------
 
