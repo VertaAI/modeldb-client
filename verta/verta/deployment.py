@@ -96,7 +96,7 @@ class DeployedModel:
             return "<{}>".format(self.__class__.__name__)
 
     @classmethod
-    def from_url(cls, url, token):
+    def from_url(cls, url, token=None):
         """
         Returns a :class:`DeployedModel` based on a custom URL and token.
 
@@ -104,7 +104,7 @@ class DeployedModel:
         ----------
         url : str
             Full prediction endpoint URL. Can be copy and pasted directly from the Verta Web App.
-        token : str
+        token : str, optional
             Prediction token. Can be copy and pasted directly from the Verta Web App.
 
         Returns
@@ -139,11 +139,11 @@ class DeployedModel:
         status = response.json()
         if status['status'] == 'error':
             raise RuntimeError(status['message'])
-        if 'token' in status and 'api' in status:
-            self._session.headers['Access-Token'] = status['token']
+        if 'api' in status:
+            self._session.headers['Access-Token'] = status.get('token')
             self._prediction_url = urljoin("{}://{}".format(self._scheme, self._socket), status['api'])
         else:
-            raise RuntimeError("token not found in status endpoint response; deployment may not be ready")
+            raise RuntimeError("prediction url not found in status endpoint response; deployment may not be ready")
 
     def _predict(self, x, compress=False):
         """This is like ``DeployedModel.predict()``, but returns the raw ``Response`` for debugging."""
