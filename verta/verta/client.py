@@ -2866,6 +2866,81 @@ class ExperimentRun(_ModelDBEntity):
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
         return _utils.unravel_observations(response_msg.experiment_run.observations)
 
+    def log_requirements(self, requirements):
+        """
+
+
+        Parameters
+        ----------
+        requirements : str or list of str
+            pip-installable packages necessary to deploy the model
+                - If str,
+                - If list of str,
+
+        """
+        if isinstance(requirements, six.string_types):
+            with open(requirements, 'r') as f:
+                requirements = f.readlines()
+        elif (isinstance(requirements, list)
+              and all(isinstance(req, six.string_types) for req in requirements)):
+            # TODO: replace module name with PyPI name for common libraries, e.g. sklearn->scikit-learn
+            pass
+        else:
+            raise TypeError("`requirements` must be either str or list of str, not {}".format(type(requirements)))
+
+        # find version numbers from importable packages
+        #     Because Python package management is complete anarchy, the Client can't determine
+        #     whether the environment is using pip, pip3, or conda to check the installed version.
+        for i, req in enumerate(requirements):
+            error = ValueError("unable to automatically determine a version number for requirement {};"
+                               " please manually specify it as '{}==x.y.z'".format(req, req))
+            if '==' not in req:
+                try:
+                    pkg = importlib.import_module(req)
+                except ImportError:
+                    six.raise_from(error, None)
+                try:
+                    ver = pkg.__version__
+                except AttributeError:
+                    six.raise_from(error, None)
+                requirements[i] = req + "==" + ver
+
+        # add verta
+        verta_req = "verta=={}".format(__about__.__version__)
+        for req in requirements:
+            if req.startswith("verta"):  # if present, check version
+                our_ver = verta_req.split('==')[-1]
+                their_ver = req.split('==')[-1]
+                if our_ver != their_ver:  # versions conflict, so raise exception
+                    raise ValueError("Client is running with verta v{}, but the provided requirements specify v{};"
+                                     " these must match".format(our_ver, their_ver))
+                else:  # versions match, so proceed
+                    break
+        else:  # if not present, add
+            requirements.append(verta_req)
+
+        # add cloudpickle
+        cloudpickle_req = "cloudpickle=={}".format(_artifact_utils.cloudpickle.__version__)
+        for req in requirements:
+            if req.startswith("cloudpickle"):  # if present, check version
+                our_ver = cloudpickle_req.split('==')[-1]
+                their_ver = req.split('==')[-1]
+                if our_ver != their_ver:  # versions conflict, so raise exception
+                    raise ValueError("Client is running with cloudpickle v{}, but the provided requirements specify v{};"
+                                     " these must match".format(our_ver, their_ver))
+                else:  # versions match, so proceed
+                    break
+        else:  # if not present, add
+            requirements.append(cloudpickle_req)
+
+        if self._conf.debug:
+            print("[DEBUG] requirements are:")
+            print(requirements)
+
+        # upload
+        requirements = six.BytesIO(six.ensure_binary('\n'.join(requirements)))  # as file-like
+        self._log_artifact("requirements.txt", requirements, _CommonService.ArtifactTypeEnum.BLOB, 'txt')
+
     def log_modules(self, paths, search_path=None):
         """
         Logs local files that are dependencies for a deployed model to this Experiment Run.
