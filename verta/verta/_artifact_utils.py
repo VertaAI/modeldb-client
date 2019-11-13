@@ -294,7 +294,7 @@ def process_requirements(requirements):
     Raises
     ------
     ValueError
-        If a listed dependency does not have an exact version pin.
+        If a package's version cannot be determined.
 
     """
     PYPI_TO_IMPORT = {
