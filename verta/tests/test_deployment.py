@@ -154,8 +154,16 @@ class TestLogRequirements:
             with pytest.raises(ValueError):
                 experiment_run.log_requirements(tempf.name)
 
-    def test_injection(self, experiment_run):
+    def test_injection_list(self, experiment_run):
         experiment_run.log_requirements([])
+
+        reqs_txt = experiment_run.get_artifact("requirements.txt").read().decode()
+        reqs = set(req.split('==')[0].strip() for req in reqs_txt.splitlines())
+        assert {'cloudpickle', 'verta'} == reqs
+
+    def test_injection_file(self, experiment_run):
+        with tempfile.NamedTemporaryFile('w+') as tempf:
+            experiment_run.log_requirements(tempf.name)
 
         reqs_txt = experiment_run.get_artifact("requirements.txt").read().decode()
         reqs = set(req.split('==')[0].strip() for req in reqs_txt.splitlines())
