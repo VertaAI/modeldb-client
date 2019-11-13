@@ -2435,23 +2435,16 @@ class ExperimentRun(_ModelDBEntity):
         if isinstance(requirements, six.string_types):
             requirements = open(requirements, 'rb')
 
-        # handle model
+        # handle model and model_api
         _artifact_utils.reset_stream(model)  # reset cursor to beginning in case user forgot
-        self.log_model(model)
-
-        # prehandle model_api
         _artifact_utils.reset_stream(model_api)  # reset cursor to beginning in case user forgot
-        model_api = utils.ModelAPI.from_file(model_api)
-        if 'model_packaging' not in model_api:
-            # add model serialization info to model_api
-            model_api['model_packaging'] = {
-                'python_version': _utils.get_python_version(),
-                'type': model_type,
-                'deserialization': method,
-            }
-        if self._conf.debug:
-            print("[DEBUG] model API is:")
-            pprint.pprint(model_api.to_dict())
+        try:
+            self.log_model(model, model_api=utils.ModelAPI.from_file(model_api))
+        except ValueError as e:
+            if "artifact with key model.pkl already exists" in e.args[0]:
+                print("model already logged; skipping")
+            else:
+                six.raise_from(e, None)
 
         # handle requirements
         _artifact_utils.reset_stream(requirements)  # reset cursor to beginning in case user forgot
@@ -2461,7 +2454,7 @@ class ExperimentRun(_ModelDBEntity):
             self.log_requirements(req_deps)
         except ValueError as e:
             if "artifact with key requirements.txt already exists" in e.args[0]:
-                print("requirements.txt already logged; skipping")
+                print("requirements already logged; skipping")
             else:
                 six.raise_from(e, None)
 
@@ -2475,7 +2468,6 @@ class ExperimentRun(_ModelDBEntity):
         else:
             train_data = None
 
-        self._log_artifact("model_api.json", model_api, _CommonService.ArtifactTypeEnum.BLOB, 'json')
         if train_data is not None:
             self._log_artifact("train_data", train_data, _CommonService.ArtifactTypeEnum.DATA, 'csv')
 
@@ -2497,31 +2489,55 @@ class ExperimentRun(_ModelDBEntity):
         Parameters
         ----------
         model : str or object
-            Model or some representation thereof.
+            Model for deployment.
                 - If str, then it will be interpreted as a filesystem path to a serialized model file
                   for upload.
                 - Otherwise, the object will be serialized and uploaded as an artifact.
+        custom_modules : list of str, optional
+            Paths to local Python modules and other files that the deployed model depends on. If
+            directories are provided, all files within will be included.
+        model_api : :class:`~utils.ModelAPI`, optional
+            Model API specifying details about the model and its deployment.
 
         """
+        # serialize model
         try:
             extension = _artifact_utils.get_file_ext(model)
         except (TypeError, ValueError):
             extension = None
-
         _utils.THREAD_LOCALS.active_experiment_run = self
         try:
-            model, method, model_type = _artifact_utils.serialize_model(model)
+            serialized_model, method, model_type = _artifact_utils.serialize_model(model)
         finally:
             _utils.THREAD_LOCALS.active_experiment_run = None
-
         if method is None:
             raise ValueError("will not be able to deploy model due to unknown serialization method")
-
         if extension is None:
             extension = _artifact_utils.ext_from_method(method)
+        if self._conf.debug:
+            print("[DEBUG] model is type {}".format(model_type))
 
+        # build model API
+        # TODO: verify that inputs & outputs are not needed
+        if model_api is None:
+            model_api = utils.ModelAPI()  # TODO: init requires x & y
+        elif not isinstance(model_api, utils.ModelAPI):
+            raise ValueError("`model_api` must be `verta.utils.ModelAPI`, not {}".format(type(model_api)))
+        if 'model_packaging' not in model_api:
+            # add model serialization info to model_api
+            model_api['model_packaging'] = {
+                'python_version': _utils.get_python_version(),
+                'type': model_type,
+                'deserialization': method,
+            }
+        if self._conf.debug:
+            print("[DEBUG] model API is:")
+            pprint.pprint(model_api.to_dict())
+
+        # TODO: gather custom modules
         self._log_modules(custom_modules)
-        self._log_artifact("model.pkl", model, _CommonService.ArtifactTypeEnum.MODEL, extension, method)
+        self._log_artifact("model.pkl", serialized_model, _CommonService.ArtifactTypeEnum.MODEL, extension, method)
+        self._log_artifact("model_api.json", model_api, _CommonService.ArtifactTypeEnum.BLOB, 'json')
 
     def get_model(self):
         """
@@ -2530,7 +2546,7 @@ class ExperimentRun(_ModelDBEntity):
         Returns
         -------
         object
-            The model.
+            Model for deployment.
 
         """
         model, _ = self._get_artifact("model.pkl")
