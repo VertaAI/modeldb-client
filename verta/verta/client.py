@@ -2843,10 +2843,12 @@ class ExperimentRun(_ModelDBEntity):
         """
         Logs a pip requirements file for Verta model deployment.
 
+        .. versionadded:: 0.14.0
+
         Parameters
         ----------
         requirements : str or list of str
-            pip-installable packages necessary to deploy the model
+            pip-installable packages necessary to deploy the model.
                 - If str, then it will be interpreted as a filesystem path to a requirements file
                   for upload.
                 - If list of str, then it will be interpreted as a list of pip package names.
