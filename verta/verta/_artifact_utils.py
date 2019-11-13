@@ -319,7 +319,7 @@ def process_requirements(requirements):
             continue
         else:
             msg = ("'{}' does not use '=='; for reproducibility in deployment, it will be replaced"
-                   " with an exact pin for the currently-installed version".format(req))
+                   " with an exact pin of the currently-installed version".format(req))
             warnings.warn(msg)
             requirements[i] = pkg
 
