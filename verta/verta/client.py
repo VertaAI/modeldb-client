@@ -5,6 +5,7 @@ import six.moves.cPickle as pickle
 from six.moves.urllib.parse import urlparse
 
 import ast
+import copy
 import hashlib
 import importlib
 import os
@@ -2852,6 +2853,11 @@ class ExperimentRun(_ModelDBEntity):
                   for upload.
                 - If list of str, then it will be interpreted as a list of PyPI package names.
 
+        Raises
+        ------
+        ValueError
+            If a package's name is invalid for PyPI, or its exact version cannot be determined.
+
         Examples
         --------
         From a file:
@@ -2879,12 +2885,15 @@ class ExperimentRun(_ModelDBEntity):
         if isinstance(requirements, six.string_types):
             with open(requirements, 'r') as f:
                 requirements = f.readlines()
+
             # clean
             requirements = [req.strip() for req in requirements]
             requirements = [req for req in requirements if not req.startswith('#')]  # comment line
             requirements = [req for req in requirements if req]  # empty line
         elif (isinstance(requirements, list)
               and all(isinstance(req, six.string_types) for req in requirements)):
+            requirements = copy.copy(requirements)
+
             # replace importable module names with PyPI package names
             for i, req in enumerate(requirements):
                 if req.strip() == "sklearn":

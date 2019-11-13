@@ -4,6 +4,7 @@ import six
 
 import json
 import os
+import tempfile
 
 import verta
 
@@ -79,3 +80,101 @@ class TestLogModelForDeployment:
         X_train = model_for_deployment['train_features']
         y_train = model_for_deployment['train_targets']
         assert X_train.join(y_train).to_csv(index=False) == six.ensure_str(data_csv)
+
+
+class TestLogRequirements:
+    NONSPECIFIC_REQ = "verta>0.1.0"
+    INVALID_REQ = "@==1.2.3"
+    UNIMPORTABLE_REQ = "bananacoconut"
+    VERTA_MISMATCH_REQ = "verta==0.0.0"
+    CLOUDPICKLE_MISMATCH_REQ = "cloudpickle==0.0.0"
+    VALID_REQS = [
+        'cloudpickle',
+        'pytest',
+        'verta',
+    ]
+
+    def test_nonspecific_ver_list_warning(self, experiment_run):
+        with pytest.warns(UserWarning):
+            experiment_run.log_requirements([self.NONSPECIFIC_REQ])
+
+    def test_nonspecific_ver_file_warning(self, experiment_run):
+        with tempfile.NamedTemporaryFile('w+') as tempf:
+            tempf.write(self.NONSPECIFIC_REQ)
+            tempf.seek(0)
+
+            with pytest.warns(UserWarning):
+                experiment_run.log_requirements(tempf.name)
+
+    def test_invalid_pkg_name_list_error(self, experiment_run):
+        with pytest.raises(ValueError):
+            experiment_run.log_requirements([self.INVALID_REQ])
+
+    def test_invalid_pkg_name_file_error(self, experiment_run):
+        with tempfile.NamedTemporaryFile('w+') as tempf:
+            tempf.write(self.INVALID_REQ)
+            tempf.seek(0)
+
+            with pytest.raises(ValueError):
+                experiment_run.log_requirements(tempf.name)
+
+    def test_unimportable_pkg_list_error(self, experiment_run):
+        with pytest.raises(ValueError):
+            experiment_run.log_requirements([self.UNIMPORTABLE_REQ])
+
+    def test_unimportable_pkg_file_error(self, experiment_run):
+        with tempfile.NamedTemporaryFile('w+') as tempf:
+            tempf.write(self.UNIMPORTABLE_REQ)
+            tempf.seek(0)
+
+            with pytest.raises(ValueError):
+                experiment_run.log_requirements(tempf.name)
+
+    def test_verta_ver_mismatch_list_error(self, experiment_run):
+        with pytest.raises(ValueError):
+            experiment_run.log_requirements([self.VERTA_MISMATCH_REQ])
+
+    def test_verta_ver_mismatch_file_error(self, experiment_run):
+        with tempfile.NamedTemporaryFile('w+') as tempf:
+            tempf.write(self.VERTA_MISMATCH_REQ)
+            tempf.seek(0)
+
+            with pytest.raises(ValueError):
+                experiment_run.log_requirements(tempf.name)
+
+    def test_cloudpickle_ver_mismatch_list_error(self, experiment_run):
+        with pytest.raises(ValueError):
+            experiment_run.log_requirements([self.CLOUDPICKLE_MISMATCH_REQ])
+
+    def test_cloudpickle_ver_mismatch_file_error(self, experiment_run):
+        with tempfile.NamedTemporaryFile('w+') as tempf:
+            tempf.write(self.CLOUDPICKLE_MISMATCH_REQ)
+            tempf.seek(0)
+
+            with pytest.raises(ValueError):
+                experiment_run.log_requirements(tempf.name)
+
+    def test_injection(self, experiment_run):
+        experiment_run.log_requirements([])
+
+        reqs_txt = experiment_run.get_artifact("requirements.txt").read().decode()
+        reqs = set(req.split('==')[0].strip() for req in reqs_txt.splitlines())
+        assert {'cloudpickle', 'verta'} == reqs
+
+    def test_list(self, experiment_run):
+        experiment_run.log_requirements(self.VALID_REQS)
+
+        reqs_txt = experiment_run.get_artifact("requirements.txt").read().decode()
+        reqs = set(req.split('==')[0].strip() for req in reqs_txt.splitlines())
+        assert set(self.VALID_REQS) == reqs
+
+    def test_file(self, experiment_run):
+        with tempfile.NamedTemporaryFile('w+') as tempf:
+            tempf.write('\n'.join(self.VALID_REQS))
+            tempf.seek(0)
+
+            experiment_run.log_requirements(tempf.name)
+
+        reqs_txt = experiment_run.get_artifact("requirements.txt").read().decode()
+        reqs = set(req.split('==')[0].strip() for req in reqs_txt.splitlines())
+        assert set(self.VALID_REQS) == reqs

@@ -294,7 +294,7 @@ def process_requirements(requirements):
     Raises
     ------
     ValueError
-        If a package's version cannot be determined.
+        If a package's name is invalid for PyPI, or its exact version cannot be determined.
 
     """
     PYPI_TO_IMPORT = {
