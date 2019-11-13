@@ -2470,44 +2470,18 @@ class ExperimentRun(_ModelDBEntity):
             print("[DEBUG] model API is:")
             pprint.pprint(model_api.to_dict())
 
-        # prehandle requirements
+        # handle requirements
         _artifact_utils.reset_stream(requirements)  # reset cursor to beginning in case user forgot
         _artifact_utils.validate_requirements_txt(requirements)
         req_deps = six.ensure_str(requirements.read()).splitlines()  # get list repr of reqs
         _artifact_utils.reset_stream(requirements)  # reset cursor to beginning as a courtesy
-        # add verta to requirements
-        verta_dep = "verta=={}".format(__about__.__version__)
-        for req_dep in req_deps:
-            if req_dep.startswith("verta"):  # if present, check version
-                our_ver = verta_dep.split('==')[-1]
-                their_ver = req_dep.split('==')[-1]
-                if our_ver != their_ver:  # versions conflict, so raise exception
-                    raise ValueError("Client is running with verta v{}, but the provided requirements specify v{}; "
-                                     "these must match".format(our_ver, their_ver))
-                else:  # versions match, so proceed
-                    break
-        else:  # if not present, add
-            req_deps.append(verta_dep)
-        # if cloudpickle used, add to requirements
-        if method == "cloudpickle":
-            cloudpickle_dep = "cloudpickle=={}".format(_artifact_utils.cloudpickle.__version__)
-            for req_dep in req_deps:
-                if req_dep.startswith("cloudpickle"):  # if present, check version
-                    our_ver = cloudpickle_dep.split('==')[-1]
-                    their_ver = req_dep.split('==')[-1]
-                    if our_ver != their_ver:  # versions conflict, so raise exception
-                        raise ValueError("Client is running with cloudpickle v{}, but the provided requirements specify v{}; "
-                                         "these must match".format(our_ver, their_ver))
-                    else:  # versions match, so proceed
-                        break
-            else:  # if not present, add
-                req_deps.append(cloudpickle_dep)
-        # recreate stream
-        requirements = six.BytesIO(six.ensure_binary('\n'.join(req_deps)))
-        if self._conf.debug:
-            print("[DEBUG] requirements are:")
-            print(six.ensure_str(requirements.read()))
-            requirements.seek(0)
+        try:
+            self.log_requirements(req_deps)
+        except ValueError as e:
+            if "artifact with key requirements.txt already exists" in e.args[0]:
+                print("requirements.txt already logged; skipping")
+            else:
+                six.raise_from(e, None)
 
         # prehandle train_features and train_targets
         if train_features is not None and train_targets is not None:
@@ -2521,7 +2495,6 @@ class ExperimentRun(_ModelDBEntity):
 
         self._log_artifact("model.pkl", model, _CommonService.ArtifactTypeEnum.MODEL, model_extension, method)
         self._log_artifact("model_api.json", model_api, _CommonService.ArtifactTypeEnum.BLOB, 'json')
-        self._log_artifact("requirements.txt", requirements, _CommonService.ArtifactTypeEnum.BLOB, 'txt')
         if train_data is not None:
             self._log_artifact("train_data", train_data, _CommonService.ArtifactTypeEnum.DATA, 'csv')
 
@@ -2868,19 +2841,42 @@ class ExperimentRun(_ModelDBEntity):
 
     def log_requirements(self, requirements):
         """
-
+        Logs a pip requirements file for Verta model deployment.
 
         Parameters
         ----------
         requirements : str or list of str
             pip-installable packages necessary to deploy the model
-                - If str,
-                - If list of str,
+                - If str, then it will be interpreted as a filesystem path to a requirements file
+                  for upload.
+                - If list of str, then it will be interpreted as a list of pip package names.
+
+        Examples
+        --------
+        From a file:
+
+            >>> run.log_requirements("../requirements.txt")
+            upload complete (requirements.txt)
+            >>> print(run.get_artifact("requirements.txt").read().decode())
+            verta==0.14.0
+            cloudpickle==1.2.1
+            sklearn==0.21.3
+
+        From a list of package names:
+
+            >>> run.log_requirements(['verta', 'cloudpickle', 'sklearn'])
+            upload complete (requirements.txt)
+            >>> print(run.get_artifact("requirements.txt").read().decode())
+            verta==0.14.0
+            cloudpickle==1.2.1
+            sklearn==0.21.3
 
         """
         if isinstance(requirements, six.string_types):
             with open(requirements, 'r') as f:
                 requirements = f.readlines()
+            requirements = [req.strip() for req in requirements]
+            requirements = [req for req in requirements if req]
         elif (isinstance(requirements, list)
               and all(isinstance(req, six.string_types) for req in requirements)):
             # TODO: replace module name with PyPI name for common libraries, e.g. sklearn->scikit-learn
@@ -2892,8 +2888,9 @@ class ExperimentRun(_ModelDBEntity):
         #     Because Python package management is complete anarchy, the Client can't determine
         #     whether the environment is using pip, pip3, or conda to check the installed version.
         for i, req in enumerate(requirements):
-            error = ValueError("unable to automatically determine a version number for requirement {};"
+            error = ValueError("unable to determine a version number for requirement {};"
                                " please manually specify it as '{}==x.y.z'".format(req, req))
+            # TODO: handle other version comparators
             if '==' not in req:
                 try:
                     pkg = importlib.import_module(req)
