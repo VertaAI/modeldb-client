@@ -2863,7 +2863,7 @@ class ExperimentRun(_ModelDBEntity):
             jupyter==1.0.0
             matplotlib==3.1.1
             pandas==0.25.0
-            sklearn==0.21.3
+            scikit-learn==0.21.3
             verta==0.14.0
 
         From a list of package names:
@@ -2873,16 +2873,22 @@ class ExperimentRun(_ModelDBEntity):
             >>> print(run.get_artifact("requirements.txt").read().decode())
             verta==0.14.0
             cloudpickle==1.2.1
-            sklearn==0.21.3
+            scikit-learn==0.21.3
 
         """
         if isinstance(requirements, six.string_types):
             with open(requirements, 'r') as f:
                 requirements = f.readlines()
+            # clean
+            requirements = [req.strip() for req in requirements]
+            requirements = [req for req in requirements if not req.startswith('#')]  # comment line
+            requirements = [req for req in requirements if req]  # empty line
         elif (isinstance(requirements, list)
               and all(isinstance(req, six.string_types) for req in requirements)):
-            # TODO: replace scikit-learn with sklearn
-            pass
+            # replace importable module names with PyPI package names
+            for i, req in enumerate(requirements):
+                if req.strip() == "sklearn":
+                    requirements[i] = "scikit-learn"
         else:
             raise TypeError("`requirements` must be either str or list of str, not {}".format(type(requirements)))
 

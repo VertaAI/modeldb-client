@@ -303,11 +303,6 @@ def process_requirements(requirements):
     }
     REQ_SPEC_REGEX = re.compile(r"([a-zA-Z0-9._-]+)(.*)?")  # https://www.python.org/dev/peps/pep-0508/#names
 
-    # clean up requirements
-    requirements = [req.strip() for req in requirements]
-    requirements = [req for req in requirements if not req.startswith('#')]  # comment line
-    requirements = [req for req in requirements if req]  # empty line
-
     # validate package names
     for req in requirements:
         if not REQ_SPEC_REGEX.match(req):
@@ -323,9 +318,8 @@ def process_requirements(requirements):
         elif '==' in ver_spec:
             continue
         else:
-            msg = ("'{}' does not use '==';"
-                   " for reproducibility in deployment,"
-                   " it will be replaced with an exact version pin".format(req))
+            msg = ("'{}' does not use '=='; for reproducibility in deployment, it will be replaced"
+                   " with an exact pin for the currently-installed version".format(req))
             warnings.warn(msg)
             requirements[i] = pkg
 
@@ -348,7 +342,7 @@ def process_requirements(requirements):
             except AttributeError:
                 six.raise_from(error, None)
 
-            requirements[i] = mod_name + "==" + ver
+            requirements[i] = req + "==" + ver
 
     # add verta
     verta_req = "verta=={}".format(__about__.__version__)
