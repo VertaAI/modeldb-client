@@ -2539,30 +2539,18 @@ class ExperimentRun(_ModelDBEntity):
 
         self._log_artifact(key, model, _CommonService.ArtifactTypeEnum.MODEL, extension, method)
 
-    def get_model(self, key):
+    def get_model(self):
         """
-        Gets the model artifact with name `key` from this Experiment Run.
-
-        If the model was originally logged as just a filesystem path, that path will be returned.
-        Otherwise, the model object itself will be returned. If the object is unable to be
-        deserialized, the raw bytes are returned instead.
-
-        Parameters
-        ----------
-        key : str
-            Name of the model.
+        Gets the model artifact for Verta model deployment from this Experiment Run.
 
         Returns
         -------
-        str or object or file-like
-            Filesystem path of the model, the model object, or a bytestream representing the model.
+        object
+            The model.
 
         """
-        model, path_only = self._get_artifact(key)
-        if path_only:
-            return model
-        else:
-            return _artifact_utils.deserialize_model(model)
+        model, _ = self._get_artifact("model.pkl")
+        return _artifact_utils.deserialize_model(model)
 
     def log_image(self, key, image):
         """
