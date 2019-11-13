@@ -2520,6 +2520,7 @@ class ExperimentRun(_ModelDBEntity):
         if extension is None:
             extension = _artifact_utils.ext_from_method(method)
 
+        self._log_modules(custom_modules)
         self._log_artifact("model.pkl", model, _CommonService.ArtifactTypeEnum.MODEL, extension, method)
 
     def get_model(self):
@@ -2890,7 +2891,19 @@ class ExperimentRun(_ModelDBEntity):
 
         self._log_modules(paths)
 
-    def _log_modules(self, paths):
+    def _log_modules(self, paths=None):
+        if paths is None:
+            # log paths in sys.path, excluding standard and external libraries
+            PY_DIR_REGEX = re.compile(r"/lib/python\d\.\d")
+            PY_ZIP_REGEX = re.compile(r"/lib/python\d\d\.zip")
+            IPYTHON_REGEX = re.compile(r"/\.ipython")
+            paths = []
+            for path in sys.path:
+                if (path
+                        and not PY_DIR_REGEX.search(path)
+                        and not PY_ZIP_REGEX.search(path)
+                        and not IPYTHON_REGEX.search(path)):
+                    paths.append(path)
         if isinstance(paths, six.string_types):
             paths = [paths]
 
