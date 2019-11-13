@@ -2866,6 +2866,9 @@ class ExperimentRun(_ModelDBEntity):
         """
         Logs local files that are dependencies for a deployed model to this Experiment Run.
 
+        .. deprecated:: 0.14.0
+           The behavior of this function has been merged into :meth:`log_model` as its
+           ``custom_modules`` parameter; consider using that instead.
         .. deprecated:: 0.12.4
            The `search_path` parameter is no longer necessary and will removed in v0.14.0; consider
            removing it from the function call.
@@ -2877,10 +2880,17 @@ class ExperimentRun(_ModelDBEntity):
             directory is provided, all files within will be included.
 
         """
+        warnings.warn("The behavior of this function has been merged into :meth:`log_model` as its"
+                      " ``custom_modules`` parameter; consider using that instead",
+                      category=FutureWarning)
         if search_path is not None:
             warnings.warn("`search_path` is no longer used and will removed in a later version;"
                           " consider removing it from the function call",
                           category=FutureWarning)
+
+        self._log_modules(paths)
+
+    def _log_modules(self, paths):
         if isinstance(paths, six.string_types):
             paths = [paths]
 
