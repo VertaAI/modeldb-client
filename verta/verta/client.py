@@ -2435,27 +2435,9 @@ class ExperimentRun(_ModelDBEntity):
         if isinstance(requirements, six.string_types):
             requirements = open(requirements, 'rb')
 
-        # prehandle model
-        if self._conf.debug:
-            if not hasattr(model, 'read'):
-                print("[DEBUG] model is type: {}".format(model.__class__))
+        # handle model
         _artifact_utils.reset_stream(model)  # reset cursor to beginning in case user forgot
-        # obtain serialized model and info
-        try:
-            model_extension = _artifact_utils.get_file_ext(model)
-        except (TypeError, ValueError):
-            model_extension = None
-        # serialize model
-        _utils.THREAD_LOCALS.active_experiment_run = self
-        try:
-            model, method, model_type = _artifact_utils.serialize_model(model)
-        finally:
-            _utils.THREAD_LOCALS.active_experiment_run = None
-        # check serialization method
-        if method is None:
-            raise ValueError("will not be able to deploy model due to unknown serialization method")
-        if model_extension is None:
-            model_extension = _artifact_utils.ext_from_method(method)
+        self.log_model(model)
 
         # prehandle model_api
         _artifact_utils.reset_stream(model_api)  # reset cursor to beginning in case user forgot
@@ -2493,7 +2475,6 @@ class ExperimentRun(_ModelDBEntity):
         else:
             train_data = None
 
-        self._log_artifact("model.pkl", model, _CommonService.ArtifactTypeEnum.MODEL, model_extension, method)
         self._log_artifact("model_api.json", model_api, _CommonService.ArtifactTypeEnum.BLOB, 'json')
         if train_data is not None:
             self._log_artifact("train_data", train_data, _CommonService.ArtifactTypeEnum.DATA, 'csv')
@@ -2509,35 +2490,37 @@ class ExperimentRun(_ModelDBEntity):
             # TODO: change _log_artifact() to not read file into memory
             self._log_artifact("tf_saved_model", tempf, _CommonService.ArtifactTypeEnum.BLOB, 'zip')
 
-    def log_model(self, key, model):
+    def log_model(self, model, custom_modules=None, model_api=None):
         """
-        Logs a model artifact to this Experiment Run.
+        Logs a model artifact for Verta model deployment.
 
         Parameters
         ----------
-        key : str
-            Name of the model.
-        model : str or file-like or object
+        model : str or object
             Model or some representation thereof.
-                - If str, then it will be interpreted as a filesystem path, its contents read as bytes,
-                  and uploaded as an artifact.
-                - If file-like, then the contents will be read as bytes and uploaded as an artifact.
+                - If str, then it will be interpreted as a filesystem path to a serialized model file
+                  for upload.
                 - Otherwise, the object will be serialized and uploaded as an artifact.
 
         """
-        _utils.validate_flat_key(key)
-
         try:
             extension = _artifact_utils.get_file_ext(model)
         except (TypeError, ValueError):
             extension = None
 
-        model, method, _ = _artifact_utils.serialize_model(model)
+        _utils.THREAD_LOCALS.active_experiment_run = self
+        try:
+            model, method, model_type = _artifact_utils.serialize_model(model)
+        finally:
+            _utils.THREAD_LOCALS.active_experiment_run = None
+
+        if method is None:
+            raise ValueError("will not be able to deploy model due to unknown serialization method")
 
         if extension is None:
             extension = _artifact_utils.ext_from_method(method)
 
-        self._log_artifact(key, model, _CommonService.ArtifactTypeEnum.MODEL, extension, method)
+        self._log_artifact("model.pkl", model, _CommonService.ArtifactTypeEnum.MODEL, extension, method)
 
     def get_model(self):
         """
