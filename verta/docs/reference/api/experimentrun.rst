@@ -96,7 +96,6 @@ Images
 Models
 ^^^^^^
 .. automethod:: ExperimentRun.log_model
-.. automethod:: ExperimentRun.log_model_path
 .. automethod:: ExperimentRun.get_model
 
 Advanced Uses

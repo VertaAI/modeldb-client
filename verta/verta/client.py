@@ -2539,25 +2539,6 @@ class ExperimentRun(_ModelDBEntity):
 
         self._log_artifact(key, model, _CommonService.ArtifactTypeEnum.MODEL, extension, method)
 
-    def log_model_path(self, key, model_path):
-        """
-        Logs the filesystem path of an model to this Experiment Run.
-
-        This function makes no attempt to open a file at `model_path`. Only the path string itself
-        is logged.
-
-        Parameters
-        ----------
-        key : str
-            Name of the model.
-        model_path : str
-            Filesystem path of the model.
-
-        """
-        _utils.validate_flat_key(key)
-
-        self._log_artifact_path(key, model_path, _CommonService.ArtifactTypeEnum.MODEL)
-
     def get_model(self, key):
         """
         Gets the model artifact with name `key` from this Experiment Run.
