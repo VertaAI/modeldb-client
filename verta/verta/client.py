@@ -26,7 +26,7 @@ from ._protos.public.modeldb import CommonService_pb2 as _CommonService
 from ._protos.public.modeldb import ProjectService_pb2 as _ProjectService
 from ._protos.public.modeldb import ExperimentService_pb2 as _ExperimentService
 from ._protos.public.modeldb import ExperimentRunService_pb2 as _ExperimentRunService
-from . import __about__
+
 from . import _dataset
 from . import _utils
 from . import _artifact_utils
@@ -2472,7 +2472,6 @@ class ExperimentRun(_ModelDBEntity):
 
         # handle requirements
         _artifact_utils.reset_stream(requirements)  # reset cursor to beginning in case user forgot
-        _artifact_utils.validate_requirements_txt(requirements)
         req_deps = six.ensure_str(requirements.read()).splitlines()  # get list repr of reqs
         _artifact_utils.reset_stream(requirements)  # reset cursor to beginning as a courtesy
         try:
@@ -2848,10 +2847,10 @@ class ExperimentRun(_ModelDBEntity):
         Parameters
         ----------
         requirements : str or list of str
-            pip-installable packages necessary to deploy the model.
+            PyPI-installable packages necessary to deploy the model.
                 - If str, then it will be interpreted as a filesystem path to a requirements file
                   for upload.
-                - If list of str, then it will be interpreted as a list of pip package names.
+                - If list of str, then it will be interpreted as a list of PyPI package names.
 
         Examples
         --------
@@ -2860,9 +2859,12 @@ class ExperimentRun(_ModelDBEntity):
             >>> run.log_requirements("../requirements.txt")
             upload complete (requirements.txt)
             >>> print(run.get_artifact("requirements.txt").read().decode())
-            verta==0.14.0
             cloudpickle==1.2.1
+            jupyter==1.0.0
+            matplotlib==3.1.1
+            pandas==0.25.0
             sklearn==0.21.3
+            verta==0.14.0
 
         From a list of package names:
 
@@ -2877,66 +2879,19 @@ class ExperimentRun(_ModelDBEntity):
         if isinstance(requirements, six.string_types):
             with open(requirements, 'r') as f:
                 requirements = f.readlines()
-            requirements = [req.strip() for req in requirements]
-            requirements = [req for req in requirements if req]
         elif (isinstance(requirements, list)
               and all(isinstance(req, six.string_types) for req in requirements)):
-            # TODO: replace module name with PyPI name for common libraries, e.g. sklearn->scikit-learn
+            # TODO: replace scikit-learn with sklearn
             pass
         else:
             raise TypeError("`requirements` must be either str or list of str, not {}".format(type(requirements)))
 
-        # find version numbers from importable packages
-        #     Because Python package management is complete anarchy, the Client can't determine
-        #     whether the environment is using pip, pip3, or conda to check the installed version.
-        for i, req in enumerate(requirements):
-            error = ValueError("unable to determine a version number for requirement {};"
-                               " please manually specify it as '{}==x.y.z'".format(req, req))
-            # TODO: handle other version comparators
-            if '==' not in req:
-                try:
-                    pkg = importlib.import_module(req)
-                except ImportError:
-                    six.raise_from(error, None)
-                try:
-                    ver = pkg.__version__
-                except AttributeError:
-                    six.raise_from(error, None)
-                requirements[i] = req + "==" + ver
-
-        # add verta
-        verta_req = "verta=={}".format(__about__.__version__)
-        for req in requirements:
-            if req.startswith("verta"):  # if present, check version
-                our_ver = verta_req.split('==')[-1]
-                their_ver = req.split('==')[-1]
-                if our_ver != their_ver:  # versions conflict, so raise exception
-                    raise ValueError("Client is running with verta v{}, but the provided requirements specify v{};"
-                                     " these must match".format(our_ver, their_ver))
-                else:  # versions match, so proceed
-                    break
-        else:  # if not present, add
-            requirements.append(verta_req)
-
-        # add cloudpickle
-        cloudpickle_req = "cloudpickle=={}".format(_artifact_utils.cloudpickle.__version__)
-        for req in requirements:
-            if req.startswith("cloudpickle"):  # if present, check version
-                our_ver = cloudpickle_req.split('==')[-1]
-                their_ver = req.split('==')[-1]
-                if our_ver != their_ver:  # versions conflict, so raise exception
-                    raise ValueError("Client is running with cloudpickle v{}, but the provided requirements specify v{};"
-                                     " these must match".format(our_ver, their_ver))
-                else:  # versions match, so proceed
-                    break
-        else:  # if not present, add
-            requirements.append(cloudpickle_req)
+        requirements = _artifact_utils.process_requirements(requirements)
 
         if self._conf.debug:
             print("[DEBUG] requirements are:")
             print(requirements)
 
-        # upload
         requirements = six.BytesIO(six.ensure_binary('\n'.join(requirements)))  # as file-like
         self._log_artifact("requirements.txt", requirements, _CommonService.ArtifactTypeEnum.BLOB, 'txt')
 
