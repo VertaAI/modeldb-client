@@ -2518,7 +2518,6 @@ class ExperimentRun(_ModelDBEntity):
             print("[DEBUG] model is type {}".format(model_type))
 
         # build model API
-        # TODO: verify that inputs & outputs are not needed
         if model_api is None:
             model_api = utils.ModelAPI()
         elif not isinstance(model_api, utils.ModelAPI):
