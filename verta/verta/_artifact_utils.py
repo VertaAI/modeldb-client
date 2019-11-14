@@ -308,7 +308,7 @@ def process_requirements(requirements):
         if not REQ_SPEC_REGEX.match(req):
             raise ValueError("'{}' does not appear to be a valid PyPI-installable package;"
                              " please check its spelling,"
-                             " or report this as a bug if you believe it is in error".format(req))
+                             " or file an issue if you believe it is in error".format(req))
 
     # warn for and strip version specifiers other than ==
     for i, req in enumerate(requirements):
