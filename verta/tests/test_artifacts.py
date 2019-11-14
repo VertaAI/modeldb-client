@@ -92,8 +92,8 @@ class TestModels:
         )
         pipeline.fit(X, y)
 
-        experiment_run.log_model(key, pipeline)
-        retrieved_pipeline = experiment_run.get_model(key)
+        experiment_run.log_model(pipeline)
+        retrieved_pipeline = experiment_run.get_model()
 
         assert np.allclose(pipeline.predict(X), retrieved_pipeline.predict(X))
 
@@ -143,8 +143,8 @@ class TestModels:
             loss.backward()
             optimizer.step()
 
-        experiment_run.log_model(key, net)
-        retrieved_net = experiment_run.get_model(key)
+        experiment_run.log_model(net)
+        retrieved_net = experiment_run.get_model()
 
         assert torch.allclose(net(X), retrieved_net(X))
 
@@ -176,8 +176,8 @@ class TestModels:
         )
         net.fit(X, y, epochs=5)
 
-        experiment_run.log_model(key, net)
-        retrieved_net = experiment_run.get_model(key)
+        experiment_run.log_model(net)
+        retrieved_net = experiment_run.get_model()
 
         assert np.allclose(net.predict(X), retrieved_net.predict(X))
         # NOTE: history is purged when model is saved
@@ -195,9 +195,9 @@ class TestModels:
         def func(is_func=True, _cache=set([1, 2, 3]), *args, **kwargs):
             return (args, kwargs)
 
-        experiment_run.log_model(key, func)
-        assert experiment_run.get_model(key).__defaults__ == func.__defaults__
-        assert experiment_run.get_model(key)(*func_args, **func_kwargs) == func(*func_args, **func_kwargs)
+        experiment_run.log_model(func)
+        assert experiment_run.get_model().__defaults__ == func.__defaults__
+        assert experiment_run.get_model()(*func_args, **func_kwargs) == func(*func_args, **func_kwargs)
 
     def test_custom_class(self, experiment_run, strs, flat_lists, flat_dicts):
         key = strs[0]
@@ -214,9 +214,9 @@ class TestModels:
 
         custom = Custom(*init_args, **init_kwargs)
 
-        experiment_run.log_model(key, custom)
-        assert experiment_run.get_model(key).__dict__ == custom.__dict__
-        assert experiment_run.get_model(key).predict(strs) == custom.predict(strs)
+        experiment_run.log_model(custom)
+        assert experiment_run.get_model().__dict__ == custom.__dict__
+        assert experiment_run.get_model().predict(strs) == custom.predict(strs)
 
 
 class TestImages:
