@@ -2435,16 +2435,41 @@ class ExperimentRun(_ModelDBEntity):
         if isinstance(requirements, six.string_types):
             requirements = open(requirements, 'rb')
 
-        # handle model and model_api
+        # prehandle model
+        if self._conf.debug:
+            if not hasattr(model, 'read'):
+                print("[DEBUG] model is type: {}".format(model.__class__))
         _artifact_utils.reset_stream(model)  # reset cursor to beginning in case user forgot
-        _artifact_utils.reset_stream(model_api)  # reset cursor to beginning in case user forgot
+        # obtain serialized model and info
         try:
-            self.log_model(model, model_api=utils.ModelAPI.from_file(model_api))
-        except ValueError as e:
-            if "artifact with key model.pkl already exists" in e.args[0]:
-                print("model already logged; skipping")
-            else:
-                six.raise_from(e, None)
+            model_extension = _artifact_utils.get_file_ext(model)
+        except (TypeError, ValueError):
+            model_extension = None
+        # serialize model
+        _utils.THREAD_LOCALS.active_experiment_run = self
+        try:
+            model, method, model_type = _artifact_utils.serialize_model(model)
+        finally:
+            _utils.THREAD_LOCALS.active_experiment_run = None
+        # check serialization method
+        if method is None:
+            raise ValueError("will not be able to deploy model due to unknown serialization method")
+        if model_extension is None:
+            model_extension = _artifact_utils.ext_from_method(method)
+
+        # prehandle model_api
+        _artifact_utils.reset_stream(model_api)  # reset cursor to beginning in case user forgot
+        model_api = utils.ModelAPI.from_file(model_api)
+        if 'model_packaging' not in model_api:
+            # add model serialization info to model_api
+            model_api['model_packaging'] = {
+                'python_version': _utils.get_python_version(),
+                'type': model_type,
+                'deserialization': method,
+            }
+        if self._conf.debug:
+            print("[DEBUG] model API is:")
+            pprint.pprint(model_api.to_dict())
 
         # handle requirements
         _artifact_utils.reset_stream(requirements)  # reset cursor to beginning in case user forgot
@@ -2454,7 +2479,7 @@ class ExperimentRun(_ModelDBEntity):
             self.log_requirements(req_deps)
         except ValueError as e:
             if "artifact with key requirements.txt already exists" in e.args[0]:
-                print("requirements already logged; skipping")
+                print("requirements.txt already logged; skipping")
             else:
                 six.raise_from(e, None)
 
@@ -2468,6 +2493,8 @@ class ExperimentRun(_ModelDBEntity):
         else:
             train_data = None
 
+        self._log_artifact("model.pkl", model, _CommonService.ArtifactTypeEnum.MODEL, model_extension, method)
+        self._log_artifact("model_api.json", model_api, _CommonService.ArtifactTypeEnum.BLOB, 'json')
         if train_data is not None:
             self._log_artifact("train_data", train_data, _CommonService.ArtifactTypeEnum.DATA, 'csv')
 
