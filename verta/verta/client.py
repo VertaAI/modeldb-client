@@ -5,6 +5,7 @@ import six.moves.cPickle as pickle
 from six.moves.urllib.parse import urlparse
 
 import ast
+import copy
 import hashlib
 import importlib
 import os
@@ -26,7 +27,7 @@ from ._protos.public.modeldb import CommonService_pb2 as _CommonService
 from ._protos.public.modeldb import ProjectService_pb2 as _ProjectService
 from ._protos.public.modeldb import ExperimentService_pb2 as _ExperimentService
 from ._protos.public.modeldb import ExperimentRunService_pb2 as _ExperimentRunService
-from . import __about__
+
 from . import _dataset
 from . import _utils
 from . import _artifact_utils
@@ -2470,44 +2471,17 @@ class ExperimentRun(_ModelDBEntity):
             print("[DEBUG] model API is:")
             pprint.pprint(model_api.to_dict())
 
-        # prehandle requirements
+        # handle requirements
         _artifact_utils.reset_stream(requirements)  # reset cursor to beginning in case user forgot
-        _artifact_utils.validate_requirements_txt(requirements)
         req_deps = six.ensure_str(requirements.read()).splitlines()  # get list repr of reqs
         _artifact_utils.reset_stream(requirements)  # reset cursor to beginning as a courtesy
-        # add verta to requirements
-        verta_dep = "verta=={}".format(__about__.__version__)
-        for req_dep in req_deps:
-            if req_dep.startswith("verta"):  # if present, check version
-                our_ver = verta_dep.split('==')[-1]
-                their_ver = req_dep.split('==')[-1]
-                if our_ver != their_ver:  # versions conflict, so raise exception
-                    raise ValueError("Client is running with verta v{}, but the provided requirements specify v{}; "
-                                     "these must match".format(our_ver, their_ver))
-                else:  # versions match, so proceed
-                    break
-        else:  # if not present, add
-            req_deps.append(verta_dep)
-        # if cloudpickle used, add to requirements
-        if method == "cloudpickle":
-            cloudpickle_dep = "cloudpickle=={}".format(_artifact_utils.cloudpickle.__version__)
-            for req_dep in req_deps:
-                if req_dep.startswith("cloudpickle"):  # if present, check version
-                    our_ver = cloudpickle_dep.split('==')[-1]
-                    their_ver = req_dep.split('==')[-1]
-                    if our_ver != their_ver:  # versions conflict, so raise exception
-                        raise ValueError("Client is running with cloudpickle v{}, but the provided requirements specify v{}; "
-                                         "these must match".format(our_ver, their_ver))
-                    else:  # versions match, so proceed
-                        break
-            else:  # if not present, add
-                req_deps.append(cloudpickle_dep)
-        # recreate stream
-        requirements = six.BytesIO(six.ensure_binary('\n'.join(req_deps)))
-        if self._conf.debug:
-            print("[DEBUG] requirements are:")
-            print(six.ensure_str(requirements.read()))
-            requirements.seek(0)
+        try:
+            self.log_requirements(req_deps)
+        except ValueError as e:
+            if "artifact with key requirements.txt already exists" in e.args[0]:
+                print("requirements.txt already logged; skipping")
+            else:
+                six.raise_from(e, None)
 
         # prehandle train_features and train_targets
         if train_features is not None and train_targets is not None:
@@ -2521,7 +2495,6 @@ class ExperimentRun(_ModelDBEntity):
 
         self._log_artifact("model.pkl", model, _CommonService.ArtifactTypeEnum.MODEL, model_extension, method)
         self._log_artifact("model_api.json", model_api, _CommonService.ArtifactTypeEnum.BLOB, 'json')
-        self._log_artifact("requirements.txt", requirements, _CommonService.ArtifactTypeEnum.BLOB, 'txt')
         if train_data is not None:
             self._log_artifact("train_data", train_data, _CommonService.ArtifactTypeEnum.DATA, 'csv')
 
@@ -2865,6 +2838,76 @@ class ExperimentRun(_ModelDBEntity):
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
         return _utils.unravel_observations(response_msg.experiment_run.observations)
+
+    def log_requirements(self, requirements):
+        """
+        Logs a pip requirements file for Verta model deployment.
+
+        .. versionadded:: 0.14.0
+
+        Parameters
+        ----------
+        requirements : str or list of str
+            PyPI-installable packages necessary to deploy the model.
+                - If str, then it will be interpreted as a filesystem path to a requirements file
+                  for upload.
+                - If list of str, then it will be interpreted as a list of PyPI package names.
+
+        Raises
+        ------
+        ValueError
+            If a package's name is invalid for PyPI, or its exact version cannot be determined.
+
+        Examples
+        --------
+        From a file:
+
+            >>> run.log_requirements("../requirements.txt")
+            upload complete (requirements.txt)
+            >>> print(run.get_artifact("requirements.txt").read().decode())
+            cloudpickle==1.2.1
+            jupyter==1.0.0
+            matplotlib==3.1.1
+            pandas==0.25.0
+            scikit-learn==0.21.3
+            verta==0.14.0
+
+        From a list of package names:
+
+            >>> run.log_requirements(['verta', 'cloudpickle', 'scikit-learn'])
+            upload complete (requirements.txt)
+            >>> print(run.get_artifact("requirements.txt").read().decode())
+            verta==0.14.0
+            cloudpickle==1.2.1
+            scikit-learn==0.21.3
+
+        """
+        if isinstance(requirements, six.string_types):
+            with open(requirements, 'r') as f:
+                requirements = f.readlines()
+
+            # clean
+            requirements = [req.strip() for req in requirements]
+            requirements = [req for req in requirements if not req.startswith('#')]  # comment line
+            requirements = [req for req in requirements if req]  # empty line
+        elif (isinstance(requirements, list)
+              and all(isinstance(req, six.string_types) for req in requirements)):
+            requirements = copy.copy(requirements)
+
+            # replace importable module names with PyPI package names in case of user error
+            for i, req in enumerate(requirements):
+                requirements[i] = _artifact_utils.IMPORT_TO_PYPI.get(req, req)
+        else:
+            raise TypeError("`requirements` must be either str or list of str, not {}".format(type(requirements)))
+
+        requirements = _artifact_utils.process_requirements(requirements)
+
+        if self._conf.debug:
+            print("[DEBUG] requirements are:")
+            print(requirements)
+
+        requirements = six.BytesIO(six.ensure_binary('\n'.join(requirements)))  # as file-like
+        self._log_artifact("requirements.txt", requirements, _CommonService.ArtifactTypeEnum.BLOB, 'txt')
 
     def log_modules(self, paths, search_path=None):
         """

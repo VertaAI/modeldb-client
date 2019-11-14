@@ -4,13 +4,17 @@ import six
 import six.moves.cPickle as pickle
 
 import csv
+import importlib
 import json
 import os
+import re
 import tempfile
+import warnings
 
 import cloudpickle
 
-from verta import _utils
+from . import __about__
+from . import _utils
 
 try:
     import joblib
@@ -21,6 +25,17 @@ try:
     from tensorflow import keras
 except ImportError:  # TensorFlow not installed
     pass
+
+
+# for process_requirements()
+PYPI_TO_IMPORT = {
+    'scikit-learn': "sklearn",
+    'tensorflow-gpu': "tensorflow",
+}
+IMPORT_TO_PYPI = {  # separate mapping because PyPI to import is surjective
+    'sklearn': "scikit-learn",
+}
+REQ_SPEC_REGEX = re.compile(r"([a-zA-Z0-9._-]+)(.*)?")  # https://www.python.org/dev/peps/pep-0508/#names
 
 
 def get_file_ext(file):
@@ -278,25 +293,88 @@ def deserialize_model(bytestring):
     return bytestream
 
 
-def validate_requirements_txt(requirements):
+def process_requirements(requirements):
     """
-    Checks that all dependencies listed in `requirements` have an exact version pin.
+    Validates `requirements` against packages available in the current environment.
 
     Parameters
     ----------
-    requirements : file-like
-        pip requirements file.
+    requirements : list of str
+        PyPI package names.
 
     Raises
     ------
     ValueError
-        If a listed dependency does not have an exact version pin.
+        If a package's name is invalid for PyPI, or its exact version cannot be determined.
 
     """
-    reset_stream(requirements)  # reset cursor to beginning in case user forgot
-    contents = requirements.read()
-    reset_stream(requirements)  # reset cursor to beginning as a courtesy
+    # validate package names
+    for req in requirements:
+        if not REQ_SPEC_REGEX.match(req):
+            raise ValueError("'{}' does not appear to be a valid PyPI-installable package;"
+                             " please check its spelling,"
+                             " or file an issue if you believe it is in error".format(req))
 
-    for dependency in six.ensure_str(contents).split("\n"):
-        if dependency and '==' not in dependency:
-            raise ValueError("dependency '{}' must have an exact version pin".format(dependency))
+    # warn for and strip version specifiers other than ==
+    for i, req in enumerate(requirements):
+        pkg, ver_spec = REQ_SPEC_REGEX.match(req).groups()
+        if not ver_spec:
+            continue
+        elif '==' in ver_spec:
+            continue
+        else:
+            msg = ("'{}' does not use '=='; for reproducibility in deployment, it will be replaced"
+                   " with an exact pin of the currently-installed version".format(req))
+            warnings.warn(msg)
+            requirements[i] = pkg
+
+    # find version numbers from importable packages
+    #     Because Python package management is complete anarchy, the Client can't determine
+    #     whether the environment is using pip, pip3, or conda to check the installed version.
+    for i, req in enumerate(requirements):
+        error = ValueError("unable to determine a version number for requirement '{}';"
+                           " please manually specify it as '{}==x.y.z'".format(req, req))
+        if '==' not in req:
+            mod_name = PYPI_TO_IMPORT.get(req, req)
+
+            # obtain package version
+            try:
+                mod = importlib.import_module(mod_name)
+            except ImportError:
+                six.raise_from(error, None)
+            try:
+                ver = mod.__version__
+            except AttributeError:
+                six.raise_from(error, None)
+
+            requirements[i] = req + "==" + ver
+
+    # add verta
+    verta_req = "verta=={}".format(__about__.__version__)
+    for req in requirements:
+        if req.startswith("verta"):  # if present, check version
+            our_ver = verta_req.split('==')[-1]
+            their_ver = req.split('==')[-1]
+            if our_ver != their_ver:  # versions conflict, so raise exception
+                raise ValueError("Client is running with verta v{}, but the provided requirements specify v{};"
+                                 " these must match".format(our_ver, their_ver))
+            else:  # versions match, so proceed
+                break
+    else:  # if not present, add
+        requirements.append(verta_req)
+
+    # add cloudpickle
+    cloudpickle_req = "cloudpickle=={}".format(cloudpickle.__version__)
+    for req in requirements:
+        if req.startswith("cloudpickle"):  # if present, check version
+            our_ver = cloudpickle_req.split('==')[-1]
+            their_ver = req.split('==')[-1]
+            if our_ver != their_ver:  # versions conflict, so raise exception
+                raise ValueError("Client is running with cloudpickle v{}, but the provided requirements specify v{};"
+                                 " these must match".format(our_ver, their_ver))
+            else:  # versions match, so proceed
+                break
+    else:  # if not present, add
+        requirements.append(cloudpickle_req)
+
+    return requirements
