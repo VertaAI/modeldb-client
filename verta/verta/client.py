@@ -2520,7 +2520,7 @@ class ExperimentRun(_ModelDBEntity):
         # build model API
         # TODO: verify that inputs & outputs are not needed
         if model_api is None:
-            model_api = utils.ModelAPI()  # TODO: init requires x & y
+            model_api = utils.ModelAPI()
         elif not isinstance(model_api, utils.ModelAPI):
             raise ValueError("`model_api` must be `verta.utils.ModelAPI`, not {}".format(type(model_api)))
         if 'model_packaging' not in model_api:
