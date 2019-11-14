@@ -2894,8 +2894,8 @@ class ExperimentRun(_ModelDBEntity):
             directory is provided, all files within will be included.
 
         """
-        warnings.warn("The behavior of this function has been merged into :meth:`log_model` as its"
-                      " ``custom_modules`` parameter; consider using that instead",
+        warnings.warn("The behavior of this function has been merged into log_model() as its"
+                      " `custom_modules` parameter; consider using that instead",
                       category=FutureWarning)
         if search_path is not None:
             warnings.warn("`search_path` is no longer used and will removed in a later version;"
