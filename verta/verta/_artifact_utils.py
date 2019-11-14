@@ -27,6 +27,17 @@ except ImportError:  # TensorFlow not installed
     pass
 
 
+# for process_requirements()
+PYPI_TO_IMPORT = {
+    'scikit-learn': "sklearn",
+    'tensorflow-gpu': "tensorflow",
+}
+IMPORT_TO_PYPI = {  # separate mapping because PyPI to import is surjective
+    'sklearn': "scikit-learn",
+}
+REQ_SPEC_REGEX = re.compile(r"([a-zA-Z0-9._-]+)(.*)?")  # https://www.python.org/dev/peps/pep-0508/#names
+
+
 def get_file_ext(file):
     """
     Obtain the filename extension of `file`.
@@ -297,18 +308,12 @@ def process_requirements(requirements):
         If a package's name is invalid for PyPI, or its exact version cannot be determined.
 
     """
-    PYPI_TO_IMPORT = {
-        'scikit-learn': "sklearn",
-        'tensorflow-gpu': "tensorflow",
-    }
-    REQ_SPEC_REGEX = re.compile(r"([a-zA-Z0-9._-]+)(.*)?")  # https://www.python.org/dev/peps/pep-0508/#names
-
     # validate package names
     for req in requirements:
         if not REQ_SPEC_REGEX.match(req):
             raise ValueError("'{}' does not appear to be a valid PyPI-installable package;"
                              " please check its spelling,"
-                             " or report this as a bug if you believe it is in error".format(req))
+                             " or file an issue if you believe it is in error".format(req))
 
     # warn for and strip version specifiers other than ==
     for i, req in enumerate(requirements):
