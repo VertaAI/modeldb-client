@@ -2874,7 +2874,7 @@ class ExperimentRun(_ModelDBEntity):
 
         From a list of package names:
 
-            >>> run.log_requirements(['verta', 'cloudpickle', 'sklearn'])
+            >>> run.log_requirements(['verta', 'cloudpickle', 'scikit-learn'])
             upload complete (requirements.txt)
             >>> print(run.get_artifact("requirements.txt").read().decode())
             verta==0.14.0
@@ -2894,10 +2894,9 @@ class ExperimentRun(_ModelDBEntity):
               and all(isinstance(req, six.string_types) for req in requirements)):
             requirements = copy.copy(requirements)
 
-            # replace importable module names with PyPI package names
+            # replace importable module names with PyPI package names in case of user error
             for i, req in enumerate(requirements):
-                if req.strip() == "sklearn":
-                    requirements[i] = "scikit-learn"
+                requirements[i] = _artifact_utils.IMPORT_TO_PYPI.get(req, req)
         else:
             raise TypeError("`requirements` must be either str or list of str, not {}".format(type(requirements)))
 
