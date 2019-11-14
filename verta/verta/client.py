@@ -2534,8 +2534,7 @@ class ExperimentRun(_ModelDBEntity):
             print("[DEBUG] model API is:")
             pprint.pprint(model_api.to_dict())
 
-        # TODO: gather custom modules
-        self._log_modules(custom_modules)
+        # self._log_modules(custom_modules)
         self._log_artifact("model.pkl", serialized_model, _CommonService.ArtifactTypeEnum.MODEL, extension, method)
         self._log_artifact("model_api.json", model_api, _CommonService.ArtifactTypeEnum.BLOB, 'json')
 
