@@ -2533,7 +2533,7 @@ class ExperimentRun(_ModelDBEntity):
             print("[DEBUG] model API is:")
             pprint.pprint(model_api.to_dict())
 
-        # self._log_modules(custom_modules)
+        self._log_modules(custom_modules)
         self._log_artifact("model.pkl", serialized_model, _CommonService.ArtifactTypeEnum.MODEL, extension, method)
         self._log_artifact("model_api.json", model_api, _CommonService.ArtifactTypeEnum.BLOB, 'json')
 
@@ -2905,7 +2905,9 @@ class ExperimentRun(_ModelDBEntity):
         self._log_modules(paths)
 
     def _log_modules(self, paths=None):
+        extensions = None  # log all files in user-provided `paths` with _utils.find_filepaths()
         if paths is None:
+            extensions = ['py', 'pyc', 'pyo']  # only log .py* files
             # log paths in sys.path, excluding standard and external libraries
             PY_DIR_REGEX = re.compile(r"/lib/python\d\.\d")
             PY_ZIP_REGEX = re.compile(r"/lib/python\d\d\.zip")
@@ -2934,7 +2936,7 @@ class ExperimentRun(_ModelDBEntity):
         common_prefix = os.path.commonprefix(paths_plus)
         common_dir = os.path.dirname(common_prefix)
 
-        filepaths = _utils.find_filepaths(paths, include_hidden=True, include_venv=False)
+        filepaths = _utils.find_filepaths(paths, extensions=extensions, include_hidden=True, include_venv=False)
 
         # get search paths to modify Deployment's sys.path
         if self._conf.debug:
