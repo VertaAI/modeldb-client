@@ -36,6 +36,11 @@ from . import utils
 
 _GRPC_PREFIX = "Grpc-Metadata-"
 
+# for ExperimentRun._log_modules()
+PY_DIR_REGEX = re.compile(r"/lib/python\d\.\d")
+PY_ZIP_REGEX = re.compile(r"/lib/python\d\d\.zip")
+IPYTHON_REGEX = re.compile(r"/\.ipython")
+
 
 class Client(object):
     """
@@ -2509,79 +2514,73 @@ class ExperimentRun(_ModelDBEntity):
             # TODO: change _log_artifact() to not read file into memory
             self._log_artifact("tf_saved_model", tempf, _CommonService.ArtifactTypeEnum.BLOB, 'zip')
 
-    def log_model(self, key, model):
+    def log_model(self, model, custom_modules=None, model_api=None):
         """
-        Logs a model artifact to this Experiment Run.
+        Logs a model artifact for Verta model deployment.
 
         Parameters
         ----------
-        key : str
-            Name of the model.
-        model : str or file-like or object
-            Model or some representation thereof.
-                - If str, then it will be interpreted as a filesystem path, its contents read as bytes,
-                  and uploaded as an artifact.
-                - If file-like, then the contents will be read as bytes and uploaded as an artifact.
+        model : str or object
+            Model for deployment.
+                - If str, then it will be interpreted as a filesystem path to a serialized model file
+                  for upload.
                 - Otherwise, the object will be serialized and uploaded as an artifact.
+        custom_modules : list of str, optional
+            Paths to local Python modules and other files that the deployed model depends on. If
+            directories are provided, all files within will be included.
+        model_api : :class:`~utils.ModelAPI`, optional
+            Model API specifying details about the model and its deployment.
 
         """
-        _utils.validate_flat_key(key)
-
+        # serialize model
         try:
             extension = _artifact_utils.get_file_ext(model)
         except (TypeError, ValueError):
             extension = None
-
-        model, method, _ = _artifact_utils.serialize_model(model)
-
+        _utils.THREAD_LOCALS.active_experiment_run = self
+        try:
+            serialized_model, method, model_type = _artifact_utils.serialize_model(model)
+        finally:
+            _utils.THREAD_LOCALS.active_experiment_run = None
+        if method is None:
+            raise ValueError("will not be able to deploy model due to unknown serialization method")
         if extension is None:
             extension = _artifact_utils.ext_from_method(method)
+        if self._conf.debug:
+            print("[DEBUG] model is type {}".format(model_type))
 
-        self._log_artifact(key, model, _CommonService.ArtifactTypeEnum.MODEL, extension, method)
+        # build model API
+        if model_api is None:
+            model_api = utils.ModelAPI()
+        elif not isinstance(model_api, utils.ModelAPI):
+            raise ValueError("`model_api` must be `verta.utils.ModelAPI`, not {}".format(type(model_api)))
+        if 'model_packaging' not in model_api:
+            # add model serialization info to model_api
+            model_api['model_packaging'] = {
+                'python_version': _utils.get_python_version(),
+                'type': model_type,
+                'deserialization': method,
+            }
+        if self._conf.debug:
+            print("[DEBUG] model API is:")
+            pprint.pprint(model_api.to_dict())
 
-    def log_model_path(self, key, model_path):
+        self._log_modules(custom_modules)
+        self._log_artifact("model.pkl", serialized_model, _CommonService.ArtifactTypeEnum.MODEL, extension, method)
+        self._log_artifact("model_api.json", model_api, _CommonService.ArtifactTypeEnum.BLOB, 'json')
+
+    def get_model(self):
         """
-        Logs the filesystem path of an model to this Experiment Run.
-
-        This function makes no attempt to open a file at `model_path`. Only the path string itself
-        is logged.
-
-        Parameters
-        ----------
-        key : str
-            Name of the model.
-        model_path : str
-            Filesystem path of the model.
-
-        """
-        _utils.validate_flat_key(key)
-
-        self._log_artifact_path(key, model_path, _CommonService.ArtifactTypeEnum.MODEL)
-
-    def get_model(self, key):
-        """
-        Gets the model artifact with name `key` from this Experiment Run.
-
-        If the model was originally logged as just a filesystem path, that path will be returned.
-        Otherwise, the model object itself will be returned. If the object is unable to be
-        deserialized, the raw bytes are returned instead.
-
-        Parameters
-        ----------
-        key : str
-            Name of the model.
+        Gets the model artifact for Verta model deployment from this Experiment Run.
 
         Returns
         -------
-        str or object or file-like
-            Filesystem path of the model, the model object, or a bytestream representing the model.
+        object
+            Model for deployment.
 
         """
-        model, path_only = self._get_artifact(key)
-        if path_only:
-            return model
-        else:
-            return _artifact_utils.deserialize_model(model)
+        model, _ = self._get_artifact("model.pkl")
+        return _artifact_utils.deserialize_model(model)
 
     def log_image(self, key, image):
         """
@@ -2913,6 +2912,9 @@ class ExperimentRun(_ModelDBEntity):
         """
         Logs local files that are dependencies for a deployed model to this Experiment Run.
 
+        .. deprecated:: 0.14.0
+           The behavior of this function has been merged into :meth:`log_model` as its
+           ``custom_modules`` parameter; consider using that instead.
         .. deprecated:: 0.12.4
            The `search_path` parameter is no longer necessary and will removed in v0.14.0; consider
            removing it from the function call.
@@ -2924,10 +2926,28 @@ class ExperimentRun(_ModelDBEntity):
             directory is provided, all files within will be included.
 
         """
+        warnings.warn("The behavior of this function has been merged into log_model() as its"
+                      " `custom_modules` parameter; consider using that instead",
+                      category=FutureWarning)
         if search_path is not None:
             warnings.warn("`search_path` is no longer used and will removed in a later version;"
                           " consider removing it from the function call",
                           category=FutureWarning)
+
+        self._log_modules(paths)
+
+    def _log_modules(self, paths=None):
+        extensions = None  # log all files in user-provided `paths` with _utils.find_filepaths()
+        if paths is None:
+            extensions = ['py', 'pyc', 'pyo']  # only log .py* files
+            # log paths in sys.path, excluding standard and external libraries
+            paths = []
+            for path in sys.path:
+                if (path
+                        and not PY_DIR_REGEX.search(path)
+                        and not PY_ZIP_REGEX.search(path)
+                        and not IPYTHON_REGEX.search(path)):
+                    paths.append(path)
         if isinstance(paths, six.string_types):
             paths = [paths]
 
@@ -2945,7 +2965,7 @@ class ExperimentRun(_ModelDBEntity):
         common_prefix = os.path.commonprefix(paths_plus)
         common_dir = os.path.dirname(common_prefix)
 
-        filepaths = _utils.find_filepaths(paths, include_hidden=True, include_venv=False)
+        filepaths = _utils.find_filepaths(paths, extensions=extensions, include_hidden=True, include_venv=False)
 
         # get search paths to modify Deployment's sys.path
         if self._conf.debug:

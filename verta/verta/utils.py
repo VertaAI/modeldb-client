@@ -31,12 +31,19 @@ class ModelAPI(object):
         A sequence of outputs for the model this API describes.
 
     """
-    def __init__(self, x, y):
-        self._buffer = six.StringIO(json.dumps({
+    def __init__(self, x=None, y=None):
+        api = {
             'version': "v1",
-            'input': ModelAPI._data_to_api(x),
-            'output': ModelAPI._data_to_api(y),
-        }))
+        }
+        if x is not None:
+            api.update({
+                'input': ModelAPI._data_to_api(x),
+            })
+        if y is not None:
+            api.update({
+                'output': ModelAPI._data_to_api(y),
+            })
+        self._buffer = six.StringIO(json.dumps(api))
 
     def __str__(self):
         ptr_pos = self.tell()  # save current pointer position

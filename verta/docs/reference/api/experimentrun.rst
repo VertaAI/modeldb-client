@@ -17,8 +17,8 @@ Functionality
 - `Artifacts`_
 
   - `General`_
+  - `Datasets`_
   - `Images`_
-  - `Models`_
 
 - `Advanced Uses`_
 
@@ -93,12 +93,6 @@ Images
 .. automethod:: ExperimentRun.log_image_path
 .. automethod:: ExperimentRun.get_image
 
-Models
-^^^^^^
-.. automethod:: ExperimentRun.log_model
-.. automethod:: ExperimentRun.log_model_path
-.. automethod:: ExperimentRun.get_model
-
 Advanced Uses
 -------------
 
@@ -117,5 +111,7 @@ Deployment
 .. automethod:: ExperimentRun.log_model_for_deployment
 .. automethod:: ExperimentRun.log_modules
 
+.. automethod:: ExperimentRun.log_model
+.. automethod:: ExperimentRun.get_model
 .. automethod:: ExperimentRun.log_requirements
 .. automethod:: ExperimentRun.log_setup_script
