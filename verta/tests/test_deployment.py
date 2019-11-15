@@ -143,7 +143,7 @@ class TestLogModel:
         model_api.update({
             'model_packaging': model_packaging,
         })
-        assert model_api == json.load(experiment_run.get_artifact('model_api.json'))
+        assert model_api == json.load(six.ensure_str(experiment_run.get_artifact('model_api.json')))
 
     def test_no_model_api(self, experiment_run, model_for_deployment, model_packaging):
         experiment_run.log_model(model_for_deployment['model'])
@@ -152,7 +152,7 @@ class TestLogModel:
             'version': "v1",
             'model_packaging': model_packaging,
         }
-        assert model_api == json.load(experiment_run.get_artifact('model_api.json'))
+        assert model_api == json.load(six.ensure_str(experiment_run.get_artifact('model_api.json')))
 
 class TestLogRequirements:
     NONSPECIFIC_REQ = "verta>0.1.0"
