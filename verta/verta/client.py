@@ -3059,3 +3059,36 @@ class ExperimentRun(_ModelDBEntity):
         script = six.BytesIO(script)
 
         self._log_artifact("setup_script", script, _CommonService.ArtifactTypeEnum.BLOB, 'py')
+
+    def log_training_data(self, train_features, train_targets):
+        """
+        Associate training data with this Experiment Run.
+
+        Parameters
+        ----------
+        train_features : pd.DataFrame
+            pandas DataFrame representing features of the training data.
+        train_targets : pd.DataFrame or pd.Series
+            pandas DataFrame representing targets of the training data.
+
+        """
+        if train_features.__class__.__name__ != "DataFrame":
+            raise TypeError("`train_features` must be a pandas DataFrame, not {}".format(type(train_features)))
+        if train_targets.__class__.__name__ == "Series":
+            train_targets = train_targets.to_frame()
+        elif train_targets.__class__.__name__ != "DataFrame":
+            raise TypeError("`train_targets` must be a pandas DataFrame or Series, not {}".format(type(train_targets)))
+
+        # check for overlapping column names
+        common_column_names = set(train_features.columns) & set(train_targets.columns)
+        if common_column_names:
+            raise ValueError("`train_features` and `train_targets` combined have overlapping column names;"
+                             " please ensure column names are unique")
+
+        train_df = train_features.join(train_targets)
+
+        tempf = tempfile.TemporaryFile('w+')
+        train_df.to_csv(tempf, index=False)
+        tempf.seek(0)
+
+        self._log_artifact("train_data", tempf, _CommonService.ArtifactTypeEnum.DATA, 'csv')
