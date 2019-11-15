@@ -5,6 +5,7 @@ import six
 import json
 import os
 import tempfile
+import zipfile
 
 import verta
 
@@ -33,10 +34,20 @@ def model_for_deployment(strs):
     }
 
 
+@pytest.fixture
+def model_packaging():
+    """Additional items added to model API in log_model()."""
+    return {
+        'python_version': verta._utils.get_python_version(),
+        'type': "sklearn",
+        'deserialization': "cloudpickle",
+    }
+
+
 class TestLogModelForDeployment:
     def test_model(self, experiment_run, model_for_deployment):
         experiment_run.log_model_for_deployment(**model_for_deployment)
-        retrieved_model = experiment_run.get_model("model.pkl")
+        retrieved_model = experiment_run.get_model()
 
         assert model_for_deployment['model'].get_params() == retrieved_model.get_params()
 
@@ -60,17 +71,6 @@ class TestLogModelForDeployment:
         with open(requirements_file, 'r') as f:
             assert set(f.read().split()) <= set(retrieved_requirements.split())
 
-    def test_reqs_version_pins(self, experiment_run, model_for_deployment, output_path):
-        """requirements must have exact version pins"""
-        requirements_file = output_path.format("requirements.txt")
-        with open(requirements_file, 'w') as f:
-            # strip version number
-            f.write('\n'.join(line.split('==')[0] for line in model_for_deployment['requirements'].read().splitlines()))
-        model_for_deployment['requirements'] = open(requirements_file, 'r')  # replace with on-disk file
-
-        with pytest.raises(ValueError):
-            experiment_run.log_model_for_deployment(**model_for_deployment)
-
     def test_with_data(self, experiment_run, model_for_deployment):
         """`train_features` and `train_targets` are joined into a single CSV"""
         experiment_run.log_model_for_deployment(**model_for_deployment)
@@ -81,6 +81,33 @@ class TestLogModelForDeployment:
         y_train = model_for_deployment['train_targets']
         assert X_train.join(y_train).to_csv(index=False) == six.ensure_str(data_csv)
 
+
+class TestLogModel:
+    def test_model(self, experiment_run, model_for_deployment):
+        experiment_run.log_model(model_for_deployment['model'])
+
+        assert model_for_deployment['model'].get_params() == experiment_run.get_model().get_params()
+
+    def test_model_api(self, experiment_run, model_for_deployment, model_packaging):
+        experiment_run.log_model(
+            model_for_deployment['model'],
+            model_api=model_for_deployment['model_api'],
+        )
+
+        model_api = model_for_deployment['model_api'].to_dict()
+        model_api.update({
+            'model_packaging': model_packaging,
+        })
+        assert model_api == json.load(experiment_run.get_artifact('model_api.json'))
+
+    def test_no_model_api(self, experiment_run, model_for_deployment, model_packaging):
+        experiment_run.log_model(model_for_deployment['model'])
+
+        model_api = {
+            'version': "v1",
+            'model_packaging': model_packaging,
+        }
+        assert model_api == json.load(experiment_run.get_artifact('model_api.json'))
 
 class TestLogRequirements:
     NONSPECIFIC_REQ = "verta>0.1.0"
