@@ -2530,8 +2530,11 @@ class ExperimentRun(_ModelDBEntity):
                   for upload.
                 - Otherwise, the object will be serialized and uploaded as an artifact.
         custom_modules : list of str, optional
-            Paths to local Python modules and other files that the deployed model depends on. If
-            directories are provided, all files within will be included.
+            Paths to local Python modules and other files that the deployed model depends on.
+                - If directories are provided, all files within—excluding virtual environments—will
+                  be included.
+                - If not provided, all Python files located within `sys.path`—excluding virtual
+                  environments—will be included.
         model_api : :class:`~utils.ModelAPI`, optional
             Model API specifying details about the model and its deployment.
 

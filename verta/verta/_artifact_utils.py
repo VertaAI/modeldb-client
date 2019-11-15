@@ -31,9 +31,11 @@ except ImportError:  # TensorFlow not installed
 PYPI_TO_IMPORT = {
     'scikit-learn': "sklearn",
     'tensorflow-gpu': "tensorflow",
+    'beautifulsoup4': "bs4",
 }
 IMPORT_TO_PYPI = {  # separate mapping because PyPI to import is surjective
     'sklearn': "scikit-learn",
+    'bs4': "beautifulsoup4",
 }
 REQ_SPEC_REGEX = re.compile(r"([a-zA-Z0-9._-]+)(.*)?")  # https://www.python.org/dev/peps/pep-0508/#names
 
