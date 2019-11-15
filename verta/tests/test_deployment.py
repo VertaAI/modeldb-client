@@ -4,6 +4,7 @@ import six
 
 import json
 import os
+import sys
 import tempfile
 import zipfile
 
@@ -87,6 +88,50 @@ class TestLogModel:
         experiment_run.log_model(model_for_deployment['model'])
 
         assert model_for_deployment['model'].get_params() == experiment_run.get_model().get_params()
+
+    def test_custom_modules(self, experiment_run, model_for_deployment):
+        custom_modules_dir = "."
+
+        experiment_run.log_model(
+            model_for_deployment['model'],
+            custom_modules=["."],
+        )
+
+        custom_module_filenames = {"__init__.py", "_verta_config.py"}
+        for parent_dir, dirnames, filenames in os.walk(custom_modules_dir):
+            # skip venvs
+            exec_path = os.path.join(parent_dir, "{}", "bin", "python")  # from verta._utils.find_filepaths()
+            dirnames[:] = [dirname for dirname in dirnames if not os.path.lexists(exec_path.format(dirname))]
+
+            custom_module_filenames.update(map(os.path.basename, filenames))
+
+        with zipfile.ZipFile(experiment_run.get_artifact("custom_modules"), 'r') as zipf:
+            assert custom_module_filenames == set(map(os.path.basename, zipf.namelist()))
+
+    def test_no_custom_modules(self, experiment_run, model_for_deployment):
+        experiment_run.log_model(model_for_deployment['model'])
+
+        custom_module_filenames = {"__init__.py", "_verta_config.py"}
+        for path in sys.path:
+            # skip std libs and Jupyter libs
+            if (not path
+                    or verta.client.PY_DIR_REGEX.search(path)
+                    or verta.client.PY_ZIP_REGEX.search(path)
+                    or verta.client.IPYTHON_REGEX.search(path)):
+                continue
+
+            for parent_dir, dirnames, filenames in os.walk(path):
+                # skip venvs
+                exec_path = os.path.join(parent_dir, "{}", "bin", "python")  # from verta._utils.find_filepaths()
+                dirnames[:] = [dirname for dirname in dirnames if not os.path.lexists(exec_path.format(dirname))]
+
+                # only Python files
+                filenames[:] = [filename for filename in filenames if filename.endswith(('.py', '.pyc', '.pyo'))]
+
+                custom_module_filenames.update(map(os.path.basename, filenames))
+
+        with zipfile.ZipFile(experiment_run.get_artifact("custom_modules"), 'r') as zipf:
+            assert custom_module_filenames == set(map(os.path.basename, zipf.namelist()))
 
     def test_model_api(self, experiment_run, model_for_deployment, model_packaging):
         experiment_run.log_model(

@@ -36,6 +36,11 @@ from . import utils
 
 _GRPC_PREFIX = "Grpc-Metadata-"
 
+# for ExperimentRun._log_modules()
+PY_DIR_REGEX = re.compile(r"/lib/python\d\.\d")
+PY_ZIP_REGEX = re.compile(r"/lib/python\d\d\.zip")
+IPYTHON_REGEX = re.compile(r"/\.ipython")
+
 
 class Client(object):
     """
@@ -2936,9 +2941,6 @@ class ExperimentRun(_ModelDBEntity):
         if paths is None:
             extensions = ['py', 'pyc', 'pyo']  # only log .py* files
             # log paths in sys.path, excluding standard and external libraries
-            PY_DIR_REGEX = re.compile(r"/lib/python\d\.\d")
-            PY_ZIP_REGEX = re.compile(r"/lib/python\d\d\.zip")
-            IPYTHON_REGEX = re.compile(r"/\.ipython")
             paths = []
             for path in sys.path:
                 if (path
