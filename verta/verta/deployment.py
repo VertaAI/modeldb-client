@@ -139,12 +139,11 @@ class DeployedModel:
         status = response.json()
         if status['status'] == 'error':
             raise RuntimeError(status['message'])
-        if 'api' in status:
+        elif status['status'] != 'deployed':
+            raise RuntimeError("model is not yet ready, or has not yet been deployed")
+        else:
             self._session.headers['Access-Token'] = status.get('token')
             self._prediction_url = urljoin("{}://{}".format(self._scheme, self._socket), status['api'])
-        else:
-            raise RuntimeError("prediction url not found in status endpoint response;"
-                               " model may not yet have been deployed")
 
     def _predict(self, x, compress=False):
         """This is like ``DeployedModel.predict()``, but returns the raw ``Response`` for debugging."""
