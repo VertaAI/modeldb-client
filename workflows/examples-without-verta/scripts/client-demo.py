@@ -79,7 +79,7 @@ for hyperparam_num, hyperparams in enumerate(hyperparam_sets):
     # save and log model
     model_path = os.path.join("..", "output", "client-demo", f"logreg_gridsearch_{hyperparam_num}.gz")
     joblib.dump(model, model_path)
-    run.log_model("model", model_path)
+    run.log_model(model_path)
 
 
 # close client
