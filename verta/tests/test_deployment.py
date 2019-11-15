@@ -258,3 +258,48 @@ class TestLogRequirements:
         reqs_txt = experiment_run.get_artifact("requirements.txt").read().decode()
         reqs = set(req.split('==')[0].strip() for req in reqs_txt.splitlines())
         assert set(self.VALID_REQS) == reqs
+
+
+class TestLogTrainingData:
+    def test_numpy_error(self, experiment_run, model_for_deployment):
+        with pytest.raises(TypeError):
+            experiment_run.log_training_data(
+                model_for_deployment['train_features'].values,
+                model_for_deployment['train_targets'].values,
+            )
+
+    def test_list_error(self, experiment_run, model_for_deployment):
+        with pytest.raises(TypeError):
+            experiment_run.log_training_data(
+                model_for_deployment['train_features'].values.tolist(),
+                model_for_deployment['train_targets'].values.tolist(),
+            )
+
+    def test_column_name_error(self, experiment_run, model_for_deployment):
+        X_train = model_for_deployment['train_features']
+        y_train = model_for_deployment['train_targets']
+
+        y_train = y_train.rename(X_train.columns[0])
+
+        with pytest.raises(ValueError):
+            experiment_run.log_training_data(X_train, y_train)
+
+    def test_series(self, experiment_run, model_for_deployment):
+        X_train = model_for_deployment['train_features']
+        y_train = model_for_deployment['train_targets']
+
+        experiment_run.log_training_data(X_train, y_train)
+
+        data_csv = experiment_run.get_artifact("train_data").read()
+        assert X_train.join(y_train).to_csv(index=False) == six.ensure_str(data_csv)
+
+    def test_dataframe(self, experiment_run, model_for_deployment):
+        X_train = model_for_deployment['train_features']
+        y_train = model_for_deployment['train_targets']
+
+        y_train = y_train.to_frame()
+
+        experiment_run.log_training_data(X_train, y_train)
+
+        data_csv = experiment_run.get_artifact("train_data").read()
+        assert X_train.join(y_train).to_csv(index=False) == six.ensure_str(data_csv)

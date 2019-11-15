@@ -108,10 +108,11 @@ Data Versioning
 
 Deployment
 ^^^^^^^^^^
-.. automethod:: ExperimentRun.log_model_for_deployment
-.. automethod:: ExperimentRun.log_modules
-
 .. automethod:: ExperimentRun.log_model
 .. automethod:: ExperimentRun.get_model
 .. automethod:: ExperimentRun.log_requirements
 .. automethod:: ExperimentRun.log_setup_script
+.. automethod:: ExperimentRun.log_training_data
+
+.. automethod:: ExperimentRun.log_model_for_deployment
+.. automethod:: ExperimentRun.log_modules
