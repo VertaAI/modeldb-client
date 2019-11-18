@@ -2396,7 +2396,7 @@ class ExperimentRun(_ModelDBEntity):
         """
         Logs a model artifact, a model API, requirements, and a dataset CSV to deploy on Verta.
 
-        .. deprecated:: 0.14.0
+        .. deprecated:: 0.13.13
            This function has been superseded by :meth:`log_model`, :meth:`log_requirements`, and
            :meth:`log_training_data`; consider using them instead.
 
@@ -2849,7 +2849,7 @@ class ExperimentRun(_ModelDBEntity):
         """
         Logs a pip requirements file for Verta model deployment.
 
-        .. versionadded:: 0.14.0
+        .. versionadded:: 0.13.13
 
         Parameters
         ----------
@@ -2876,14 +2876,14 @@ class ExperimentRun(_ModelDBEntity):
             matplotlib==3.1.1
             pandas==0.25.0
             scikit-learn==0.21.3
-            verta==0.14.0
+            verta==0.13.13
 
         From a list of package names:
 
             >>> run.log_requirements(['verta', 'cloudpickle', 'scikit-learn'])
             upload complete (requirements.txt)
             >>> print(run.get_artifact("requirements.txt").read().decode())
-            verta==0.14.0
+            verta==0.13.13
             cloudpickle==1.2.1
             scikit-learn==0.21.3
 
@@ -2919,7 +2919,7 @@ class ExperimentRun(_ModelDBEntity):
         """
         Logs local files that are dependencies for a deployed model to this Experiment Run.
 
-        .. deprecated:: 0.14.0
+        .. deprecated:: 0.13.13
            The behavior of this function has been merged into :meth:`log_model` as its
            ``custom_modules`` parameter; consider using that instead.
         .. deprecated:: 0.12.4

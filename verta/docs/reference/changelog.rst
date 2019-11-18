@@ -32,6 +32,34 @@ Release Notes
      <>`_
 
 
+v0.13.13 (2019-11-18)
+---------------------
+
+Backwards Incompatibilities
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+- `ExperimentRun.log_model() now no longer accepts a user-defined key, and is intended for deployment
+  <https://github.com/VertaAI/modeldb-client/pull/292>`_
+
+Deprecations
+^^^^^^^^^^^^
+- `ExperimentRun.log_model_for_deployment(), in favor of more modular logging functions
+  <https://github.com/VertaAI/modeldb-client/blob/f3b84ca/verta/verta/client.py#L2399>`_
+
+New Features
+^^^^^^^^^^^^
+- `implement ExperimentRun.log_requirements()
+  <https://github.com/VertaAI/modeldb-client/pull/291>`_
+- `implement ExperimentRun.log_training_data()
+  <https://github.com/VertaAI/modeldb-client/pull/293>`_
+- `make prediction token optional in DeployedModel::from_url()
+  <https://github.com/VertaAI/modeldb-client/pull/290>`_
+
+Bug Fixes
+^^^^^^^^^
+- `retry predictions on non-model 502s
+  <https://github.com/VertaAI/modeldb-client/pull/289>`_
+
+
 v0.13.12 (2019-11-07)
 ---------------------
 
