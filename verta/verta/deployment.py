@@ -165,9 +165,14 @@ class DeployedModel:
         else:
             return self._session.post(self._prediction_url, json=x)
 
-    def predict(self, x, compress=False, max_retries=5, always_retry_429=True):
+    def predict(self, x, compress=False, max_retries=5, always_retry_404=True, always_retry_429=True):
         """
         Make a prediction using input `x`.
+
+        .. versionadded:: 0.13.14
+           The `always_retry_404` parameter.
+        .. versionadded:: 0.13.12
+           The `always_retry_429` parameter.
 
         Parameters
         ----------
@@ -177,6 +182,8 @@ class DeployedModel:
             Whether to compress the request body.
         max_retries : int, default 5
             Maximum number of times to retry a request on a connection failure.
+        always_retry_404 : bool, default True
+            Whether to retry on 404s indefinitely. This is to accommodate model deployment warm-up.
         always_retry_429 : bool, default True
             Whether to retry on 429s indefinitely. This is to accommodate third-party cluster
             autoscalers, which may take minutes to launch new pods for servicing requests.
@@ -208,13 +215,14 @@ class DeployedModel:
                 else:  # from model back end; contains message (maybe)
                     msg = data.get('message', "(no specific error message found)")
                     raise RuntimeError("deployed model encountered an error: {}".format(msg))
-            elif not (response.status_code >= 500 or response.status_code == 429):  # clientside error
+            elif not (response.status_code >= 500 or response.status_code in (404, 429)):  # clientside error
                 break
 
             sleep = 0.3*(2**(num_retries + 1))
             print("received status {}; retrying in {:.1f}s".format(response.status_code, sleep))
             time.sleep(sleep)
-            if response.status_code == 429 and always_retry_429:  # too many requests
+            if ((response.status_code == 404 and always_retry_404)  # model warm-up
+                    or (response.status_code == 429 and always_retry_429)):  # too many requests
                 num_retries = min(num_retries + 1, max_retries - 1)
             else:
                 num_retries += 1
