@@ -32,6 +32,15 @@ Release Notes
      <>`_
 
 
+v0.13.14 (2019-11-19)
+---------------------
+
+New Features
+^^^^^^^^^^^^
+- `enable indefinite retries on prediction 404s
+  <https://github.com/VertaAI/modeldb-client/pull/297>`_
+
+
 v0.13.13 (2019-11-18)
 ---------------------
 
