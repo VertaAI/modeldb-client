@@ -2518,7 +2518,7 @@ class ExperimentRun(_ModelDBEntity):
             # TODO: change _log_artifact() to not read file into memory
             self._log_artifact("tf_saved_model", tempf, _CommonService.ArtifactTypeEnum.BLOB, 'zip')
 
-    def log_model(self, model, custom_modules=None, model_api=None):
+    def log_model(self, model, custom_modules=None, model_api=None, artifacts=None):
         """
         Logs a model artifact for Verta model deployment.
 
@@ -2537,8 +2537,15 @@ class ExperimentRun(_ModelDBEntity):
                   environments—will be included.
         model_api : :class:`~utils.ModelAPI`, optional
             Model API specifying details about the model and its deployment.
+        artifacts : list of str, optional
+            Keys of logged artifacts to be used by a class model.
 
         """
+        if (artifacts is not None
+                and not (isinstance(artifacts, list)
+                         and all(isinstance(artifact_key, six.string_types) for artifact_key in artifacts))):
+            raise TypeError("`artifacts` must be list of str, not {}".format(type(artifacts)))
+
         # serialize model
         try:
             extension = _artifact_utils.get_file_ext(model)
@@ -2556,6 +2563,9 @@ class ExperimentRun(_ModelDBEntity):
         if self._conf.debug:
             print("[DEBUG] model is type {}".format(model_type))
 
+        if artifacts and model_type != "class":
+            raise ValueError("`artifacts` can only be provided if `model` is a class")
+
         # build model API
         if model_api is None:
             model_api = utils.ModelAPI()
@@ -2571,6 +2581,11 @@ class ExperimentRun(_ModelDBEntity):
         if self._conf.debug:
             print("[DEBUG] model API is:")
             pprint.pprint(model_api.to_dict())
+
+        # note artifact dependencies
+        if artifacts:
+            # TODO: validate that `artifacts` are actually logged
+            self.log_attribute("verta_model_artifacts", artifacts)
 
         self._log_modules(custom_modules)
         self._log_artifact("model.pkl", serialized_model, _CommonService.ArtifactTypeEnum.MODEL, extension, method)

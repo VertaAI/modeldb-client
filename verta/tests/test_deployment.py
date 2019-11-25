@@ -162,6 +162,48 @@ class TestLogModel:
         retrieved_model_api = verta.utils.ModelAPI.from_file(experiment_run.get_artifact("model_api.json"))
         assert retrieved_model_api.to_dict()['model_packaging']['type'] == "class"
 
+    def test_artifacts(self, experiment_run, model_for_deployment, strs, flat_dicts):
+        for key, artifact in zip(strs, flat_dicts):
+            experiment_run.log_artifact(key, artifact)
+
+        experiment_run.log_model(
+            model_for_deployment['model'].__class__,
+            artifacts=strs,
+        )
+
+        assert experiment_run.get_attribute("verta_model_artifacts") == strs
+
+    def test_no_artifacts(self, experiment_run, model_for_deployment):
+        experiment_run.log_model(model_for_deployment['model'].__class__)
+
+        with pytest.raises(KeyError):
+            experiment_run.get_attribute("verta_model_artifacts")
+
+    def test_wrong_type_artifacts_error(self, experiment_run, model_for_deployment, all_values):
+        # remove Nones, because they're equivalent to unprovided
+        all_values = [val for val in all_values if val is not None]
+        # remove lists of strings and empty lists, because they're valid arguments
+        all_values = [val
+                      for val in all_values
+                      if not (isinstance(val, list) and all(isinstance(el, six.string_types) for el in val))]
+
+        for val in all_values:
+            with pytest.raises(TypeError):
+                experiment_run.log_model(
+                    model_for_deployment['model'].__class__,
+                    artifacts=val,
+                )
+
+    def test_not_class_model_artifacts_error(self, experiment_run, model_for_deployment, strs, flat_dicts):
+        for key, artifact in zip(strs, flat_dicts):
+            experiment_run.log_artifact(key, artifact)
+
+        with pytest.raises(ValueError):
+            experiment_run.log_model(
+                model_for_deployment['model'],
+                artifacts=strs,
+            )
+
 
 class TestLogRequirements:
     NONSPECIFIC_REQ = "verta>0.1.0"
