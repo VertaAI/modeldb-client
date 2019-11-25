@@ -2549,8 +2549,8 @@ class ExperimentRun(_ModelDBEntity):
         # validate that `artifacts` are actually logged
         if artifacts:
             response = _utils.make_request("GET",
-                                        "{}://{}/v1/experiment-run/getExperimentRunById".format(self._conn.scheme, self._conn.socket),
-                                        self._conn, params={'id': self.id})
+                                           "{}://{}/v1/experiment-run/getExperimentRunById".format(self._conn.scheme, self._conn.socket),
+                                           self._conn, params={'id': self.id})
             _utils.raise_for_http_error(response)
             existing_artifact_keys = {artifact['key'] for artifact in response.json()['experiment_run'].get('artifacts', [])}
             unlogged_artifact_keys = set(artifacts) - existing_artifact_keys
