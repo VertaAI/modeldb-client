@@ -2546,6 +2546,16 @@ class ExperimentRun(_ModelDBEntity):
                          and all(isinstance(artifact_key, six.string_types) for artifact_key in artifacts))):
             raise TypeError("`artifacts` must be list of str, not {}".format(type(artifacts)))
 
+        # validate that `artifacts` are actually logged
+        response = _utils.make_request("GET",
+                                       "{}://{}/v1/experiment-run/getExperimentRunById".format(self._conn.scheme, self._conn.socket),
+                                       self._conn, params={'id': self.id})
+        _utils.raise_for_http_error(response)
+        existing_artifact_keys = {artifact['key'] for artifact in response.json()['experiment_run'].get('artifacts', [])}
+        unlogged_artifact_keys = set(artifacts) - existing_artifact_keys
+        if unlogged_artifact_keys:
+            raise ValueError("`artifacts` contains keys that have not been logged: {}".format(unlogged_artifact_keys))
+
         # serialize model
         try:
             extension = _artifact_utils.get_file_ext(model)
@@ -2582,9 +2592,8 @@ class ExperimentRun(_ModelDBEntity):
             print("[DEBUG] model API is:")
             pprint.pprint(model_api.to_dict())
 
-        # note artifact dependencies
+        # associate artifact dependencies
         if artifacts:
-            # TODO: validate that `artifacts` are actually logged
             self.log_attribute("verta_model_artifacts", artifacts)
 
         self._log_modules(custom_modules)

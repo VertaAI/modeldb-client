@@ -204,6 +204,27 @@ class TestLogModel:
                 artifacts=strs,
             )
 
+    def test_unlogged_keys_artifacts_error(self, experiment_run, model_for_deployment, strs, flat_dicts):
+        with pytest.raises(ValueError):
+            experiment_run.log_model(
+                model_for_deployment['model'],
+                artifacts=[strs[0]],
+            )
+
+        experiment_run.log_artifact(strs[0], flat_dicts[0])
+
+        with pytest.raises(ValueError):
+            experiment_run.log_model(
+                model_for_deployment['model'],
+                artifacts=[strs[1]],
+            )
+
+        with pytest.raises(ValueError):
+            experiment_run.log_model(
+                model_for_deployment['model'],
+                artifacts=strs[1:],
+            )
+
 
 class TestLogRequirements:
     NONSPECIFIC_REQ = "verta>0.1.0"
