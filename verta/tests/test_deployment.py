@@ -181,10 +181,10 @@ class TestLogModel:
 
     def test_wrong_type_artifacts_error(self, experiment_run, model_for_deployment, all_values):
         # remove Nones, because they're equivalent to unprovided
-        all_values = [val for val in all_values if val is not None]
+        all_values = [val for val in all_values
+                      if val is not None]
         # remove lists of strings and empty lists, because they're valid arguments
-        all_values = [val
-                      for val in all_values
+        all_values = [val for val in all_values
                       if not (isinstance(val, list) and all(isinstance(el, six.string_types) for el in val))]
 
         for val in all_values:
