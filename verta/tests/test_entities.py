@@ -1,4 +1,8 @@
+import six
+
 import itertools
+import os
+import shutil
 
 import requests
 
@@ -14,6 +18,34 @@ KWARGS_COMBOS = [dict(zip(KWARGS.keys(), values))
                  for values
                  in itertools.product(*KWARGS.values())
                  if values.count(None) != len(values)]
+
+
+class TestEntities:
+    def test_cache(self, client, strs):
+        entities = (
+            client.set_project(),
+            client.set_experiment(),
+            client.set_experiment_run(),
+        )
+
+        for entity in entities:
+            try:
+                filename = strs[0]
+                filepath = os.path.join(entity._cache_dir, filename)
+                contents = six.ensure_binary(strs[1])
+
+                assert not os.path.isfile(filepath)
+                assert not entity._in_cache(filename)
+
+                assert entity._cache(filename, contents) == filepath
+
+                assert os.path.isfile(filepath)
+                assert entity._in_cache(filename)
+
+                with open(filepath, 'rb') as f:
+                    assert f.read() == contents
+            finally:
+                shutil.rmtree(entity._cache_dir)
 
 
 class TestProject:

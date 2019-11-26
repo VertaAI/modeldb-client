@@ -536,6 +536,13 @@ class _ModelDBEntity(object):
                                                       service_url_component,
                                                       '{}')  # endpoint placeholder
 
+        self._cache_dir = os.path.join(
+            os.path.expanduser("~"),
+            ".verta",
+            id,
+            "artifacts",
+        )
+
         self.id = id
 
     def __getstate__(self):
@@ -585,6 +592,42 @@ class _ModelDBEntity(object):
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
         return response_msg.url
+
+    def _cache(self, filename, contents):
+        """
+        Caches `contents` to `filename` within ``self._cache_dir``.
+
+        Parameters
+        ----------
+        filename : str
+            Filename within ``self._cache_dir`` to write to.
+        contents : bytes
+            Contents to be cached.
+
+        Returns
+        -------
+        str
+            Full filepath to cached contents.
+
+        """
+        # create cache dir
+        try:
+            os.makedirs(self._cache_dir)
+        except OSError:  # already exists
+            pass
+
+        # create file
+        filepath = os.path.join(self._cache_dir, filename)
+        with open(filepath, 'wb') as f:
+            f.write(contents)
+            f.flush()  # flush object buffer
+            os.fsync(f.fileno())  # flush OS buffer
+
+        return filepath
+
+    def _in_cache(self, filename):
+        filepath = os.path.join(self._cache_dir, filename)
+        return os.path.isfile(filepath)
 
     def log_code(self, exec_path=None, repo_url=None, commit_hash=None):
         """
