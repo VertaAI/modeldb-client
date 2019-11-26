@@ -539,6 +539,7 @@ class _ModelDBEntity(object):
         self._cache_dir = os.path.join(
             os.path.expanduser("~"),
             ".verta",
+            "cache",
             id,
             "artifacts",
         )
@@ -3168,30 +3169,41 @@ class ExperimentRun(_ModelDBEntity):
         self._log_artifact("train_data", tempf, _CommonService.ArtifactTypeEnum.DATA, 'csv')
 
     def fetch_artifacts(self):
-        # TODO: provide helpful docstring summary
         """
-
+        Downloads artifacts that were associated with the model in :meth:`ExperimentRun.log_model`.
 
         Returns
         -------
         dict of str to str
-            Map of artifacts' keys to their cache filepaths.
+            Map of artifacts' keys to their cache filepaths—for use as the ``artifacts`` parameter
+            to a Verta class model.
 
         Examples
         --------
-        >>> run.log_model(ModelClass, artifacts=["weights", ""])
-
-        >>> run.fetch_artifacts()
-
+        >>> run.log_artifact("weights", open("weights.npz", 'rb'))
+        upload complete (weights)
+        >>> run.log_artifact("text_embeddings", open("embedding.csv", 'rb'))
+        upload complete (text_embeddings)
+        >>> run.log_model(ModelClass, artifacts=["weights", "text_embeddings"])
+        upload complete (custom_modules.zip)
+        upload complete (model.pkl)
+        upload complete (model_api.json)
+        >>> artifacts = run.fetch_artifacts()
+        >>> artifacts
+        {'weights': '/Users/convoliution/.verta/cache/da2c214f-5ce3-4970-8511-3bd16d971bbe/artifacts/weights',
+         'text_embeddings': '/Users/convoliution/.verta/cache/da2c214f-5ce3-4970-8511-3bd16d971bbe/artifacts/text_embeddings'}
 
         """
         try:
             artifact_keys = self.get_attribute(MODEL_ARTIFACTS_ATTR_KEY)
         except KeyError:
-            raise RuntimeError  # TODO: provide helpful error message
+            six.raise_from(RuntimeError("no artifacts found associated with model for deployment;"
+                                        " see docstring for intended usage"),
+                           None)
 
         artifacts = dict()
         for key in artifact_keys:
+            # TODO: only cache if not exists
             contents, _ = self._get_artifact(key)  # TODO: raise error if path_only
             filepath = self._cache(key, contents)
 
