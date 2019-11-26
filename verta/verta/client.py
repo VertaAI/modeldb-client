@@ -2555,7 +2555,7 @@ class ExperimentRun(_ModelDBEntity):
             existing_artifact_keys = {artifact['key'] for artifact in response.json()['experiment_run'].get('artifacts', [])}
             unlogged_artifact_keys = set(artifacts) - existing_artifact_keys
             if unlogged_artifact_keys:
-                raise ValueError("`artifacts` contains keys that have not been logged: {}".format(unlogged_artifact_keys))
+                raise ValueError("`artifacts` contains keys that have not been logged: {}".format(sorted(unlogged_artifact_keys)))
 
         # serialize model
         try:
