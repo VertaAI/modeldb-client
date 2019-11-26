@@ -34,13 +34,13 @@ class TestEntities:
             contents = six.ensure_binary(strs[1])
 
             assert not os.path.isfile(filepath)
-            assert not entity._in_cache(filename)
+            assert not entity._get_cached(filename)
 
             try:
                 assert entity._cache(filename, contents) == filepath
 
                 assert os.path.isfile(filepath)
-                assert entity._in_cache(filename)
+                assert entity._get_cached(filename)
 
                 with open(filepath, 'rb') as f:
                     assert f.read() == contents

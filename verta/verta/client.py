@@ -541,7 +541,6 @@ class _ModelDBEntity(object):
             ".verta",
             "cache",
             id,
-            "artifacts",
         )
 
         self.id = id
@@ -611,14 +610,16 @@ class _ModelDBEntity(object):
             Full filepath to cached contents.
 
         """
-        # create cache dir
+        filepath = os.path.join(self._cache_dir, filename)
+
+        # create intermediate dirs
         try:
-            os.makedirs(self._cache_dir)
+            os.makedirs(os.path.dirname(filepath))
         except OSError:  # already exists
             pass
 
         # create file
-        filepath = os.path.join(self._cache_dir, filename)
+        # TODO: write to a tempfile then move, to prevent interrupted writes
         with open(filepath, 'wb') as f:
             f.write(contents)
             f.flush()  # flush object buffer
@@ -626,9 +627,9 @@ class _ModelDBEntity(object):
 
         return filepath
 
-    def _in_cache(self, filename):
+    def _get_cached(self, filename):
         filepath = os.path.join(self._cache_dir, filename)
-        return os.path.isfile(filepath)
+        return filepath if os.path.isfile(filepath) else None
 
     def log_code(self, exec_path=None, repo_url=None, commit_hash=None):
         """
@@ -3203,9 +3204,16 @@ class ExperimentRun(_ModelDBEntity):
 
         artifacts = dict()
         for key in artifact_keys:
-            # TODO: only cache if not exists
-            contents, _ = self._get_artifact(key)  # TODO: raise error if path_only
-            filepath = self._cache(key, contents)
+            filename = os.path.join("artifacts", key)
+
+            # check cache, otherwise write to cache
+            #     "try-get-then-create" can lead multiple threads trying to write to the cache
+            #     simultaneously, but artifacts being cached at a particular location should be
+            #     identical, so multiple writes would be idempotent.
+            filepath = self._get_cached(filename)
+            if filepath is None:
+                contents, _ = self._get_artifact(key)  # TODO: raise error if path_only
+                filepath = self._cache(filename, contents)
 
             artifacts.update({key: filepath})
 

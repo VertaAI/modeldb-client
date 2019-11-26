@@ -7,6 +7,7 @@ import os
 import shutil
 import sys
 import tempfile
+import time
 import zipfile
 
 import verta
@@ -231,7 +232,6 @@ class TestFetchArtifacts:
     def test_fetch_artifacts(self, experiment_run, model_for_deployment, strs, flat_dicts):
         for key, artifact in zip(strs, flat_dicts):
             experiment_run.log_artifact(key, artifact)
-
         experiment_run.log_model(
             model_for_deployment['model'].__class__,
             artifacts=strs,
@@ -250,6 +250,26 @@ class TestFetchArtifacts:
                     file_contents = f.read()
 
                 assert file_contents == artifact_contents
+        finally:
+            shutil.rmtree(experiment_run._cache_dir, ignore_errors=True)
+
+    def test_cached_fetch_artifacts(self, experiment_run, model_for_deployment, strs, flat_dicts):
+        key = strs[0]
+
+        experiment_run.log_artifact(key, flat_dicts[0])
+        experiment_run.log_model(
+            model_for_deployment['model'].__class__,
+            artifacts=[key],
+        )
+
+        try:
+            filepath = experiment_run.fetch_artifacts()[key]
+            last_modified = os.path.getmtime(filepath)
+
+            time.sleep(3)
+            assert experiment_run.fetch_artifacts()[key] == filepath
+
+            assert os.path.getmtime(filepath) == last_modified
         finally:
             shutil.rmtree(experiment_run._cache_dir, ignore_errors=True)
 
