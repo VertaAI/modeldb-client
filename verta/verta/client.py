@@ -610,6 +610,13 @@ class _ModelDBEntity(object):
             Full filepath to cached contents.
 
         """
+        # write contents to temporary file
+        tempf = tempfile.NamedTemporaryFile(delete=False)
+        tempf.write(contents)
+        tempf.flush()  # flush object buffer
+        os.fsync(tempf.fileno())  # flush OS buffer
+        tempf.close()
+
         filepath = os.path.join(self._cache_dir, filename)
 
         # create intermediate dirs
@@ -618,12 +625,8 @@ class _ModelDBEntity(object):
         except OSError:  # already exists
             pass
 
-        # create file
-        # TODO: write to a tempfile then move, to prevent interrupted writes
-        with open(filepath, 'wb') as f:
-            f.write(contents)
-            f.flush()  # flush object buffer
-            os.fsync(f.fileno())  # flush OS buffer
+        # move written file to cache location
+        os.rename(tempf.name, filepath)
 
         return filepath
 
