@@ -3168,6 +3168,7 @@ class ExperimentRun(_ModelDBEntity):
         self._log_artifact("train_data", tempf, _CommonService.ArtifactTypeEnum.DATA, 'csv')
 
     def fetch_artifacts(self):
+        # TODO: provide helpful docstring summary
         """
 
 
@@ -3176,8 +3177,14 @@ class ExperimentRun(_ModelDBEntity):
         dict of str to str
             Map of artifacts' keys to their cache filepaths.
 
+        Examples
+        --------
+        >>> run.log_model(ModelClass, artifacts=["weights", ""])
+
+        >>> run.fetch_artifacts()
+
+
         """
-        # TODO: provide helpful docstring summary
         try:
             artifact_keys = self.get_attribute(MODEL_ARTIFACTS_ATTR_KEY)
         except KeyError:
@@ -3186,7 +3193,7 @@ class ExperimentRun(_ModelDBEntity):
         artifacts = dict()
         for key in artifact_keys:
             contents, _ = self._get_artifact(key)  # TODO: raise error if path_only
-            filepath = self._cache(key, contents)  # TODO: unpack ZIPs
+            filepath = self._cache(key, contents)
 
             artifacts.update({key: filepath})
 
