@@ -29,14 +29,14 @@ class TestEntities:
         )
 
         for entity in entities:
+            filename = strs[0]
+            filepath = os.path.join(entity._cache_dir, filename)
+            contents = six.ensure_binary(strs[1])
+
+            assert not os.path.isfile(filepath)
+            assert not entity._in_cache(filename)
+
             try:
-                filename = strs[0]
-                filepath = os.path.join(entity._cache_dir, filename)
-                contents = six.ensure_binary(strs[1])
-
-                assert not os.path.isfile(filepath)
-                assert not entity._in_cache(filename)
-
                 assert entity._cache(filename, contents) == filepath
 
                 assert os.path.isfile(filepath)
@@ -45,7 +45,7 @@ class TestEntities:
                 with open(filepath, 'rb') as f:
                     assert f.read() == contents
             finally:
-                shutil.rmtree(entity._cache_dir)
+                shutil.rmtree(entity._cache_dir, ignore_errors=True)
 
 
 class TestProject:

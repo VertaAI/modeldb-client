@@ -251,7 +251,7 @@ class TestFetchArtifacts:
 
                 assert file_contents == artifact_contents
         finally:
-            shutil.rmtree(experiment_run._cache_dir)
+            shutil.rmtree(experiment_run._cache_dir, ignore_errors=True)
 
     def test_no_artifacts_error(self, experiment_run, model_for_deployment):
         with pytest.raises(RuntimeError):
