@@ -3169,13 +3169,25 @@ class ExperimentRun(_ModelDBEntity):
 
     def fetch_artifacts(self):
         """
+
+
         Returns
         -------
         dict of str to str
             Map of artifacts' keys to their cache filepaths.
 
         """
+        # TODO: provide helpful docstring summary
         try:
             artifact_keys = self.get_attribute(MODEL_ARTIFACTS_ATTR_KEY)
         except KeyError:
             raise RuntimeError  # TODO: provide helpful error message
+
+        artifacts = dict()
+        for key in artifact_keys:
+            contents, _ = self._get_artifact(key)  # TODO: raise error if path_only
+            filepath = self._cache(key, contents)  # TODO: unpack ZIPs
+
+            artifacts.update({key: filepath})
+
+        return artifacts

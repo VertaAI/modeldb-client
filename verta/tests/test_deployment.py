@@ -4,6 +4,7 @@ import six
 
 import json
 import os
+import shutil
 import sys
 import tempfile
 import zipfile
@@ -224,6 +225,42 @@ class TestLogModel:
                 model_for_deployment['model'],
                 artifacts=strs[1:],
             )
+
+
+class TestFetchArtifacts:
+    def test_fetch_artifacts(self, experiment_run, model_for_deployment, strs, flat_dicts):
+        for key, artifact in zip(strs, flat_dicts):
+            experiment_run.log_artifact(key, artifact)
+
+        experiment_run.log_model(
+            model_for_deployment['model'].__class__,
+            artifacts=strs,
+        )
+
+        try:
+            artifacts = experiment_run.fetch_artifacts()
+
+            assert set(six.viewkeys(artifacts)) == set(strs)
+            assert all(filepath.startswith(experiment_run._cache_dir)
+                       for filepath in six.viewvalues(artifacts))
+
+            for key, filepath in six.viewitems(artifacts):
+                artifact_contents, _ = experiment_run._get_artifact(key)
+                with open(filepath, 'rb') as f:
+                    file_contents = f.read()
+
+                assert file_contents == artifact_contents
+        finally:
+            shutil.rmtree(experiment_run._cache_dir)
+
+    def test_no_artifacts_error(self, experiment_run, model_for_deployment):
+        with pytest.raises(RuntimeError):
+            experiment_run.fetch_artifacts()
+
+        experiment_run.log_model(model_for_deployment['model'].__class__)
+
+        with pytest.raises(RuntimeError):
+            experiment_run.fetch_artifacts()
 
 
 class TestLogRequirements:
