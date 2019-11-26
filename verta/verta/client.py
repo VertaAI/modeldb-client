@@ -41,6 +41,9 @@ PY_DIR_REGEX = re.compile(r"/lib/python\d\.\d")
 PY_ZIP_REGEX = re.compile(r"/lib/python\d\d\.zip")
 IPYTHON_REGEX = re.compile(r"/\.ipython")
 
+# for ExperimentRun.log_model() and ExperimentRun.fetch_artifacts()
+MODEL_ARTIFACTS_ATTR_KEY = "verta_model_artifacts"
+
 
 class Client(object):
     """
@@ -2595,7 +2598,7 @@ class ExperimentRun(_ModelDBEntity):
 
         # associate artifact dependencies
         if artifacts:
-            self.log_attribute("verta_model_artifacts", artifacts)
+            self.log_attribute(MODEL_ARTIFACTS_ATTR_KEY, artifacts)
 
         self._log_modules(custom_modules)
         self._log_artifact("model.pkl", serialized_model, _CommonService.ArtifactTypeEnum.MODEL, extension, method)
@@ -3120,3 +3123,16 @@ class ExperimentRun(_ModelDBEntity):
         tempf.seek(0)
 
         self._log_artifact("train_data", tempf, _CommonService.ArtifactTypeEnum.DATA, 'csv')
+
+    def fetch_artifacts(self):
+        """
+        Returns
+        -------
+        dict of str to str
+            Map of artifacts' keys to their cache filepaths.
+
+        """
+        try:
+            artifact_keys = self.get_attribute(MODEL_ARTIFACTS_ATTR_KEY)
+        except KeyError:
+            raise RuntimeError  # TODO: provide helpful error message
