@@ -154,6 +154,15 @@ class TestLogModel:
         }
         assert model_api == json.loads(six.ensure_str(experiment_run.get_artifact('model_api.json').read()))
 
+    def test_model_class(self, experiment_run, model_for_deployment):
+        experiment_run.log_model(model_for_deployment['model'].__class__)
+
+        assert model_for_deployment['model'].__class__ == experiment_run.get_model()
+
+        retrieved_model_api = verta.utils.ModelAPI.from_file(experiment_run.get_artifact("model_api.json"))
+        assert retrieved_model_api.to_dict()['model_packaging']['type'] == "class"
+
+
 class TestLogRequirements:
     NONSPECIFIC_REQ = "verta>0.1.0"
     INVALID_REQ = "@==1.2.3"

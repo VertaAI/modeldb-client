@@ -222,6 +222,13 @@ def serialize_model(model):
         finally:
             reset_stream(model)  # reset cursor to beginning as a courtesy
 
+    # `model` is a class
+    if isinstance(model, six.class_types):
+        model_type = "class"
+        bytestream, method = ensure_bytestream(model)
+        return bytestream, method, model_type
+
+    # `model` is an instance
     for class_obj in model.__class__.__mro__:
         module_name = class_obj.__module__
         if not module_name:
