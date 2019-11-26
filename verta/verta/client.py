@@ -611,11 +611,10 @@ class _ModelDBEntity(object):
 
         """
         # write contents to temporary file
-        tempf = tempfile.NamedTemporaryFile(delete=False)
-        tempf.write(contents)
-        tempf.flush()  # flush object buffer
-        os.fsync(tempf.fileno())  # flush OS buffer
-        tempf.close()
+        with tempfile.NamedTemporaryFile(delete=False) as tempf:
+            tempf.write(contents)
+            tempf.flush()  # flush object buffer
+            os.fsync(tempf.fileno())  # flush OS buffer
 
         filepath = os.path.join(self._cache_dir, filename)
 
