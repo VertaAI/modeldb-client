@@ -237,7 +237,7 @@ class TestFetchArtifacts:
             artifacts = experiment_run.fetch_artifacts(strs)
 
             assert set(six.viewkeys(artifacts)) == set(strs)
-            assert all(filepath.startswith(experiment_run._cache_dir)
+            assert all(filepath.startswith(verta.client._CACHE_DIR)
                        for filepath in six.viewvalues(artifacts))
 
             for key, filepath in six.viewitems(artifacts):
@@ -247,7 +247,7 @@ class TestFetchArtifacts:
 
                 assert file_contents == artifact_contents
         finally:
-            shutil.rmtree(experiment_run._cache_dir, ignore_errors=True)
+            shutil.rmtree(verta.client._CACHE_DIR, ignore_errors=True)
 
     def test_cached_fetch_artifacts(self, experiment_run, strs, flat_dicts):
         key = strs[0]
@@ -263,7 +263,7 @@ class TestFetchArtifacts:
 
             assert os.path.getmtime(filepath) == last_modified
         finally:
-            shutil.rmtree(experiment_run._cache_dir, ignore_errors=True)
+            shutil.rmtree(verta.client._CACHE_DIR, ignore_errors=True)
 
     def test_wrong_type_artifacts_error(self, experiment_run, all_values):
         # remove lists of strings and empty lists, because they're valid arguments

@@ -8,6 +8,8 @@ import requests
 
 import pytest
 
+import verta
+
 
 KWARGS = {
     'desc': [None, "A test."],
@@ -30,7 +32,7 @@ class TestEntities:
 
         for entity in entities:
             filename = strs[0]
-            filepath = os.path.join(entity._cache_dir, filename)
+            filepath = os.path.join(verta.client._CACHE_DIR, filename)
             contents = six.ensure_binary(strs[1])
 
             assert not os.path.isfile(filepath)
@@ -45,7 +47,7 @@ class TestEntities:
                 with open(filepath, 'rb') as f:
                     assert f.read() == contents
             finally:
-                shutil.rmtree(entity._cache_dir, ignore_errors=True)
+                shutil.rmtree(verta.client._CACHE_DIR, ignore_errors=True)
 
 
 class TestProject:

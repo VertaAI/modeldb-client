@@ -44,6 +44,12 @@ IPYTHON_REGEX = re.compile(r"/\.ipython")
 # for ExperimentRun.log_model() and ExperimentRun.fetch_artifacts()
 MODEL_ARTIFACTS_ATTR_KEY = "verta_model_artifacts"
 
+_CACHE_DIR = os.path.join(
+    os.path.expanduser("~"),
+    ".verta",
+    "cache",
+)
+
 
 class Client(object):
     """
@@ -536,13 +542,6 @@ class _ModelDBEntity(object):
                                                       service_url_component,
                                                       '{}')  # endpoint placeholder
 
-        self._cache_dir = os.path.join(
-            os.path.expanduser("~"),
-            ".verta",
-            "cache",
-            id,
-        )
-
         self.id = id
 
     def __getstate__(self):
@@ -595,12 +594,12 @@ class _ModelDBEntity(object):
 
     def _cache(self, filename, contents):
         """
-        Caches `contents` to `filename` within ``self._cache_dir``.
+        Caches `contents` to `filename` within ``_CACHE_DIR``.
 
         Parameters
         ----------
         filename : str
-            Filename within ``self._cache_dir`` to write to.
+            Filename within ``_CACHE_DIR`` to write to.
         contents : bytes
             Contents to be cached.
 
@@ -616,7 +615,7 @@ class _ModelDBEntity(object):
             tempf.flush()  # flush object buffer
             os.fsync(tempf.fileno())  # flush OS buffer
 
-        filepath = os.path.join(self._cache_dir, filename)
+        filepath = os.path.join(_CACHE_DIR, filename)
 
         # create intermediate dirs
         try:
@@ -630,7 +629,7 @@ class _ModelDBEntity(object):
         return filepath
 
     def _get_cached(self, filename):
-        filepath = os.path.join(self._cache_dir, filename)
+        filepath = os.path.join(_CACHE_DIR, filename)
         return filepath if os.path.isfile(filepath) else None
 
     def log_code(self, exec_path=None, repo_url=None, commit_hash=None):
