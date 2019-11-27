@@ -41,6 +41,15 @@ PY_DIR_REGEX = re.compile(r"/lib/python\d\.\d")
 PY_ZIP_REGEX = re.compile(r"/lib/python\d\d\.zip")
 IPYTHON_REGEX = re.compile(r"/\.ipython")
 
+# for ExperimentRun.log_model()
+_MODEL_ARTIFACTS_ATTR_KEY = "verta_model_artifacts"
+
+_CACHE_DIR = os.path.join(
+    os.path.expanduser("~"),
+    ".verta",
+    "cache",
+)
+
 
 class Client(object):
     """
@@ -582,6 +591,46 @@ class _ModelDBEntity(object):
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
         return response_msg.url
+
+    def _cache(self, filename, contents):
+        """
+        Caches `contents` to `filename` within ``_CACHE_DIR``.
+
+        Parameters
+        ----------
+        filename : str
+            Filename within ``_CACHE_DIR`` to write to.
+        contents : bytes
+            Contents to be cached.
+
+        Returns
+        -------
+        str
+            Full filepath to cached contents.
+
+        """
+        # write contents to temporary file
+        with tempfile.NamedTemporaryFile(delete=False) as tempf:
+            tempf.write(contents)
+            tempf.flush()  # flush object buffer
+            os.fsync(tempf.fileno())  # flush OS buffer
+
+        filepath = os.path.join(_CACHE_DIR, filename)
+
+        # create intermediate dirs
+        try:
+            os.makedirs(os.path.dirname(filepath))
+        except OSError:  # already exists
+            pass
+
+        # move written file to cache location
+        os.rename(tempf.name, filepath)
+
+        return filepath
+
+    def _get_cached(self, filename):
+        filepath = os.path.join(_CACHE_DIR, filename)
+        return filepath if os.path.isfile(filepath) else None
 
     def log_code(self, exec_path=None, repo_url=None, commit_hash=None):
         """
@@ -2595,7 +2644,7 @@ class ExperimentRun(_ModelDBEntity):
 
         # associate artifact dependencies
         if artifacts:
-            self.log_attribute("verta_model_artifacts", artifacts)
+            self.log_attribute(_MODEL_ARTIFACTS_ATTR_KEY, artifacts)
 
         self._log_modules(custom_modules)
         self._log_artifact("model.pkl", serialized_model, _CommonService.ArtifactTypeEnum.MODEL, extension, method)
@@ -3120,3 +3169,76 @@ class ExperimentRun(_ModelDBEntity):
         tempf.seek(0)
 
         self._log_artifact("train_data", tempf, _CommonService.ArtifactTypeEnum.DATA, 'csv')
+
+    def fetch_artifacts(self, keys):
+        """
+        Downloads artifacts that are associated with a class model.
+
+        Parameters
+        ----------
+        keys : list of str
+            Keys of artifacts to download.
+
+        Returns
+        -------
+        dict of str to str
+            Map of artifacts' keys to their cache filepaths—for use as the ``artifacts`` parameter
+            to a Verta class model.
+
+        Examples
+        --------
+        >>> run.log_artifact("weights", open("weights.npz", 'rb'))
+        upload complete (weights)
+        >>> run.log_artifact("text_embeddings", open("embedding.csv", 'rb'))
+        upload complete (text_embeddings)
+        >>> artifact_keys = ["weights", "text_embeddings"]
+        >>> artifacts = run.fetch_artifacts(artifact_keys)
+        >>> artifacts
+        {'weights': '/Users/convoliution/.verta/cache/artifacts/50a9726b3666d99aea8af006cf224a7637d0c0b5febb3b0051192ce1e8615f47/weights.npz',
+         'text_embeddings': '/Users/convoliution/.verta/cache/artifacts/2d2d1d809e9bce229f0a766126ae75df14cadd1e8f182561ceae5ad5457a3c38/embedding.csv'}
+        >>> ModelClass(artifacts=artifacts).predict(["Good book.", "Bad book!"])
+        [0.955998517288053, 0.09809996313422353]
+        >>> run.log_model(ModelClass, artifacts=artifact_keys)
+        upload complete (custom_modules.zip)
+        upload complete (model.pkl)
+        upload complete (model_api.json)
+
+        """
+        if not (isinstance(keys, list)
+                and all(isinstance(key, six.string_types) for key in keys)):
+            raise TypeError("`keys` must be list of str, not {}".format(type(keys)))
+
+        # validate that `keys` are actually logged
+        response = _utils.make_request("GET",
+                                       "{}://{}/v1/experiment-run/getExperimentRunById".format(self._conn.scheme, self._conn.socket),
+                                       self._conn, params={'id': self.id})
+        _utils.raise_for_http_error(response)
+        existing_artifact_keys = {artifact['key'] for artifact in response.json()['experiment_run'].get('artifacts', [])}
+        unlogged_artifact_keys = set(keys) - existing_artifact_keys
+        if unlogged_artifact_keys:
+            raise ValueError("`keys` contains keys that have not been logged: {}".format(sorted(unlogged_artifact_keys)))
+
+        # get artifact checksums
+        response = _utils.make_request("GET",
+                                       "{}://{}/v1/experiment-run/getArtifacts".format(self._conn.scheme, self._conn.socket),
+                                       self._conn, params={'id': self.id})
+        _utils.raise_for_http_error(response)
+        paths = {artifact['key']: artifact['path']
+                 for artifact in response.json()['artifacts']}
+
+        artifacts = dict()
+        for key in keys:
+            filename = os.path.join("artifacts", paths[key])
+
+            # check cache, otherwise write to cache
+            #     "try-get-then-create" can lead multiple threads trying to write to the cache
+            #     simultaneously, but artifacts being cached at a particular location should be
+            #     identical, so multiple writes would be idempotent.
+            filepath = self._get_cached(filename)
+            if filepath is None:
+                contents, _ = self._get_artifact(key)  # TODO: raise error if path_only
+                filepath = self._cache(filename, contents)
+
+            artifacts.update({key: filepath})
+
+        return artifacts

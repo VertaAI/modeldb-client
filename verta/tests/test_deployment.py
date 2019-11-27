@@ -4,8 +4,10 @@ import six
 
 import json
 import os
+import shutil
 import sys
 import tempfile
+import time
 import zipfile
 
 import verta
@@ -224,6 +226,65 @@ class TestLogModel:
                 model_for_deployment['model'],
                 artifacts=strs[1:],
             )
+
+
+class TestFetchArtifacts:
+    def test_fetch_artifacts(self, experiment_run, strs, flat_dicts):
+        for key, artifact in zip(strs, flat_dicts):
+            experiment_run.log_artifact(key, artifact)
+
+        try:
+            artifacts = experiment_run.fetch_artifacts(strs)
+
+            assert set(six.viewkeys(artifacts)) == set(strs)
+            assert all(filepath.startswith(verta.client._CACHE_DIR)
+                       for filepath in six.viewvalues(artifacts))
+
+            for key, filepath in six.viewitems(artifacts):
+                artifact_contents, _ = experiment_run._get_artifact(key)
+                with open(filepath, 'rb') as f:
+                    file_contents = f.read()
+
+                assert file_contents == artifact_contents
+        finally:
+            shutil.rmtree(verta.client._CACHE_DIR, ignore_errors=True)
+
+    def test_cached_fetch_artifacts(self, experiment_run, strs, flat_dicts):
+        key = strs[0]
+
+        experiment_run.log_artifact(key, flat_dicts[0])
+
+        try:
+            filepath = experiment_run.fetch_artifacts([key])[key]
+            last_modified = os.path.getmtime(filepath)
+
+            time.sleep(3)
+            assert experiment_run.fetch_artifacts([key])[key] == filepath
+
+            assert os.path.getmtime(filepath) == last_modified
+        finally:
+            shutil.rmtree(verta.client._CACHE_DIR, ignore_errors=True)
+
+    def test_wrong_type_artifacts_error(self, experiment_run, all_values):
+        # remove lists of strings and empty lists, because they're valid arguments
+        all_values = [val for val in all_values
+                      if not (isinstance(val, list) and all(isinstance(el, six.string_types) for el in val))]
+
+        for val in all_values:
+            with pytest.raises(TypeError):
+                experiment_run.fetch_artifacts(val)
+
+    def test_unlogged_keys_artifacts_error(self, experiment_run, strs, flat_dicts):
+        with pytest.raises(ValueError):
+            experiment_run.fetch_artifacts([strs[0]])
+
+        experiment_run.log_artifact(strs[0], flat_dicts[0])
+
+        with pytest.raises(ValueError):
+            experiment_run.fetch_artifacts([strs[1]])
+
+        with pytest.raises(ValueError):
+            experiment_run.fetch_artifacts(strs[1:])
 
 
 class TestLogRequirements:

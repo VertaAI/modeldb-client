@@ -1,8 +1,14 @@
+import six
+
 import itertools
+import os
+import shutil
 
 import requests
 
 import pytest
+
+import verta
 
 
 KWARGS = {
@@ -14,6 +20,34 @@ KWARGS_COMBOS = [dict(zip(KWARGS.keys(), values))
                  for values
                  in itertools.product(*KWARGS.values())
                  if values.count(None) != len(values)]
+
+
+class TestEntities:
+    def test_cache(self, client, strs):
+        entities = (
+            client.set_project(),
+            client.set_experiment(),
+            client.set_experiment_run(),
+        )
+
+        for entity in entities:
+            filename = strs[0]
+            filepath = os.path.join(verta.client._CACHE_DIR, filename)
+            contents = six.ensure_binary(strs[1])
+
+            assert not os.path.isfile(filepath)
+            assert not entity._get_cached(filename)
+
+            try:
+                assert entity._cache(filename, contents) == filepath
+
+                assert os.path.isfile(filepath)
+                assert entity._get_cached(filename)
+
+                with open(filepath, 'rb') as f:
+                    assert f.read() == contents
+            finally:
+                shutil.rmtree(verta.client._CACHE_DIR, ignore_errors=True)
 
 
 class TestProject:
