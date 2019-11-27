@@ -229,16 +229,12 @@ class TestLogModel:
 
 
 class TestFetchArtifacts:
-    def test_fetch_artifacts(self, experiment_run, model_for_deployment, strs, flat_dicts):
+    def test_fetch_artifacts(self, experiment_run, strs, flat_dicts):
         for key, artifact in zip(strs, flat_dicts):
             experiment_run.log_artifact(key, artifact)
-        experiment_run.log_model(
-            model_for_deployment['model'].__class__,
-            artifacts=strs,
-        )
 
         try:
-            artifacts = experiment_run.fetch_artifacts()
+            artifacts = experiment_run.fetch_artifacts(strs)
 
             assert set(six.viewkeys(artifacts)) == set(strs)
             assert all(filepath.startswith(experiment_run._cache_dir)
@@ -253,34 +249,42 @@ class TestFetchArtifacts:
         finally:
             shutil.rmtree(experiment_run._cache_dir, ignore_errors=True)
 
-    def test_cached_fetch_artifacts(self, experiment_run, model_for_deployment, strs, flat_dicts):
+    def test_cached_fetch_artifacts(self, experiment_run, strs, flat_dicts):
         key = strs[0]
 
         experiment_run.log_artifact(key, flat_dicts[0])
-        experiment_run.log_model(
-            model_for_deployment['model'].__class__,
-            artifacts=[key],
-        )
 
         try:
-            filepath = experiment_run.fetch_artifacts()[key]
+            filepath = experiment_run.fetch_artifacts([key])[key]
             last_modified = os.path.getmtime(filepath)
 
             time.sleep(3)
-            assert experiment_run.fetch_artifacts()[key] == filepath
+            assert experiment_run.fetch_artifacts([key])[key] == filepath
 
             assert os.path.getmtime(filepath) == last_modified
         finally:
             shutil.rmtree(experiment_run._cache_dir, ignore_errors=True)
 
-    def test_no_artifacts_error(self, experiment_run, model_for_deployment):
-        with pytest.raises(RuntimeError):
-            experiment_run.fetch_artifacts()
+    def test_wrong_type_artifacts_error(self, experiment_run, all_values):
+        # remove lists of strings and empty lists, because they're valid arguments
+        all_values = [val for val in all_values
+                      if not (isinstance(val, list) and all(isinstance(el, six.string_types) for el in val))]
 
-        experiment_run.log_model(model_for_deployment['model'].__class__)
+        for val in all_values:
+            with pytest.raises(TypeError):
+                experiment_run.fetch_artifacts(val)
 
-        with pytest.raises(RuntimeError):
-            experiment_run.fetch_artifacts()
+    def test_unlogged_keys_artifacts_error(self, experiment_run, strs, flat_dicts):
+        with pytest.raises(ValueError):
+            experiment_run.fetch_artifacts([strs[0]])
+
+        experiment_run.log_artifact(strs[0], flat_dicts[0])
+
+        with pytest.raises(ValueError):
+            experiment_run.fetch_artifacts([strs[1]])
+
+        with pytest.raises(ValueError):
+            experiment_run.fetch_artifacts(strs[1:])
 
 
 class TestLogRequirements:
