@@ -3194,8 +3194,8 @@ class ExperimentRun(_ModelDBEntity):
         >>> artifact_keys = ["weights", "text_embeddings"]
         >>> artifacts = run.fetch_artifacts(artifact_keys)
         >>> artifacts
-        {'weights': '/Users/convoliution/.verta/cache/da2c214f-5ce3-4970-8511-3bd16d971bbe/artifacts/weights',
-         'text_embeddings': '/Users/convoliution/.verta/cache/da2c214f-5ce3-4970-8511-3bd16d971bbe/artifacts/text_embeddings'}
+        {'weights': '/Users/convoliution/.verta/cache/artifacts/50a9726b3666d99aea8af006cf224a7637d0c0b5febb3b0051192ce1e8615f47',
+         'text_embeddings': '/Users/convoliution/.verta/cache/artifacts/2d2d1d809e9bce229f0a766126ae75df14cadd1e8f182561ceae5ad5457a3c38'}
         >>> ModelClass(artifacts=artifacts).predict(["Good book.", "Bad book!"])
         [0.955998517288053, 0.09809996313422353]
         >>> run.log_model(ModelClass, artifacts=artifact_keys)
@@ -3218,9 +3218,20 @@ class ExperimentRun(_ModelDBEntity):
         if unlogged_artifact_keys:
             raise ValueError("`keys` contains keys that have not been logged: {}".format(sorted(unlogged_artifact_keys)))
 
+        # get artifact checksums
+        response = _utils.make_request(
+            "GET",
+            "{}://{}/v1/experiment-run/getArtifacts".format(self._conn.scheme, self._conn.socket),
+            self._conn,
+            params={'id': self.id},
+        )
+        _utils.raise_for_http_error(response)
+        checksums = {artifact['key']: artifact['path'].split('/')[0]
+                     for artifact in response.json()['artifacts']}
+
         artifacts = dict()
         for key in keys:
-            filename = os.path.join("artifacts", key)
+            filename = os.path.join("artifacts", checksums[key])
 
             # check cache, otherwise write to cache
             #     "try-get-then-create" can lead multiple threads trying to write to the cache
