@@ -3,6 +3,7 @@ matplotlib
 pandas
 scikit-learn
 tensorflow
+tensorflow-hub
 xgboost
 
 verta
