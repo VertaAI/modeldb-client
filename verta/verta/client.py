@@ -41,8 +41,8 @@ PY_DIR_REGEX = re.compile(r"/lib/python\d\.\d")
 PY_ZIP_REGEX = re.compile(r"/lib/python\d\d\.zip")
 IPYTHON_REGEX = re.compile(r"/\.ipython")
 
-# for ExperimentRun.log_model() and ExperimentRun.fetch_artifacts()
-MODEL_ARTIFACTS_ATTR_KEY = "verta_model_artifacts"
+# for ExperimentRun.log_model()
+_MODEL_ARTIFACTS_ATTR_KEY = "verta_model_artifacts"
 
 _CACHE_DIR = os.path.join(
     os.path.expanduser("~"),
@@ -2644,7 +2644,7 @@ class ExperimentRun(_ModelDBEntity):
 
         # associate artifact dependencies
         if artifacts:
-            self.log_attribute(MODEL_ARTIFACTS_ATTR_KEY, artifacts)
+            self.log_attribute(_MODEL_ARTIFACTS_ATTR_KEY, artifacts)
 
         self._log_modules(custom_modules)
         self._log_artifact("model.pkl", serialized_model, _CommonService.ArtifactTypeEnum.MODEL, extension, method)
