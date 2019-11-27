@@ -3219,12 +3219,9 @@ class ExperimentRun(_ModelDBEntity):
             raise ValueError("`keys` contains keys that have not been logged: {}".format(sorted(unlogged_artifact_keys)))
 
         # get artifact checksums
-        response = _utils.make_request(
-            "GET",
-            "{}://{}/v1/experiment-run/getArtifacts".format(self._conn.scheme, self._conn.socket),
-            self._conn,
-            params={'id': self.id},
-        )
+        response = _utils.make_request("GET",
+                                       "{}://{}/v1/experiment-run/getArtifacts".format(self._conn.scheme, self._conn.socket),
+                                       self._conn, params={'id': self.id})
         _utils.raise_for_http_error(response)
         checksums = {artifact['key']: artifact['path'].split('/')[0]
                      for artifact in response.json()['artifacts']}
