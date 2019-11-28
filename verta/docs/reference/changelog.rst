@@ -32,6 +32,19 @@ Release Notes
      <>`_
 
 
+v0.13.15 (2019-11-27)
+--------------------
+
+New Features
+^^^^^^^^^^^^
+- `support logging classes as models
+  <https://github.com/VertaAI/modeldb-client/pull/298>`_
+- `support associating artifact dependencies with class models
+  <https://github.com/VertaAI/modeldb-client/pull/299>`_
+- `enable downloading artifacts into a local cache for use with class models
+  <https://github.com/VertaAI/modeldb-client/pull/300>`_
+
+
 v0.13.14 (2019-11-19)
 ---------------------
 
