@@ -2768,7 +2768,7 @@ class ExperimentRun(_ModelDBEntity):
         artifact : str or file-like or object
             Artifact or some representation thereof.
                 - If str, then it will be interpreted as a filesystem path, its contents read as bytes,
-                  and uploaded as an artifact.
+                  and uploaded as an artifact. If it is a directory path, its contents will be zipped.
                 - If file-like, then the contents will be read as bytes and uploaded as an artifact.
                 - Otherwise, the object will be serialized and uploaded as an artifact.
 
@@ -2779,6 +2779,20 @@ class ExperimentRun(_ModelDBEntity):
             extension = _artifact_utils.get_file_ext(artifact)
         except (TypeError, ValueError):
             extension = None
+
+        # zip if `artifact` is directory path
+        if isinstance(artifact, six.string_types) and os.path.isdir(artifact):
+            tempf = tempfile.TemporaryFile()
+
+            with zipfile.ZipFile(tempf, 'w') as zipf:
+                for root, _, files in os.walk(artifact):
+                    for filename in files:
+                        filepath = os.path.join(root, filename)
+                        zipf.write(filepath, os.path.relpath(filepath, artifact))
+            tempf.seek(0)
+
+            artifact = tempf
+            extension = 'zip'
 
         self._log_artifact(key, artifact, _CommonService.ArtifactTypeEnum.BLOB, extension)
 
