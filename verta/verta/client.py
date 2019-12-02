@@ -596,6 +596,9 @@ class _ModelDBEntity(object):
         """
         Caches `contents` to `filename` within ``_CACHE_DIR``.
 
+        If `contents` represents a ZIP file, then it will be unzipped, and the path to the target
+        directory will be returned.
+
         Parameters
         ----------
         filename : str
@@ -606,7 +609,7 @@ class _ModelDBEntity(object):
         Returns
         -------
         str
-            Full filepath to cached contents.
+            Full path to cached contents.
 
         """
         # write contents to temporary file
@@ -615,22 +618,38 @@ class _ModelDBEntity(object):
             tempf.flush()  # flush object buffer
             os.fsync(tempf.fileno())  # flush OS buffer
 
-        filepath = os.path.join(_CACHE_DIR, filename)
+        if os.path.splitext(filename)[1] == '.zip':
+            name = os.path.splitext(filename)[0]
+            temp_path = tempfile.mkdtemp()
+
+            with zipfile.ZipFile(tempf.name, 'r') as zipf:
+                zipf.extractall(temp_path)
+            os.remove(tempf.name)
+        else:
+            name = filename
+            temp_path = tempf.name
+
+        path = os.path.join(_CACHE_DIR, name)
 
         # create intermediate dirs
         try:
-            os.makedirs(os.path.dirname(filepath))
+            os.makedirs(os.path.dirname(path))
         except OSError:  # already exists
             pass
 
-        # move written file to cache location
-        os.rename(tempf.name, filepath)
+        # move written contents to cache location
+        os.rename(temp_path, path)
 
-        return filepath
+        return path
 
     def _get_cached(self, filename):
-        filepath = os.path.join(_CACHE_DIR, filename)
-        return filepath if os.path.isfile(filepath) else None
+        if os.path.splitext(filename)[1] == '.zip':
+            name = os.path.splitext(filename)[0]
+        else:
+            name = filename
+
+        path = os.path.join(_CACHE_DIR, name)
+        return path if os.path.exists(path) else None
 
     def log_code(self, exec_path=None, repo_url=None, commit_hash=None):
         """
@@ -3248,11 +3267,11 @@ class ExperimentRun(_ModelDBEntity):
             #     "try-get-then-create" can lead multiple threads trying to write to the cache
             #     simultaneously, but artifacts being cached at a particular location should be
             #     identical, so multiple writes would be idempotent.
-            filepath = self._get_cached(filename)
-            if filepath is None:
+            path = self._get_cached(filename)
+            if path is None:
                 contents, _ = self._get_artifact(key)  # TODO: raise error if path_only
-                filepath = self._cache(filename, contents)
+                path = self._cache(filename, contents)
 
-            artifacts.update({key: filepath})
+            artifacts.update({key: path})
 
         return artifacts

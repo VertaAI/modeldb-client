@@ -54,24 +54,10 @@ class TestArtifacts:
             with open(artifact_filepath, 'rb') as artifact_file:
                 assert experiment_run.get_artifact(key).read() == artifact_file.read()
 
-    def test_upload_dir(self, experiment_run, strs, tmp_path):
+    def test_upload_dir(self, experiment_run, strs, dir_and_files):
+        dirpath, filepaths = dir_and_files
         key = strs[0]
-        filepaths = {
-            os.path.join(strs[1], strs[2], strs[3]),
-            os.path.join(strs[1], strs[2], strs[4]),
-            os.path.join(strs[1], strs[3]),
-            os.path.join(strs[1], strs[5]),
-            os.path.join(strs[3]),
-            os.path.join(strs[6]),
-        }
 
-        # create dir of empty files
-        for filepath in filepaths:
-            p = tmp_path / filepath
-            p.parent.mkdir(parents=True, exist_ok=True)
-            p.touch()
-
-        dirpath = str(tmp_path)
         experiment_run.log_artifact(key, dirpath)
 
         with zipfile.ZipFile(experiment_run.get_artifact(key), 'r') as zipf:
