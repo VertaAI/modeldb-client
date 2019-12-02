@@ -1,6 +1,8 @@
 API Reference
 =============
 
+Use the sidebar to navigate to specific pages for specific modules and classes.
+
 
 .. toctree::
     :hidden:
