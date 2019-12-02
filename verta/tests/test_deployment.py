@@ -265,6 +265,46 @@ class TestFetchArtifacts:
         finally:
             shutil.rmtree(verta.client._CACHE_DIR, ignore_errors=True)
 
+    def test_fetch_zip(self, experiment_run, strs, dir_and_files):
+        dirpath, filepaths = dir_and_files
+        key = strs[0]
+
+        experiment_run.log_artifact(key, dirpath)
+
+        try:
+            dirpath = experiment_run.fetch_artifacts([key])[key]
+
+            assert dirpath.startswith(verta.client._CACHE_DIR)
+
+            retrieved_filepaths = set()
+            for root, _, files in os.walk(dirpath):
+                for filename in files:
+                    filepath = os.path.join(root, filename)
+                    filepath = os.path.relpath(filepath, dirpath)
+                    retrieved_filepaths.add(filepath)
+
+            assert filepaths == retrieved_filepaths
+        finally:
+            shutil.rmtree(verta.client._CACHE_DIR, ignore_errors=True)
+
+    def test_cached_fetch_zip(self, experiment_run, strs, dir_and_files):
+        dirpath, _ = dir_and_files
+        key = strs[0]
+
+        experiment_run.log_artifact(key, dirpath)
+
+        try:
+            dirpath = experiment_run.fetch_artifacts([key])[key]
+            last_modified = os.path.getmtime(dirpath)
+
+            time.sleep(3)
+            assert experiment_run.fetch_artifacts([key])[key] == dirpath
+
+            assert os.path.getmtime(dirpath) == last_modified
+        finally:
+            shutil.rmtree(verta.client._CACHE_DIR, ignore_errors=True)
+
+
     def test_wrong_type_artifacts_error(self, experiment_run, all_values):
         # remove lists of strings and empty lists, because they're valid arguments
         all_values = [val for val in all_values
