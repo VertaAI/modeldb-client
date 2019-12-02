@@ -4,7 +4,7 @@ Release Notes
 
 .. This comment block is a template for version release notes.
    v.. (--)
-   --------------------
+   ---------------------
 
    Backwards Incompatibilities
    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -30,6 +30,15 @@ Release Notes
    ^^^^^^^^^^^^^^^^
    - `
      <>`_
+
+
+v0.13.16 (2019-12-02)
+---------------------
+
+New Features
+^^^^^^^^^^^^
+- `enable logging directories as ZIP archives with log_artifact()
+  <https://github.com/VertaAI/modeldb-client/pull/304>`_
 
 
 v0.13.15 (2019-11-27)
