@@ -196,6 +196,34 @@ def output_path():
 
 
 @pytest.fixture
+def dir_and_files(strs, tmp_path):
+    """
+    Creates nested directory of empty files.
+
+    Returns
+    -------
+    dirpath : str
+    filepaths : set of str
+
+    """
+    filepaths = {
+        os.path.join(strs[0], strs[1], strs[2]),
+        os.path.join(strs[0], strs[1], strs[3]),
+        os.path.join(strs[0], strs[2]),
+        os.path.join(strs[0], strs[4]),
+        os.path.join(strs[2]),
+        os.path.join(strs[5]),
+    }
+
+    for filepath in filepaths:
+        p = tmp_path / filepath
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.touch()
+
+    return str(tmp_path), filepaths
+
+
+@pytest.fixture
 def client(host, port, email, dev_key):
     client = Client(host, port, email, dev_key, debug=True)
 
