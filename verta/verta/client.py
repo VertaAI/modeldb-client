@@ -2780,6 +2780,20 @@ class ExperimentRun(_ModelDBEntity):
         except (TypeError, ValueError):
             extension = None
 
+        # zip if `artifact` is directory
+        if isinstance(artifact, six.string_types) and os.path.isdir(artifact):
+            tempf = tempfile.TemporaryFile()
+
+            with zipfile.ZipFile(tempf, 'w') as zipf:
+                for root, _, files in os.walk(artifact):
+                    for filename in files:
+                        filepath = os.path.join(root, filename)
+                        zipf.write(filepath, os.path.relpath(filepath, artifact))
+            tempf.seek(0)
+
+            artifact = tempf
+            extension = 'zip'
+
         self._log_artifact(key, artifact, _CommonService.ArtifactTypeEnum.BLOB, extension)
 
     def log_artifact_path(self, key, artifact_path):
