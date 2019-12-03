@@ -295,9 +295,7 @@ def to_builtin(obj):
     obj_module = getattr(cls_, '__module__', None)
 
     # NumPy scalars
-    if obj_module == "numpy" and ('int' in obj_class
-                                  or 'float' in obj_class
-                                  or 'str' in obj_class):
+    if obj_module == "numpy" and obj_class.startswith(('int', 'uint', 'float', 'str')):
         return obj.item()
 
     # scientific library collections
