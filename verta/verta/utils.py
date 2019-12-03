@@ -9,6 +9,7 @@ import numbers
 import os
 import pathlib2
 import tempfile
+import warnings
 import zipfile
 
 try:
@@ -184,6 +185,11 @@ class ModelAPI(object):
 class TFSavedModel(object):
     """
     Wrapper around a TensorFlow SavedModel for compatibility with Verta deployment.
+
+    .. note::
+        Use of this utility is discouraged in favor of the simpler and more flexible class-as-model setup. See
+        `the Client repository <https://github.com/VertaAI/modeldb-client/blob/master/workflows/demos/Nearest-Neighbors-TF-Glove.ipynb>`_
+        for an example.
 
     Parameters
     ----------
