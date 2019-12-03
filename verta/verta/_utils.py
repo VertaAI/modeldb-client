@@ -288,6 +288,11 @@ def to_builtin(obj):
     ----------
     obj
 
+    Returns
+    -------
+    object
+        A built-in equivalent of `obj`, or `obj` unchanged if it could not be handled by this function.
+
     """
     # jump through ludicrous hoops to avoid having hard dependencies in the Client
     cls_ = obj.__class__
