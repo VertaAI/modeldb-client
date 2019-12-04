@@ -135,7 +135,7 @@ class Client(object):
                           " please combine it with the first parameter, e.g. \"localhost:8080\"",
                           category=FutureWarning)
             socket = "{}:{}".format(socket, port)
-        scheme = back_end_url.scheme or ("https" if socket.endswith("verta.ai") else "http")
+        scheme = back_end_url.scheme or ("https" if "verta.ai" in socket else "http")
         if auth is not None:
             auth[_GRPC_PREFIX+'scheme'] = scheme
 
