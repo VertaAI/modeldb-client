@@ -3324,6 +3324,10 @@ class ExperimentRun(_ModelDBEntity):
         wait : bool, default False
             Whether to wait for the deployed model to be ready for this function to finish.
 
+        Returns
+        -------
+        status : dict
+
         """
         data = {}
         if path is not None:
@@ -3371,6 +3375,10 @@ class ExperimentRun(_ModelDBEntity):
         ----------
         wait : bool, default False
             Whether to wait for the undeployment to complete for this function to finish.
+
+        Returns
+        -------
+        status : dict
 
         """
         response = _utils.make_request(
