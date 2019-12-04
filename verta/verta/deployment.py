@@ -11,7 +11,6 @@ import warnings
 
 import requests
 
-from .client import _GRPC_PREFIX
 from . import _utils
 
 
@@ -68,13 +67,13 @@ class DeployedModel:
 
         self._session = requests.Session()
         if not _from_url:
-            self._session.headers.update({_GRPC_PREFIX+'source': "PythonClient"})
+            self._session.headers.update({_utils._GRPC_PREFIX+'source': "PythonClient"})
             try:
-                self._session.headers.update({_GRPC_PREFIX+'email': os.environ['VERTA_EMAIL']})
+                self._session.headers.update({_utils._GRPC_PREFIX+'email': os.environ['VERTA_EMAIL']})
             except KeyError:
                 _six.raise_from(EnvironmentError("${} not found in environment".format('VERTA_EMAIL')), None)
             try:
-                self._session.headers.update({_GRPC_PREFIX+'developer_key': os.environ['VERTA_DEV_KEY']})
+                self._session.headers.update({_utils._GRPC_PREFIX+'developer_key': os.environ['VERTA_DEV_KEY']})
             except KeyError:
                 _six.raise_from(EnvironmentError("${} not found in environment".format('VERTA_DEV_KEY')), None)
 

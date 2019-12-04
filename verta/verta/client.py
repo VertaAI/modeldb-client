@@ -35,9 +35,8 @@ from . import _dataset
 from . import _utils
 from . import _artifact_utils
 from . import utils
+from . import deployment
 
-
-_GRPC_PREFIX = "Grpc-Metadata-"
 
 # for ExperimentRun._log_modules()
 PY_DIR_REGEX = re.compile(r"/lib/python\d\.\d")
@@ -122,9 +121,9 @@ class Client(object):
             if debug:
                 print("[DEBUG] using email: {}".format(email))
                 print("[DEBUG] using developer key: {}".format(dev_key[:8] + re.sub(r"[^-]", '*', dev_key[8:])))
-            auth = {_GRPC_PREFIX+'email': email,
-                    _GRPC_PREFIX+'developer_key': dev_key,
-                    _GRPC_PREFIX+'source': "PythonClient"}
+            auth = {_utils._GRPC_PREFIX+'email': email,
+                    _utils._GRPC_PREFIX+'developer_key': dev_key,
+                    _utils._GRPC_PREFIX+'source': "PythonClient"}
             # save credentials to env for other Verta Client features
             os.environ['VERTA_EMAIL'] = email
             os.environ['VERTA_DEV_KEY'] = dev_key
@@ -140,7 +139,7 @@ class Client(object):
             socket = "{}:{}".format(socket, port)
         scheme = back_end_url.scheme or ("https" if ".verta.ai" in socket else "http")
         if auth is not None:
-            auth[_GRPC_PREFIX+'scheme'] = scheme
+            auth[_utils._GRPC_PREFIX+'scheme'] = scheme
 
         # verify connection
         conn = _utils.Connection(scheme, socket, auth, max_retries, ignore_conn_err)
