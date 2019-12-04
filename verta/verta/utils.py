@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import six
-import six.moves.cPickle as pickle
+from . import _six
 
 import collections
 import json
@@ -44,7 +43,7 @@ class ModelAPI(object):
             api.update({
                 'output': ModelAPI._data_to_api(y),
             })
-        self._buffer = six.StringIO(json.dumps(api))
+        self._buffer = _six.StringIO(json.dumps(api))
 
     def __str__(self):
         ptr_pos = self.tell()  # save current pointer position
@@ -58,7 +57,7 @@ class ModelAPI(object):
             raise ValueError("pointer must be reset before setting an item; please use seek(0)")
         api_dict = json.loads(self.read())
         api_dict[key] = value
-        self._buffer = six.StringIO(json.dumps(api_dict))
+        self._buffer = _six.StringIO(json.dumps(api_dict))
 
     def __contains__(self, key):
         return key in self.to_dict()
@@ -86,7 +85,7 @@ class ModelAPI(object):
         try:
             first_datum = data[0]
         except:
-            six.raise_from(TypeError("arguments to ModelAPI() must be lists of data"), None)
+            _six.raise_from(TypeError("arguments to ModelAPI() must be lists of data"), None)
         return ModelAPI._single_data_to_api(first_datum, name)
 
     @staticmethod
@@ -121,19 +120,19 @@ class ModelAPI(object):
         elif isinstance(data, numbers.Real):
             return {'type': "VertaFloat",
                     'name': str(name)}
-        elif isinstance(data, six.string_types):
+        elif isinstance(data, _six.string_types):
             return {'type': "VertaString",
                     'name': str(name)}
         elif isinstance(data, collections.Mapping):
             return {'type': "VertaJson",
                     'name': str(name),
                     'value': [ModelAPI._single_data_to_api(value, str(name))
-                              for name, value in sorted(six.iteritems(data), key=lambda item: item[0])]}
+                              for name, value in sorted(_six.iteritems(data), key=lambda item: item[0])]}
         else:
             try:
                 iter(data)
             except TypeError:
-                six.raise_from(TypeError("uninterpretable type {}".format(type(data))), None)
+                _six.raise_from(TypeError("uninterpretable type {}".format(type(data))), None)
             else:
                 return {'type': "VertaList",
                         'name': name,
@@ -154,11 +153,11 @@ class ModelAPI(object):
         :class:`ModelAPI`
 
         """
-        if isinstance(f, six.string_types):
+        if isinstance(f, _six.string_types):
             f = open(f, 'r')
 
         model_api = ModelAPI([None], [None])  # create a dummy instance
-        model_api._buffer = six.StringIO(six.ensure_str(f.read()))
+        model_api._buffer = _six.StringIO(_six.ensure_str(f.read()))
         return model_api
 
     def read(self, size=None):
