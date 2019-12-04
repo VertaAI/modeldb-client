@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import _six
-from _six.moves.urllib.parse import urljoin
+from . import _six
+from ._six.moves.urllib.parse import urljoin
 
 import datetime
 import inspect

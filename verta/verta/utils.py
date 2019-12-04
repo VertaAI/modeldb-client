@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import _six
-import _six.moves.cPickle as pickle
+from . import _six
+from ._six.moves import cPickle as pickle
 
 import collections
 import json

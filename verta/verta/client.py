@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-import _six
-import _six.moves.cPickle as pickle
-from _six.moves.urllib.parse import urlparse
+from . import _six
+from ._six.moves import cPickle as pickle
+from ._six.moves.urllib.parse import urlparse
 
 import ast
 import copy

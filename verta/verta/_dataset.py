@@ -1,4 +1,4 @@
-import _six
+from . import _six
 
 import hashlib
 import os
