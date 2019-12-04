@@ -280,6 +280,58 @@ def json_to_proto(response_json, response_cls):
                              ignore_unknown_fields=True)
 
 
+def to_builtin(obj):
+    """
+    Tries to coerce `obj` into a built-in type, for JSON serialization.
+
+    Parameters
+    ----------
+    obj
+
+    Returns
+    -------
+    object
+        A built-in equivalent of `obj`, or `obj` unchanged if it could not be handled by this function.
+
+    """
+    # jump through ludicrous hoops to avoid having hard dependencies in the Client
+    cls_ = obj.__class__
+    obj_class = getattr(cls_, '__name__', None)
+    obj_module = getattr(cls_, '__module__', None)
+
+    # NumPy scalars
+    if obj_module == "numpy" and obj_class.startswith(('int', 'uint', 'float', 'str')):
+        return obj.item()
+
+    # scientific library collections
+    if obj_class == "ndarray":
+        return obj.tolist()
+    if obj_class == "Series":
+        return obj.values.tolist()
+    if obj_class == "DataFrame":
+        return obj.values.tolist()
+    if obj_class == "Tensor" and obj_module == "torch":
+        return obj.numpy().tolist()
+
+    # strings
+    if isinstance(obj, six.string_types):  # prevent infinite loop with iter
+        return obj
+    if isinstance(obj, six.binary_type):
+        return six.ensure_str(obj)
+
+    # dicts and lists
+    if isinstance(obj, dict):
+        return {to_builtin(key): to_builtin(val) for key, val in six.viewitems(obj)}
+    try:
+        iter(obj)
+    except TypeError:
+        pass
+    else:
+        return [to_builtin(val) for val in obj]
+
+    return obj
+
+
 def python_to_val_proto(val, allow_collection=False):
     """
     Converts a Python variable into a `protobuf` `Value` `Message` object.

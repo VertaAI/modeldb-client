@@ -150,6 +150,8 @@ class DeployedModel:
         if 'Access-token' not in self._session.headers or self._prediction_url is None:
             self._set_token_and_url()
 
+        x = _utils.to_builtin(x)
+
         if compress:
             # create gzip
             gzstream = six.BytesIO()
