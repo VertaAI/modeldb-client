@@ -79,8 +79,8 @@ class DeployedModel:
                 _six.raise_from(EnvironmentError("${} not found in environment".format('VERTA_DEV_KEY')), None)
 
         back_end_url = urlparse(host)
-        self._scheme = back_end_url.scheme or "https"
         self._socket = back_end_url.netloc + back_end_url.path.rstrip('/')
+        self._scheme = back_end_url.scheme or ("https" if ".verta.ai" in self._socket else "http")
 
         self._id = run_id
         self._status_url = "{}://{}/api/v1/deployment/status/{}".format(self._scheme, self._socket, self._id)
