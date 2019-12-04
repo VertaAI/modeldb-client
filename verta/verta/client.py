@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import print_function
+
 from . import _six
 from ._six.moves import cPickle as pickle  # pylint: disable=import-error, no-name-in-module
 from ._six.moves.urllib.parse import urlparse  # pylint: disable=import-error, no-name-in-module
@@ -13,6 +15,7 @@ import pprint
 import re
 import sys
 import tempfile
+import time
 import warnings
 import zipfile
 
@@ -3305,3 +3308,57 @@ class ExperimentRun(_ModelDBEntity):
             artifacts.update({key: path})
 
         return artifacts
+
+    def deploy(self, path=None, token=None, no_token=False, wait=False):
+        """
+        Deploys the model logged to this Experiment Run.
+
+        Parameters
+        ----------
+        path : str, optional
+            Suffix for the prediction endpoint URL.
+        token : str, optional
+            Token to use to authorize predictions requests.
+        no_token : bool, default False
+            Whether to not require a token for predictions.
+        wait : bool, default False
+            Whether to wait for the deployed model to be ready for this function to finish.
+
+        """
+        data = {}
+        if path is not None:
+            # get project ID for URL path
+            response = _utils.make_request(
+                "GET",
+                "{}://{}/v1/experiment-run/getExperimentRunById".format(self._conn.scheme, self._conn.socket),
+                self._conn, params={'id': self.id})
+            _utils.raise_for_http_error(response)
+
+            data.update({'url_path': "{}/{}".format(response.json()['experiment_run']['project_id'], path)})
+        if no_token:
+            data.update({'token': ""})
+        elif token is not None:
+            data.update({'token': token})
+
+        response = _utils.make_request(
+            "PUT",
+            "{}://{}/api/v1/deployment/models/{}".format(self._conn.scheme, self._conn.socket, self.id),
+            self._conn, json=data,
+        )
+        _utils.raise_for_http_error(response)
+
+        if wait:
+            print("waiting for deployment...", end='')
+            while self._get_deployment_status()['status'] not in ("deployed", "error"):
+                print(".", end='')
+                time.sleep(5)
+            if self._get_deployment_status()['status'] == "error":
+                status = self._get_deployment_status()
+                raise RuntimeError("model deployment is failing;\n{}".format(status.get('message', "no error message available")))
+
+        status = self._get_deployment_status()
+        return {
+            'status': status['status'],
+            'url': "{}://{}{}".format(self._conn.scheme, self._conn.socket, status['api']),
+            'token': status.get('token'),
+        }
