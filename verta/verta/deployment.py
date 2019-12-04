@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from . import _six
-from ._six.moves.urllib.parse import urljoin, urlparse
+from ._six.moves.urllib.parse import urljoin, urlparse  # pylint: disable=import-error, no-name-in-module
 
 import json
 import gzip

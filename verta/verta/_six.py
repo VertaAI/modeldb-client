@@ -18,6 +18,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+# pylint: disable-all
+
 """Utilities for writing code that runs on Python 2 and 3"""
 
 from __future__ import absolute_import

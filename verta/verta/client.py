@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 from . import _six
-from ._six.moves import cPickle as pickle
-from ._six.moves.urllib.parse import urlparse
+from ._six.moves import cPickle as pickle  # pylint: disable=import-error, no-name-in-module
+from ._six.moves.urllib.parse import urlparse  # pylint: disable=import-error, no-name-in-module
 
 import ast
 import copy

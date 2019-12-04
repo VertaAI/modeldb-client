@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from . import _six
-from ._six.moves import cPickle as pickle
+from ._six.moves import cPickle as pickle  # pylint: disable=import-error, no-name-in-module
 
 import csv
 import importlib
