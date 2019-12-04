@@ -115,7 +115,6 @@ class Client(object):
             if debug:
                 print("[DEBUG] email and developer key not found; auth disabled")
             auth = None
-            scheme = "http"
         elif email is not None and dev_key is not None:
             if debug:
                 print("[DEBUG] using email: {}".format(email))
@@ -123,7 +122,6 @@ class Client(object):
             auth = {_GRPC_PREFIX+'email': email,
                     _GRPC_PREFIX+'developer_key': dev_key,
                     _GRPC_PREFIX+'source': "PythonClient"}
-            scheme = "https"
             # save credentials to env for other Verta Client features
             os.environ['VERTA_EMAIL'] = email
             os.environ['VERTA_DEV_KEY'] = dev_key
@@ -131,18 +129,19 @@ class Client(object):
             raise ValueError("`email` and `dev_key` must be provided together")
 
         back_end_url = urlparse(host)
-        scheme = back_end_url.scheme or scheme
-        if auth is not None:
-            auth[_GRPC_PREFIX+'scheme'] = scheme
         socket = back_end_url.netloc + back_end_url.path.rstrip('/')
         if port is not None:
             warnings.warn("`port` (the second parameter) will removed in a later version;"
                           " please combine it with the first parameter, e.g. \"localhost:8080\"",
                           category=FutureWarning)
             socket = "{}:{}".format(socket, port)
+        scheme = back_end_url.scheme or ("https" if socket.endswith("verta.ai") else "http")
+        if auth is not None:
+            auth[_GRPC_PREFIX+'scheme'] = scheme
 
         # verify connection
         conn = _utils.Connection(scheme, socket, auth, max_retries, ignore_conn_err)
+        print(conn.scheme)
         try:
             response = _utils.make_request("GET",
                                            "{}://{}/v1/project/verifyConnection".format(conn.scheme, conn.socket),
