@@ -3316,9 +3316,11 @@ class ExperimentRun(_ModelDBEntity):
         Parameters
         ----------
         path : str, optional
-            Suffix for the prediction endpoint URL.
+            Suffix for the prediction endpoint URL. If not provided, one will be generated
+            automatically.
         token : str, optional
-            Token to use to authorize predictions requests.
+            Token to use to authorize predictions requests. If not provided and `no_token` is
+            ``False``, one will be generated automatically.
         no_token : bool, default False
             Whether to not require a token for predictions.
         wait : bool, default False
@@ -3329,7 +3331,34 @@ class ExperimentRun(_ModelDBEntity):
         status : dict
             The model's status, prediction endpoint URL, and token.
 
+        Raises
+        ------
+        RuntimeError
+            If the model is already deployed or is being deployed, or if a required deployment
+            artifact is missing.
+
+        Examples
+        --------
+        >>> status = run.deploy(path="banana", no_token=True, wait=True)
+        waiting for deployment.........
+        >>> status
+        {'status': 'deployed',
+         'url': 'https://app.verta.ai/api/v1/predict/abcdefgh-1234-abcd-1234-abcdefghijkl/banana',
+         'token': None}
+        >>> DeployedModel.from_url(status['url']).predict([x])
+        [0.973340685896]
+
         """
+        # forbid calling deploy on already-deployed model
+        #     Changing `path` or `token` while a model is deployed updates the model's status but
+        #     not the prediction endpoint, leaving the deployment endpoints in a bad state.
+        #
+        #     e.g. if the model is deployed with token "banana", then the deploy endpoint is hit
+        #     again with token "coconut", then the status endpoint will return "coconut" but the
+        #     prediction endpoint still requires "banana".
+        if self._get_deployment_status()['status'] != "not deployed":
+            raise RuntimeError("model deployment has already been triggered; please undeploy the model first")
+
         data = {}
         if path is not None:
             # get project ID for URL path
@@ -3390,14 +3419,24 @@ class ExperimentRun(_ModelDBEntity):
         -------
         status : dict
 
+        Raises
+        ------
+        RuntimeError
+            If the model is already not deployed.
+
         """
-        if self._get_deployment_status()['status'] != "not deployed":
-            response = _utils.make_request(
-                "DELETE",
-                "{}://{}/api/v1/deployment/models/{}".format(self._conn.scheme, self._conn.socket, self.id),
-                self._conn,
-            )
-            _utils.raise_for_http_error(response)
+        # forbid calling undeploy on already-undeployed model
+        #     This needs to be checked first, otherwise the undeployment endpoint will return an
+        #     unhelpful HTTP client error.
+        if self._get_deployment_status()['status'] == "not deployed":
+            raise RuntimeError("model is already not deployed")
+
+        response = _utils.make_request(
+            "DELETE",
+            "{}://{}/api/v1/deployment/models/{}".format(self._conn.scheme, self._conn.socket, self.id),
+            self._conn,
+        )
+        _utils.raise_for_http_error(response)
 
         if wait:
             print("waiting for undeployment...", end='')
