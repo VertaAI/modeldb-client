@@ -115,6 +115,7 @@ Deployment
 .. automethod:: ExperimentRun.log_training_data
 .. automethod:: ExperimentRun.fetch_artifacts
 .. automethod:: ExperimentRun.deploy
+.. automethod:: ExperimentRun.undeploy
 
 .. automethod:: ExperimentRun.log_model_for_deployment
 .. automethod:: ExperimentRun.log_modules

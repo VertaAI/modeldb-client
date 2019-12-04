@@ -3362,3 +3362,31 @@ class ExperimentRun(_ModelDBEntity):
             'url': "{}://{}{}".format(self._conn.scheme, self._conn.socket, status['api']),
             'token': status.get('token'),
         }
+
+    def undeploy(self, wait=False):
+        """
+        Undeploys the model logged to this Experiment Run.
+
+        Parameters
+        ----------
+        wait : bool, default False
+            Whether to wait for the undeployment to complete for this function to finish.
+
+        """
+        response = _utils.make_request(
+            "DELETE",
+            "{}://{}/api/v1/deployment/models/{}".format(self._conn.scheme, self._conn.socket, self.id),
+            self._conn,
+        )
+        _utils.raise_for_http_error(response)
+
+        if wait:
+            print("waiting for undeployment...", end='')
+            while self._get_deployment_status()['status'] != "not deployed":
+                print(".", end='')
+                time.sleep(5)
+
+        status = self._get_deployment_status()
+        return {
+            'status': status['status'],
+        }
