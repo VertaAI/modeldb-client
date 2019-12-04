@@ -2790,7 +2790,7 @@ class ExperimentRun(_ModelDBEntity):
             except IOError:  # can't be handled by Pillow
                 return _six.BytesIO(image)
 
-    def log_artifact(self, key, artifact, overwrite):
+    def log_artifact(self, key, artifact, overwrite=False):
         """
         Logs an artifact to this Experiment Run.
 
