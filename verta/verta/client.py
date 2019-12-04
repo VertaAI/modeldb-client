@@ -3391,13 +3391,13 @@ class ExperimentRun(_ModelDBEntity):
         status : dict
 
         """
-        # TODO: handle 404 if model is not deployed
-        response = _utils.make_request(
-            "DELETE",
-            "{}://{}/api/v1/deployment/models/{}".format(self._conn.scheme, self._conn.socket, self.id),
-            self._conn,
-        )
-        _utils.raise_for_http_error(response)
+        if self._get_deployment_status()['status'] != "not deployed":
+            response = _utils.make_request(
+                "DELETE",
+                "{}://{}/api/v1/deployment/models/{}".format(self._conn.scheme, self._conn.socket, self.id),
+                self._conn,
+            )
+            _utils.raise_for_http_error(response)
 
         if wait:
             print("waiting for undeployment...", end='')
