@@ -315,3 +315,60 @@ class TestImages:
         for key, image in reversed(list(six.viewitems(images))):
             with pytest.raises(ValueError):
                 experiment_run.log_image(key, image)
+
+
+class TestOverwrite:
+    def test_artifact(self, experiment_run):
+        artifact = ['banana']
+        new_artifact = ["coconut"]
+
+        experiment_run.log_artifact("date", artifact)
+        experiment_run.log_artifact("date", new_artifact, overwrite=True)
+
+        assert experiment_run.get_artifact("date") == new_artifact
+
+    def test_model(self, experiment_run):
+        model = TestArtifacts
+        new_model = TestOverwrite
+
+        experiment_run.log_model(model)
+        experiment_run.log_model(new_model, overwrite=True)
+
+        assert experiment_run.get_artifact("model.pkl") == new_model
+
+    def test_requirements(self, experiment_run):
+        requirements = ["banana==1"]
+        new_requirements = ["coconut==1"]
+
+        experiment_run.log_requirements(requirements)
+        experiment_run.log_requirements(new_requirements, overwrite=True)
+
+        assert six.ensure_binary('\n'.join(new_requirements)) in experiment_run.get_artifact("requirements.txt").read()
+
+    def test_training_data(self, experiment_run):
+        pd = pytest.importorskip("pandas")
+
+        X = pd.DataFrame([[1, 1, 1],
+                          [1, 1, 1],
+                          [1, 1, 1]],
+                         columns=["1_1", "1_2", "1_3"])
+        y = pd.Series([1, 1, 1], name="1")
+        new_X = pd.DataFrame([[2, 2, 2],
+                              [2, 2, 2],
+                              [2, 2, 2]],
+                             columns=["2_1", "2_2", "2_3"])
+        new_y = pd.Series([2, 2, 2], name="2")
+
+        experiment_run.log_training_data(X, y)
+        experiment_run.log_training_data(new_X, new_y, overwrite=True)
+
+        assert pd.read_csv(experiment_run.get_artifact("train_data")).equals(new_X.join(new_y))
+
+    def test_setup_script(self, experiment_run):
+        setup_script = "import verta"
+        new_setup_script = "import cloudpickle"
+
+        experiment_run.log_setup_script(setup_script)
+        experiment_run.log_setup_script(new_setup_script, overwrite=True)
+
+        assert experiment_run.get_artifact("setup_script").read() == six.ensure_binary(new_setup_script)
