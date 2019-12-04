@@ -22,6 +22,62 @@ KWARGS_COMBOS = [dict(zip(KWARGS.keys(), values))
                  if values.count(None) != len(values)]
 
 
+class TestClient:
+    def test_verta_https(self):
+        hosts = [
+            "dev.verta.ai",
+            "app.verta.ai",
+            "sandbox.app.verta.ai",
+        ]
+
+        for host in hosts:
+            # https by default
+            conn = verta.Client(host)._conn
+            assert conn.scheme == "https"
+            assert conn.scheme == conn.auth['Grpc-Metadata-scheme']
+
+            # http if provided
+            conn = verta.Client("http://{}".format(host))._conn
+            assert conn.scheme == "http"
+            assert conn.scheme == conn.auth['Grpc-Metadata-scheme']
+
+            # https if provided
+            conn = verta.Client("https://{}".format(host))._conn
+            assert conn.scheme == "https"
+            assert conn.scheme == conn.auth['Grpc-Metadata-scheme']
+
+    def test_else_http(self):
+        # test hosts must not redirect http to https
+        hosts = [
+            "www.google.com",
+        ]
+
+        for host in hosts:
+            # http by default
+            try:
+                verta.Client(host, max_retries=0)
+            except requests.HTTPError as e:
+                assert e.request.url.split(':', 1)[0] == "http"
+            else:
+                raise RuntimeError("faulty test; expected error")
+
+            # http if provided
+            try:
+                verta.Client("http://{}".format(host), max_retries=0)
+            except requests.HTTPError as e:
+                assert e.request.url.split(':', 1)[0] == "http"
+            else:
+                raise RuntimeError("faulty test; expected error")
+
+            # https if provided
+            try:
+                verta.Client("https://{}".format(host), max_retries=0)
+            except requests.HTTPError as e:
+                assert e.request.url.split(':', 1)[0] == "https"
+            else:
+                raise RuntimeError("faulty test; expected error")
+
+
 class TestEntities:
     def test_cache(self, client, strs):
         entities = (
