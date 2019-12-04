@@ -1692,7 +1692,7 @@ class ExperimentRun(_ModelDBEntity):
         else:
             _utils.raise_for_http_error(response)
 
-    def _log_artifact(self, key, artifact, artifact_type, extension=None, method=None):
+    def _log_artifact(self, key, artifact, artifact_type, extension=None, method=None, overwrite=False):
         """
         Logs an artifact to this Experiment Run.
 
@@ -1712,6 +1712,9 @@ class ExperimentRun(_ModelDBEntity):
             Filename extension associated with the artifact.
         method : str, optional
             Serialization method used to produce the bytestream, if `artifact` was already serialized by verta.
+        overwrite : bool, default False
+            Whether to allow overwriting an existing artifact with key `key`.
+
         """
         if isinstance(artifact, _six.string_types):
             artifact = open(artifact, 'rb')
@@ -1750,6 +1753,11 @@ class ExperimentRun(_ModelDBEntity):
                                                filename_extension=extension)
         msg = Message(id=self.id, artifact=artifact_msg)
         data = _utils.proto_to_json(msg)
+        if overwrite:
+            response = _utils.make_request("DELETE",
+                                           "{}://{}/v1/experiment-run/deleteArtifact".format(self._conn.scheme, self._conn.socket),
+                                           self._conn, json={'id': self.id, 'key': key})
+            _utils.raise_for_http_error(response)
         response = _utils.make_request("POST",
                                        "{}://{}/v1/experiment-run/logArtifact".format(self._conn.scheme, self._conn.socket),
                                        self._conn, json=data)
@@ -2308,7 +2316,7 @@ class ExperimentRun(_ModelDBEntity):
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
         return _utils.unravel_key_values(response_msg.hyperparameters)
 
-    def log_dataset(self, key, dataset):
+    def log_dataset(self, key, dataset, overwrite=False):
         """
         Logs a dataset artifact to this Experiment Run.
 
@@ -2323,6 +2331,8 @@ class ExperimentRun(_ModelDBEntity):
                 - If file-like, then the contents will be read as bytes and uploaded as an artifact.
                 - If type is Dataset, then it will log a dataset version
                 - Otherwise, the object will be serialized and uploaded as an artifact.
+        overwrite : bool, default False
+            Whether to allow overwriting an existing dataset with key `key`.
 
         """
         _utils.validate_flat_key(key)
@@ -2340,7 +2350,7 @@ class ExperimentRun(_ModelDBEntity):
             extension = _artifact_utils.get_file_ext(dataset)
         except (TypeError, ValueError):
             extension = None
-        self._log_artifact(key, dataset, _CommonService.ArtifactTypeEnum.DATA, extension)
+        self._log_artifact(key, dataset, _CommonService.ArtifactTypeEnum.DATA, extension, overwrite=overwrite)
 
     def log_dataset_version(self, key, dataset_version):
         """
@@ -2586,7 +2596,7 @@ class ExperimentRun(_ModelDBEntity):
             # TODO: change _log_artifact() to not read file into memory
             self._log_artifact("tf_saved_model", tempf, _CommonService.ArtifactTypeEnum.BLOB, 'zip')
 
-    def log_model(self, model, custom_modules=None, model_api=None, artifacts=None):
+    def log_model(self, model, custom_modules=None, model_api=None, artifacts=None, overwrite=False):
         """
         Logs a model artifact for Verta model deployment.
 
@@ -2607,6 +2617,8 @@ class ExperimentRun(_ModelDBEntity):
             Model API specifying details about the model and its deployment.
         artifacts : list of str, optional
             Keys of logged artifacts to be used by a class model.
+        overwrite : bool, default False
+            Whether to allow overwriting existing artifacts.
 
         """
         if (artifacts is not None
@@ -2665,9 +2677,9 @@ class ExperimentRun(_ModelDBEntity):
         if artifacts:
             self.log_attribute(_MODEL_ARTIFACTS_ATTR_KEY, artifacts)
 
-        self._log_modules(custom_modules)
-        self._log_artifact("model.pkl", serialized_model, _CommonService.ArtifactTypeEnum.MODEL, extension, method)
-        self._log_artifact("model_api.json", model_api, _CommonService.ArtifactTypeEnum.BLOB, 'json')
+        self._log_modules(custom_modules, overwrite=overwrite)
+        self._log_artifact("model.pkl", serialized_model, _CommonService.ArtifactTypeEnum.MODEL, extension, method, overwrite=overwrite)
+        self._log_artifact("model_api.json", model_api, _CommonService.ArtifactTypeEnum.BLOB, 'json', overwrite=overwrite)
 
     def get_model(self):
         """
@@ -2682,7 +2694,7 @@ class ExperimentRun(_ModelDBEntity):
         model, _ = self._get_artifact("model.pkl")
         return _artifact_utils.deserialize_model(model)
 
-    def log_image(self, key, image):
+    def log_image(self, key, image, overwrite=False):
         """
         Logs a image artifact to this Experiment Run.
 
@@ -2699,6 +2711,8 @@ class ExperimentRun(_ModelDBEntity):
                 - If matplotlib Figure, then the image will be serialized and uploaded as an artifact.
                 - If PIL Image, then the image will be serialized and uploaded as an artifact.
                 - Otherwise, the object will be serialized and uploaded as an artifact.
+        overwrite : bool, default False
+            Whether to allow overwriting an existing image with key `key`.
 
         """
         _utils.validate_flat_key(key)
@@ -2725,7 +2739,7 @@ class ExperimentRun(_ModelDBEntity):
             bytestream.seek(0)
             image = bytestream
 
-        self._log_artifact(key, image, _CommonService.ArtifactTypeEnum.IMAGE, extension)
+        self._log_artifact(key, image, _CommonService.ArtifactTypeEnum.IMAGE, extension, overwrite=overwrite)
 
     def log_image_path(self, key, image_path):
         """
@@ -2776,7 +2790,7 @@ class ExperimentRun(_ModelDBEntity):
             except IOError:  # can't be handled by Pillow
                 return _six.BytesIO(image)
 
-    def log_artifact(self, key, artifact):
+    def log_artifact(self, key, artifact, overwrite=False):
         """
         Logs an artifact to this Experiment Run.
 
@@ -2790,6 +2804,8 @@ class ExperimentRun(_ModelDBEntity):
                   and uploaded as an artifact. If it is a directory path, its contents will be zipped.
                 - If file-like, then the contents will be read as bytes and uploaded as an artifact.
                 - Otherwise, the object will be serialized and uploaded as an artifact.
+        overwrite : bool, default False
+            Whether to allow overwriting an existing artifact with key `key`.
 
         """
         _utils.validate_flat_key(key)
@@ -2813,7 +2829,7 @@ class ExperimentRun(_ModelDBEntity):
             artifact = tempf
             extension = 'zip'
 
-        self._log_artifact(key, artifact, _CommonService.ArtifactTypeEnum.BLOB, extension)
+        self._log_artifact(key, artifact, _CommonService.ArtifactTypeEnum.BLOB, extension, overwrite=overwrite)
 
     def log_artifact_path(self, key, artifact_path):
         """
@@ -2952,7 +2968,7 @@ class ExperimentRun(_ModelDBEntity):
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
         return _utils.unravel_observations(response_msg.experiment_run.observations)
 
-    def log_requirements(self, requirements):
+    def log_requirements(self, requirements, overwrite=False):
         """
         Logs a pip requirements file for Verta model deployment.
 
@@ -2965,6 +2981,8 @@ class ExperimentRun(_ModelDBEntity):
                 - If str, then it will be interpreted as a filesystem path to a requirements file
                   for upload.
                 - If list of str, then it will be interpreted as a list of PyPI package names.
+        overwrite : bool, default False
+            Whether to allow overwriting existing requirements.
 
         Raises
         ------
@@ -3020,7 +3038,7 @@ class ExperimentRun(_ModelDBEntity):
             print(requirements)
 
         requirements = _six.BytesIO(_six.ensure_binary('\n'.join(requirements)))  # as file-like
-        self._log_artifact("requirements.txt", requirements, _CommonService.ArtifactTypeEnum.BLOB, 'txt')
+        self._log_artifact("requirements.txt", requirements, _CommonService.ArtifactTypeEnum.BLOB, 'txt', overwrite=overwrite)
 
     def log_modules(self, paths, search_path=None):
         """
@@ -3050,7 +3068,7 @@ class ExperimentRun(_ModelDBEntity):
 
         self._log_modules(paths)
 
-    def _log_modules(self, paths=None):
+    def _log_modules(self, paths=None, overwrite=False):
         extensions = None  # log all files in user-provided `paths` with _utils.find_filepaths()
         if paths is None:
             extensions = ['py', 'pyc', 'pyo']  # only log .py* files
@@ -3130,9 +3148,9 @@ class ExperimentRun(_ModelDBEntity):
                 zipf.printdir()
         bytestream.seek(0)
 
-        self._log_artifact("custom_modules", bytestream, _CommonService.ArtifactTypeEnum.BLOB, 'zip')
+        self._log_artifact("custom_modules", bytestream, _CommonService.ArtifactTypeEnum.BLOB, 'zip', overwrite=overwrite)
 
-    def log_setup_script(self, script):
+    def log_setup_script(self, script, overwrite=False):
         """
         Associate a model deployment setup script with this Experiment Run.
 
@@ -3143,6 +3161,8 @@ class ExperimentRun(_ModelDBEntity):
         script : str
             String composed of valid Python code for executing setup steps at the beginning of model
             deployment. An on-disk file can be passed in using ``open("path/to/file.py", 'r').read()``.
+        overwrite : bool, default False
+            Whether to allow overwriting an existing setup script.
 
         Raises
         ------
@@ -3168,9 +3188,9 @@ class ExperimentRun(_ModelDBEntity):
         # convert to file-like for `_log_artifact()`
         script = _six.BytesIO(script)
 
-        self._log_artifact("setup_script", script, _CommonService.ArtifactTypeEnum.BLOB, 'py')
+        self._log_artifact("setup_script", script, _CommonService.ArtifactTypeEnum.BLOB, 'py', overwrite=overwrite)
 
-    def log_training_data(self, train_features, train_targets):
+    def log_training_data(self, train_features, train_targets, overwrite=False):
         """
         Associate training data with this Experiment Run.
 
@@ -3180,6 +3200,8 @@ class ExperimentRun(_ModelDBEntity):
             pandas DataFrame representing features of the training data.
         train_targets : pd.DataFrame or pd.Series
             pandas DataFrame representing targets of the training data.
+        overwrite : bool, default False
+            Whether to allow overwriting existing training data.
 
         """
         if train_features.__class__.__name__ != "DataFrame":
@@ -3201,7 +3223,7 @@ class ExperimentRun(_ModelDBEntity):
         train_df.to_csv(tempf, index=False)
         tempf.seek(0)
 
-        self._log_artifact("train_data", tempf, _CommonService.ArtifactTypeEnum.DATA, 'csv')
+        self._log_artifact("train_data", tempf, _CommonService.ArtifactTypeEnum.DATA, 'csv', overwrite=overwrite)
 
     def fetch_artifacts(self, keys):
         """
