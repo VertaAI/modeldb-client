@@ -10,6 +10,8 @@ import tempfile
 import time
 import zipfile
 
+import requests
+
 import verta
 
 
@@ -476,3 +478,222 @@ class TestLogTrainingData:
 
         data_csv = experiment_run.get_artifact("train_data").read()
         assert X_train.join(y_train).to_csv(index=False) == six.ensure_str(data_csv)
+
+
+class TestDeploy:
+    def test_auto_path_auto_token_deploy(self, experiment_run, model_for_deployment):
+        experiment_run.log_model(model_for_deployment['model'], custom_modules=[])
+        experiment_run.log_requirements(['scikit-learn'])
+
+        try:
+            status = experiment_run.deploy()
+
+            assert 'url' in status
+            assert 'token' in status
+        finally:
+            conn = experiment_run._conn
+            requests.delete(
+                "{}://{}/api/v1/deployment/models/{}".format(conn.scheme, conn.socket, experiment_run.id),
+                headers=conn.auth,
+            )
+
+    def test_auto_path_given_token_deploy(self, experiment_run, model_for_deployment):
+        token = "coconut"
+
+        experiment_run.log_model(model_for_deployment['model'], custom_modules=[])
+        experiment_run.log_requirements(['scikit-learn'])
+
+        try:
+            status = experiment_run.deploy(token=token)
+
+            assert 'url' in status
+            assert status['token'] == token
+        finally:
+            conn = experiment_run._conn
+            requests.delete(
+                "{}://{}/api/v1/deployment/models/{}".format(conn.scheme, conn.socket, experiment_run.id),
+                headers=conn.auth,
+            )
+
+    def test_auto_path_no_token_deploy(self, experiment_run, model_for_deployment):
+        experiment_run.log_model(model_for_deployment['model'], custom_modules=[])
+        experiment_run.log_requirements(['scikit-learn'])
+
+        try:
+            status = experiment_run.deploy(no_token=True)
+
+            assert 'url' in status
+            assert status['token'] is None
+        finally:
+            conn = experiment_run._conn
+            requests.delete(
+                "{}://{}/api/v1/deployment/models/{}".format(conn.scheme, conn.socket, experiment_run.id),
+                headers=conn.auth,
+            )
+
+    def test_given_path_auto_token_deploy(self, experiment_run, model_for_deployment):
+        path = "banana"
+
+        experiment_run.log_model(model_for_deployment['model'], custom_modules=[])
+        experiment_run.log_requirements(['scikit-learn'])
+
+        try:
+            status = experiment_run.deploy(path=path)
+
+            assert status['url'].endswith(path)
+            assert 'token' in status
+        finally:
+            conn = experiment_run._conn
+            requests.delete(
+                "{}://{}/api/v1/deployment/models/{}".format(conn.scheme, conn.socket, experiment_run.id),
+                headers=conn.auth,
+            )
+
+    def test_given_path_given_token_deploy(self, experiment_run, model_for_deployment):
+        path, token = "banana", "coconut"
+
+        experiment_run.log_model(model_for_deployment['model'], custom_modules=[])
+        experiment_run.log_requirements(['scikit-learn'])
+
+        try:
+            status = experiment_run.deploy(path=path, token=token)
+
+            assert status['url'].endswith(path)
+            assert status['token'] == token
+        finally:
+            conn = experiment_run._conn
+            requests.delete(
+                "{}://{}/api/v1/deployment/models/{}".format(conn.scheme, conn.socket, experiment_run.id),
+                headers=conn.auth,
+            )
+
+    def test_given_path_no_token_deploy(self, experiment_run, model_for_deployment):
+        path = "banana"
+
+        experiment_run.log_model(model_for_deployment['model'], custom_modules=[])
+        experiment_run.log_requirements(['scikit-learn'])
+
+        try:
+            status = experiment_run.deploy(path=path, no_token=True)
+
+            assert status['url'].endswith(path)
+            assert status['token'] is None
+        finally:
+            conn = experiment_run._conn
+            requests.delete(
+                "{}://{}/api/v1/deployment/models/{}".format(conn.scheme, conn.socket, experiment_run.id),
+                headers=conn.auth,
+            )
+
+    def test_wait_deploy(self, experiment_run, model_for_deployment):
+        experiment_run.log_model(model_for_deployment['model'], custom_modules=[])
+        experiment_run.log_requirements(['scikit-learn'])
+
+        try:
+            status = experiment_run.deploy(wait=True)
+
+            assert 'url' in status
+            assert 'token' in status
+            assert status['status'] == "deployed"
+        finally:
+            conn = experiment_run._conn
+            requests.delete(
+                "{}://{}/api/v1/deployment/models/{}".format(conn.scheme, conn.socket, experiment_run.id),
+                headers=conn.auth,
+            )
+
+    def test_no_model_deploy_error(self, experiment_run, model_for_deployment):
+        experiment_run.log_model(model_for_deployment['model'], custom_modules=[])
+        experiment_run.log_requirements(['scikit-learn'])
+
+        # delete model
+        verta._utils.make_request(
+            "DELETE",
+            "{}://{}/v1/experiment-run/deleteArtifact".format(experiment_run._conn.scheme,
+                                                              experiment_run._conn.socket),
+            experiment_run._conn, json={'id': experiment_run.id, 'key': "model.pkl"}
+        ).raise_for_status()
+        try:
+            with pytest.raises(RuntimeError) as excinfo:
+                experiment_run.deploy()
+            assert str(excinfo.value).strip() == "unable to deploy due to missing artifact model.pkl"
+        except:
+            conn = experiment_run._conn
+            requests.delete(
+                "{}://{}/api/v1/deployment/models/{}".format(conn.scheme, conn.socket, experiment_run.id),
+                headers=conn.auth,
+            )
+
+    def test_no_api_deploy_error(self, experiment_run, model_for_deployment):
+        experiment_run.log_model(model_for_deployment['model'], custom_modules=[])
+        experiment_run.log_requirements(['scikit-learn'])
+
+        # delete model API
+        verta._utils.make_request(
+            "DELETE",
+            "{}://{}/v1/experiment-run/deleteArtifact".format(experiment_run._conn.scheme,
+                                                              experiment_run._conn.socket),
+            experiment_run._conn, json={'id': experiment_run.id, 'key': "model_api.json"}
+        ).raise_for_status()
+        try:
+            with pytest.raises(RuntimeError) as excinfo:
+                experiment_run.deploy()
+            assert str(excinfo.value).strip() == "unable to deploy due to missing artifact model_api.json"
+        except:
+            conn = experiment_run._conn
+            requests.delete(
+                "{}://{}/api/v1/deployment/models/{}".format(conn.scheme, conn.socket, experiment_run.id),
+                headers=conn.auth,
+            )
+
+    def test_no_reqs_deploy_error(self, experiment_run, model_for_deployment):
+        experiment_run.log_model(model_for_deployment['model'], custom_modules=[])
+        try:
+            with pytest.raises(RuntimeError) as excinfo:
+                experiment_run.deploy()
+            assert str(excinfo.value).strip() == "unable to deploy due to missing artifact requirements.txt"
+        except:
+            conn = experiment_run._conn
+            requests.delete(
+                "{}://{}/api/v1/deployment/models/{}".format(conn.scheme, conn.socket, experiment_run.id),
+                headers=conn.auth,
+            )
+
+    def test_already_deployed_deploy_error(self, experiment_run, model_for_deployment):
+        experiment_run.log_model(model_for_deployment['model'], custom_modules=[])
+        experiment_run.log_requirements(['scikit-learn'])
+
+        try:
+            experiment_run.deploy()
+
+            with pytest.raises(RuntimeError):
+                experiment_run.deploy()
+        finally:
+            conn = experiment_run._conn
+            requests.delete(
+                "{}://{}/api/v1/deployment/models/{}".format(conn.scheme, conn.socket, experiment_run.id),
+                headers=conn.auth,
+            )
+
+
+class TestUndeploy:
+    def test_undeploy(self, experiment_run, model_for_deployment):
+        experiment_run.log_model(model_for_deployment['model'], custom_modules=[])
+        experiment_run.log_requirements(['scikit-learn'])
+
+        experiment_run.deploy(wait=True)
+
+        try:
+            status = experiment_run.undeploy()
+
+            assert status['status'] == "not deployed"
+        except:
+            conn = experiment_run._conn
+            requests.delete(
+                "{}://{}/api/v1/deployment/models/{}".format(conn.scheme, conn.socket, experiment_run.id),
+                headers=conn.auth,
+            )
+
+    def test_already_undeployed_undeploy_error(self, experiment_run):
+        with pytest.raises(RuntimeError):
+            experiment_run.undeploy()
