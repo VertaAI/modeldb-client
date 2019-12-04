@@ -141,7 +141,6 @@ class Client(object):
 
         # verify connection
         conn = _utils.Connection(scheme, socket, auth, max_retries, ignore_conn_err)
-        print(conn.scheme)
         try:
             response = _utils.make_request("GET",
                                            "{}://{}/v1/project/verifyConnection".format(conn.scheme, conn.socket),
