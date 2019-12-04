@@ -1913,6 +1913,16 @@ class ExperimentRun(_ModelDBEntity):
         else:
             return dataset.path, dataset.path_only, dataset.linked_artifact_id
 
+    def _get_deployment_status(self):
+        response = _utils.make_request(
+            "GET",
+            "{}://{}/api/v1/deployment/models/{}".format(self._conn.scheme, self._conn.socket, self.id),
+            self._conn,
+        )
+        _utils.raise_for_http_error(response)
+
+        return response.json()
+
     def log_tag(self, tag):
         """
         Logs a tag to this Experiment Run.
