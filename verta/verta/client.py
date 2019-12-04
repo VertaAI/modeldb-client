@@ -3385,7 +3385,7 @@ class ExperimentRun(_ModelDBEntity):
             # TODO: recommend user call log_model() / log_requirements()
             error_text = e.response.text.strip()
             if error_text.startswith("missing artifact"):
-                six.raise_from(RuntimeError("unable to deploy due to {}".format(error_text)), None)
+                _six.raise_from(RuntimeError("unable to deploy due to {}".format(error_text)), None)
             else:
                 raise e
 
