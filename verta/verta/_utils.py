@@ -314,14 +314,14 @@ def to_builtin(obj):
         return obj.numpy().tolist()
 
     # strings
-    if isinstance(obj, six.string_types):  # prevent infinite loop with iter
+    if isinstance(obj, _six.string_types):  # prevent infinite loop with iter
         return obj
-    if isinstance(obj, six.binary_type):
-        return six.ensure_str(obj)
+    if isinstance(obj, _six.binary_type):
+        return _six.ensure_str(obj)
 
     # dicts and lists
     if isinstance(obj, dict):
-        return {to_builtin(key): to_builtin(val) for key, val in six.viewitems(obj)}
+        return {to_builtin(key): to_builtin(val) for key, val in _six.viewitems(obj)}
     try:
         iter(obj)
     except TypeError:
