@@ -659,6 +659,21 @@ class TestDeploy:
                 headers=conn.auth,
             )
 
+    def test_deployment_failure_deploy_error(self, experiment_run, model_for_deployment):
+        experiment_run.log_model(model_for_deployment['model'], custom_modules=[])
+        experiment_run.log_requirements([])
+
+        try:
+            with pytest.raises(RuntimeError) as excinfo:
+                experiment_run.deploy(wait=True)
+            assert str(excinfo.value).strip().startswith("model deployment is failing;")
+        finally:
+            conn = experiment_run._conn
+            requests.delete(
+                "{}://{}/api/v1/deployment/models/{}".format(conn.scheme, conn.socket, experiment_run.id),
+                headers=conn.auth,
+            )
+
     def test_already_deployed_deploy_error(self, experiment_run, model_for_deployment):
         experiment_run.log_model(model_for_deployment['model'], custom_modules=[])
         experiment_run.log_requirements(['scikit-learn'])
