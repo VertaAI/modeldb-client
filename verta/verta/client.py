@@ -3327,6 +3327,7 @@ class ExperimentRun(_ModelDBEntity):
         Returns
         -------
         status : dict
+            The model's status, prediction endpoint URL, and token.
 
         """
         data = {}
@@ -3349,7 +3350,16 @@ class ExperimentRun(_ModelDBEntity):
             "{}://{}/api/v1/deployment/models/{}".format(self._conn.scheme, self._conn.socket, self.id),
             self._conn, json=data,
         )
-        _utils.raise_for_http_error(response)
+        try:
+            _utils.raise_for_http_error(response)
+        except requests.HTTPError as e:
+            # propagate error caused by missing artifact
+            # TODO: recommend user call log_model() / log_requirements()
+            error_text = e.response.text.strip()
+            if error_text.startswith("missing artifact"):
+                six.raise_from(RuntimeError("unable to deploy due to {}".format(error_text)), None)
+            else:
+                raise e
 
         if wait:
             print("waiting for deployment...", end='')
@@ -3381,6 +3391,7 @@ class ExperimentRun(_ModelDBEntity):
         status : dict
 
         """
+        # TODO: handle 404 if model is not deployed
         response = _utils.make_request(
             "DELETE",
             "{}://{}/api/v1/deployment/models/{}".format(self._conn.scheme, self._conn.socket, self.id),
