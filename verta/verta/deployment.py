@@ -229,3 +229,8 @@ class DeployedModel:
                 num_retries += 1
 
         _utils.raise_for_http_error(response)
+
+def prediction_io_cleanup(func):
+    def prediction(self, X):
+        return _utils.to_builtin(func(self, _utils.to_builtin(X)))
+    return prediction
