@@ -3308,9 +3308,9 @@ class ExperimentRun(_ModelDBEntity):
 
         response_json = response.json()
         status = {'status': response_json['status']}
-        status.update({'token': response_json.get('token')})
         if 'api' in response_json:
             status.update({'url': "{}://{}{}".format(self._conn.scheme, self._conn.socket, response_json['api'])})
+            status.update({'token': response_json.get('token')})
         return status
 
     def deploy(self, path=None, token=None, no_token=False, wait=False):
@@ -3443,10 +3443,7 @@ class ExperimentRun(_ModelDBEntity):
                 print(".", end='')
                 time.sleep(5)
 
-        status = self.get_deployment_status()
-        return {
-            'status': status['status'],
-        }
+        return self.get_deployment_status()
 
     def get_deployed_model(self):
         """
@@ -3465,4 +3462,8 @@ class ExperimentRun(_ModelDBEntity):
         if self.get_deployment_status()['status'] != "deployed":
             raise RuntimeError("model is not currently deployed")
 
-        return self.get_deployment_status()
+        status = self.get_deployment_status()
+        return deployment.DeployedModel.from_url(
+            "{}://{}{}".format(self._conn.scheme, self._conn.socket, status['api']),
+            status['token'],
+        )
