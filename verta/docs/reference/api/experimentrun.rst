@@ -106,6 +106,8 @@ Data Versioning
 .. automethod:: ExperimentRun.log_dataset_version
 .. automethod:: ExperimentRun.get_dataset_version
 
+.. _experiment-run-deployment:
+
 Deployment
 ^^^^^^^^^^
 .. automethod:: ExperimentRun.log_model
@@ -114,6 +116,7 @@ Deployment
 .. automethod:: ExperimentRun.log_setup_script
 .. automethod:: ExperimentRun.log_training_data
 .. automethod:: ExperimentRun.fetch_artifacts
+.. automethod:: ExperimentRun.get_deployment_status
 .. automethod:: ExperimentRun.deploy
 .. automethod:: ExperimentRun.undeploy
 .. automethod:: ExperimentRun.get_deployed_model

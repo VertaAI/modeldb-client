@@ -3299,6 +3299,17 @@ class ExperimentRun(_ModelDBEntity):
         return artifacts
 
     def get_deployment_status(self):
+        """
+        Returns the current status of the model deployment associated with this Experiment Run.
+
+        Returns
+        -------
+        status : dict
+            - ``'status'`` (`str`) – Current status of the model deployment.
+            - (if deployed) ``'url'`` (`str`) – Prediction endpoint URL.
+            - (if deployed) ``'token'`` (`str or None`) – Token for authorizing prediction requests.
+
+        """
         response = _utils.make_request(
             "GET",
             "{}://{}/api/v1/deployment/models/{}".format(self._conn.scheme, self._conn.socket, self.id),
@@ -3333,7 +3344,7 @@ class ExperimentRun(_ModelDBEntity):
         Returns
         -------
         status : dict
-            The model's status, prediction endpoint URL, and token.
+            See :meth:`~ExperimentRun.get_deployment_status`.
 
         Raises
         ------
@@ -3417,6 +3428,7 @@ class ExperimentRun(_ModelDBEntity):
         Returns
         -------
         status : dict
+            See :meth:`~ExperimentRun.get_deployment_status`.
 
         Raises
         ------
