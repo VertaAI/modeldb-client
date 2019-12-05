@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import print_function
+
 from . import _six
 from ._six.moves import cPickle as pickle  # pylint: disable=import-error, no-name-in-module
 from ._six.moves.urllib.parse import urlparse  # pylint: disable=import-error, no-name-in-module
@@ -13,6 +15,7 @@ import pprint
 import re
 import sys
 import tempfile
+import time
 import warnings
 import zipfile
 
@@ -32,9 +35,8 @@ from . import _dataset
 from . import _utils
 from . import _artifact_utils
 from . import utils
+from . import deployment
 
-
-_GRPC_PREFIX = "Grpc-Metadata-"
 
 # for ExperimentRun._log_modules()
 PY_DIR_REGEX = re.compile(r"/lib/python\d\.\d")
@@ -119,9 +121,9 @@ class Client(object):
             if debug:
                 print("[DEBUG] using email: {}".format(email))
                 print("[DEBUG] using developer key: {}".format(dev_key[:8] + re.sub(r"[^-]", '*', dev_key[8:])))
-            auth = {_GRPC_PREFIX+'email': email,
-                    _GRPC_PREFIX+'developer_key': dev_key,
-                    _GRPC_PREFIX+'source': "PythonClient"}
+            auth = {_utils._GRPC_PREFIX+'email': email,
+                    _utils._GRPC_PREFIX+'developer_key': dev_key,
+                    _utils._GRPC_PREFIX+'source': "PythonClient"}
             # save credentials to env for other Verta Client features
             os.environ['VERTA_EMAIL'] = email
             os.environ['VERTA_DEV_KEY'] = dev_key
@@ -137,7 +139,7 @@ class Client(object):
             socket = "{}:{}".format(socket, port)
         scheme = back_end_url.scheme or ("https" if ".verta.ai" in socket else "http")
         if auth is not None:
-            auth[_GRPC_PREFIX+'scheme'] = scheme
+            auth[_utils._GRPC_PREFIX+'scheme'] = scheme
 
         # verify connection
         conn = _utils.Connection(scheme, socket, auth, max_retries, ignore_conn_err)
@@ -1913,6 +1915,16 @@ class ExperimentRun(_ModelDBEntity):
         else:
             return dataset.path, dataset.path_only, dataset.linked_artifact_id
 
+    def _get_deployment_status(self):
+        response = _utils.make_request(
+            "GET",
+            "{}://{}/api/v1/deployment/models/{}".format(self._conn.scheme, self._conn.socket, self.id),
+            self._conn,
+        )
+        _utils.raise_for_http_error(response)
+
+        return response.json()
+
     def log_tag(self, tag):
         """
         Logs a tag to this Experiment Run.
@@ -3295,3 +3307,166 @@ class ExperimentRun(_ModelDBEntity):
             artifacts.update({key: path})
 
         return artifacts
+
+    def deploy(self, path=None, token=None, no_token=False, wait=False):
+        """
+        Deploys the model logged to this Experiment Run.
+
+        Parameters
+        ----------
+        path : str, optional
+            Suffix for the prediction endpoint URL. If not provided, one will be generated
+            automatically.
+        token : str, optional
+            Token to use to authorize predictions requests. If not provided and `no_token` is
+            ``False``, one will be generated automatically.
+        no_token : bool, default False
+            Whether to not require a token for predictions.
+        wait : bool, default False
+            Whether to wait for the deployed model to be ready for this function to finish.
+
+        Returns
+        -------
+        status : dict
+            The model's status, prediction endpoint URL, and token.
+
+        Raises
+        ------
+        RuntimeError
+            If the model is already deployed or is being deployed, or if a required deployment
+            artifact is missing.
+
+        Examples
+        --------
+        >>> status = run.deploy(path="banana", no_token=True, wait=True)
+        waiting for deployment.........
+        >>> status
+        {'status': 'deployed',
+         'url': 'https://app.verta.ai/api/v1/predict/abcdefgh-1234-abcd-1234-abcdefghijkl/banana',
+         'token': None}
+        >>> DeployedModel.from_url(status['url']).predict([x])
+        [0.973340685896]
+
+        """
+        # forbid calling deploy on already-deployed model
+        #     Changing `path` or `token` while a model is deployed updates the model's status but
+        #     not the prediction endpoint, leaving the deployment endpoints in a bad state.
+        #
+        #     e.g. if the model is deployed with token "banana", then the deploy endpoint is hit
+        #     again with token "coconut", then the status endpoint will return "coconut" but the
+        #     prediction endpoint still requires "banana".
+        if self._get_deployment_status()['status'] != "not deployed":
+            raise RuntimeError("model deployment has already been triggered; please undeploy the model first")
+
+        data = {}
+        if path is not None:
+            # get project ID for URL path
+            response = _utils.make_request(
+                "GET",
+                "{}://{}/v1/experiment-run/getExperimentRunById".format(self._conn.scheme, self._conn.socket),
+                self._conn, params={'id': self.id})
+            _utils.raise_for_http_error(response)
+
+            data.update({'url_path': "{}/{}".format(response.json()['experiment_run']['project_id'], path)})
+        if no_token:
+            data.update({'token': ""})
+        elif token is not None:
+            data.update({'token': token})
+
+        response = _utils.make_request(
+            "PUT",
+            "{}://{}/api/v1/deployment/models/{}".format(self._conn.scheme, self._conn.socket, self.id),
+            self._conn, json=data,
+        )
+        try:
+            _utils.raise_for_http_error(response)
+        except requests.HTTPError as e:
+            # propagate error caused by missing artifact
+            # TODO: recommend user call log_model() / log_requirements()
+            error_text = e.response.text.strip()
+            if error_text.startswith("missing artifact"):
+                _six.raise_from(RuntimeError("unable to deploy due to {}".format(error_text)), None)
+            else:
+                raise e
+
+        if wait:
+            print("waiting for deployment...", end='')
+            while self._get_deployment_status()['status'] not in ("deployed", "error"):
+                print(".", end='')
+                time.sleep(5)
+            if self._get_deployment_status()['status'] == "error":
+                status = self._get_deployment_status()
+                raise RuntimeError("model deployment is failing;\n{}".format(status.get('message', "no error message available")))
+
+        status = self._get_deployment_status()
+        return {
+            'status': status['status'],
+            'url': "{}://{}{}".format(self._conn.scheme, self._conn.socket, status['api']),
+            'token': status.get('token'),
+        }
+
+    def undeploy(self, wait=False):
+        """
+        Undeploys the model logged to this Experiment Run.
+
+        Parameters
+        ----------
+        wait : bool, default False
+            Whether to wait for the undeployment to complete for this function to finish.
+
+        Returns
+        -------
+        status : dict
+
+        Raises
+        ------
+        RuntimeError
+            If the model is already not deployed.
+
+        """
+        # forbid calling undeploy on already-undeployed model
+        #     This needs to be checked first, otherwise the undeployment endpoint will return an
+        #     unhelpful HTTP client error.
+        if self._get_deployment_status()['status'] == "not deployed":
+            raise RuntimeError("model is already not deployed")
+
+        response = _utils.make_request(
+            "DELETE",
+            "{}://{}/api/v1/deployment/models/{}".format(self._conn.scheme, self._conn.socket, self.id),
+            self._conn,
+        )
+        _utils.raise_for_http_error(response)
+
+        if wait:
+            print("waiting for undeployment...", end='')
+            while self._get_deployment_status()['status'] != "not deployed":
+                print(".", end='')
+                time.sleep(5)
+
+        status = self._get_deployment_status()
+        return {
+            'status': status['status'],
+        }
+
+    def get_deployed_model(self):
+        """
+        Returns an object for making predictions against the deployed model.
+
+        Returns
+        -------
+        :class:`~verta.deployment.DeployedModel`
+
+        Raises
+        ------
+        RuntimeError
+            If the model is not currently deployed.
+
+        """
+        if self._get_deployment_status()['status'] != "deployed":
+            raise RuntimeError("model is not currently deployed")
+
+        status = self._get_deployment_status()
+        return deployment.DeployedModel.from_url(
+            "{}://{}{}".format(self._conn.scheme, self._conn.socket, status['api']),
+            status['token'],
+        )
