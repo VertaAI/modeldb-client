@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import six
-from six.moves.urllib.parse import urljoin
+from . import _six
+from ._six.moves.urllib.parse import urljoin  # pylint: disable=import-error, no-name-in-module
 
 import datetime
 import inspect
@@ -45,6 +45,8 @@ else:
             from IPython.html.notebookapp import list_running_servers
         del warnings, ShimWarning  # remove ad hoc imports from scope
 
+
+_GRPC_PREFIX = "Grpc-Metadata-"
 
 _VALID_HTTP_METHODS = {'GET', 'POST', 'PUT', 'DELETE'}
 _VALID_FLAT_KEY_CHARS = set(string.ascii_letters + string.digits + '_-')
@@ -144,7 +146,7 @@ def make_request(method, url, conn, **kwargs):
         # fabricate response
         response = requests.Response()
         response.status_code = 200  # success
-        response._content = six.ensure_binary("{}")  # empty contents
+        response._content = _six.ensure_binary("{}")  # empty contents
         return response
 
 
@@ -170,7 +172,7 @@ def raise_for_http_error(response):
             reason = response.json()['message']
         except (ValueError,  # not JSON response
                 KeyError):  # no 'message' from back end
-            six.raise_from(e, None)  # use default reason
+            _six.raise_from(e, None)  # use default reason
         else:
             # replicate https://github.com/psf/requests/blob/428f7a/requests/models.py#L954
             if 400 <= response.status_code < 500:
@@ -180,7 +182,7 @@ def raise_for_http_error(response):
             else:  # should be impossible here, but sure okay
                 cause = "Unexpected"
             message = "{} {} Error: {} for url: {}".format(response.status_code, cause, reason, response.url)
-            six.raise_from(requests.HTTPError(message, response=response), None)
+            _six.raise_from(requests.HTTPError(message, response=response), None)
 
 
 def is_hidden(path):  # to avoid "./".startswith('.')
@@ -205,10 +207,10 @@ def find_filepaths(paths, extensions=None, include_hidden=False, include_venv=Fa
         Whether to include Python virtual environment directories.
 
     """
-    if isinstance(paths, six.string_types):
+    if isinstance(paths, _six.string_types):
         paths = [paths]
 
-    if isinstance(extensions, six.string_types):
+    if isinstance(extensions, _six.string_types):
         extensions = [extensions]
     if extensions is not None:
         # prepend period to file extensions where missing
@@ -280,6 +282,58 @@ def json_to_proto(response_json, response_cls):
                              ignore_unknown_fields=True)
 
 
+def to_builtin(obj):
+    """
+    Tries to coerce `obj` into a built-in type, for JSON serialization.
+
+    Parameters
+    ----------
+    obj
+
+    Returns
+    -------
+    object
+        A built-in equivalent of `obj`, or `obj` unchanged if it could not be handled by this function.
+
+    """
+    # jump through ludicrous hoops to avoid having hard dependencies in the Client
+    cls_ = obj.__class__
+    obj_class = getattr(cls_, '__name__', None)
+    obj_module = getattr(cls_, '__module__', None)
+
+    # NumPy scalars
+    if obj_module == "numpy" and obj_class.startswith(('int', 'uint', 'float', 'str')):
+        return obj.item()
+
+    # scientific library collections
+    if obj_class == "ndarray":
+        return obj.tolist()
+    if obj_class == "Series":
+        return obj.values.tolist()
+    if obj_class == "DataFrame":
+        return obj.values.tolist()
+    if obj_class == "Tensor" and obj_module == "torch":
+        return obj.numpy().tolist()
+
+    # strings
+    if isinstance(obj, _six.string_types):  # prevent infinite loop with iter
+        return obj
+    if isinstance(obj, _six.binary_type):
+        return _six.ensure_str(obj)
+
+    # dicts and lists
+    if isinstance(obj, dict):
+        return {to_builtin(key): to_builtin(val) for key, val in _six.viewitems(obj)}
+    try:
+        iter(obj)
+    except TypeError:
+        pass
+    else:
+        return [to_builtin(val) for val in obj]
+
+    return obj
+
+
 def python_to_val_proto(val, allow_collection=False):
     """
     Converts a Python variable into a `protobuf` `Value` `Message` object.
@@ -304,7 +358,7 @@ def python_to_val_proto(val, allow_collection=False):
         return Value(bool_value=val)
     elif isinstance(val, numbers.Real):
         return Value(number_value=val)
-    elif isinstance(val, six.string_types):
+    elif isinstance(val, _six.string_types):
         return Value(string_value=val)
     elif isinstance(val, (list, dict)):
         if allow_collection:
@@ -313,7 +367,7 @@ def python_to_val_proto(val, allow_collection=False):
                 list_value.extend(val)
                 return Value(list_value=list_value)
             else:  # isinstance(val, dict)
-                if all([isinstance(key, six.string_types) for key in val.keys()]):
+                if all([isinstance(key, _six.string_types) for key in val.keys()]):
                     struct_value = Struct()
                     struct_value.update(val)
                     return Value(struct_value=struct_value)
@@ -546,19 +600,19 @@ def ensure_timestamp(timestamp):
         `timestamp` with millisecond resolution (13 integer digits).
 
     """
-    if isinstance(timestamp, six.string_types):
+    if isinstance(timestamp, _six.string_types):
         try:  # attempt with pandas, which can parse many time string formats
             return timestamp_to_ms(pd.Timestamp(timestamp).timestamp())
         except NameError:  # pandas not installed
-            six.raise_from(ValueError("pandas must be installed to parse datetime strings"),
+            _six.raise_from(ValueError("pandas must be installed to parse datetime strings"),
                            None)
         except ValueError:  # can't be handled by pandas
-            six.raise_from(ValueError("unable to parse datetime string \"{}\"".format(timestamp)),
+            _six.raise_from(ValueError("unable to parse datetime string \"{}\"".format(timestamp)),
                            None)
     elif isinstance(timestamp, numbers.Real):
         return timestamp_to_ms(timestamp)
     elif isinstance(timestamp, datetime.datetime):
-        if six.PY2:
+        if _six.PY2:
             # replicate https://docs.python.org/3/library/datetime.html#datetime.datetime.timestamp
             seconds = (timestamp - datetime.datetime(1970, 1, 1, tzinfo=UTC())).total_seconds()
         else:  # Python 3
@@ -661,7 +715,7 @@ def save_notebook(timeout=5):
         with open(notebook_path, 'r') as f:
             contents = f.read()
         if contents:
-            return six.StringIO(contents)
+            return _six.StringIO(contents)
         time.sleep(0.01)
     else:
         raise OSError("unable to read saved notebook")
@@ -734,7 +788,7 @@ def get_script_filepath():
 
 def get_git_commit_hash():
     try:
-        return six.ensure_str(
+        return _six.ensure_str(
             subprocess.check_output(["git", "rev-parse", "--verify", "HEAD"])
         ).strip()
     except:
@@ -745,7 +799,7 @@ def get_git_commit_hash():
 def get_git_commit_dirtiness(commit_hash=None):
     if commit_hash is not None:
         try:  # compare `commit_hash` to the working tree and index
-            diffs = six.ensure_str(
+            diffs = _six.ensure_str(
                 subprocess.check_output(["git", "diff-index", commit_hash])
             ).splitlines()
         except:
@@ -754,7 +808,7 @@ def get_git_commit_dirtiness(commit_hash=None):
             return len(diffs) > 0
     else:
         try:
-            diff_paths = six.ensure_str(
+            diff_paths = _six.ensure_str(
                 subprocess.check_output(["git", "status", "--porcelain"])
             ).splitlines()
         except:
@@ -766,7 +820,7 @@ def get_git_commit_dirtiness(commit_hash=None):
 
 def get_git_remote_url():
     try:
-        return six.ensure_str(
+        return _six.ensure_str(
             subprocess.check_output(["git", "ls-remote", "--get-url"])
         ).strip()
     except:
@@ -776,7 +830,7 @@ def get_git_remote_url():
 
 def get_git_branch_name():
     try:
-        return six.ensure_str(
+        return _six.ensure_str(
             subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"])
         ).strip()
     except:
@@ -786,7 +840,7 @@ def get_git_branch_name():
 
 def get_git_repo_root_dir():
     try:
-        dirpath = six.ensure_str(
+        dirpath = _six.ensure_str(
             subprocess.check_output(["git", "rev-parse", "--show-toplevel"])
         ).strip()
     except:
@@ -808,4 +862,4 @@ def get_git_repo_root_dir():
 #         Names of packages and their pinned version numbers in the current Python environment.
 
 #     """
-#     return six.ensure_str(subprocess.check_output(["pip", "freeze"])).splitlines()
+#     return _six.ensure_str(subprocess.check_output(["pip", "freeze"])).splitlines()

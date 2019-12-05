@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 
-import six
-import six.moves.cPickle as pickle
-from six.moves.urllib.parse import urlparse
+from __future__ import print_function
+
+from . import _six
+from ._six.moves import cPickle as pickle  # pylint: disable=import-error, no-name-in-module
+from ._six.moves.urllib.parse import urlparse  # pylint: disable=import-error, no-name-in-module
 
 import ast
 import copy
@@ -13,6 +15,7 @@ import pprint
 import re
 import sys
 import tempfile
+import time
 import warnings
 import zipfile
 
@@ -32,9 +35,8 @@ from . import _dataset
 from . import _utils
 from . import _artifact_utils
 from . import utils
+from . import deployment
 
-
-_GRPC_PREFIX = "Grpc-Metadata-"
 
 # for ExperimentRun._log_modules()
 PY_DIR_REGEX = re.compile(r"/lib/python\d\.\d")
@@ -115,15 +117,13 @@ class Client(object):
             if debug:
                 print("[DEBUG] email and developer key not found; auth disabled")
             auth = None
-            scheme = "http"
         elif email is not None and dev_key is not None:
             if debug:
                 print("[DEBUG] using email: {}".format(email))
                 print("[DEBUG] using developer key: {}".format(dev_key[:8] + re.sub(r"[^-]", '*', dev_key[8:])))
-            auth = {_GRPC_PREFIX+'email': email,
-                    _GRPC_PREFIX+'developer_key': dev_key,
-                    _GRPC_PREFIX+'source': "PythonClient"}
-            scheme = "https"
+            auth = {_utils._GRPC_PREFIX+'email': email,
+                    _utils._GRPC_PREFIX+'developer_key': dev_key,
+                    _utils._GRPC_PREFIX+'source': "PythonClient"}
             # save credentials to env for other Verta Client features
             os.environ['VERTA_EMAIL'] = email
             os.environ['VERTA_DEV_KEY'] = dev_key
@@ -131,15 +131,15 @@ class Client(object):
             raise ValueError("`email` and `dev_key` must be provided together")
 
         back_end_url = urlparse(host)
-        scheme = back_end_url.scheme or scheme
-        if auth is not None:
-            auth[_GRPC_PREFIX+'scheme'] = scheme
         socket = back_end_url.netloc + back_end_url.path.rstrip('/')
         if port is not None:
             warnings.warn("`port` (the second parameter) will removed in a later version;"
                           " please combine it with the first parameter, e.g. \"localhost:8080\"",
                           category=FutureWarning)
             socket = "{}:{}".format(socket, port)
+        scheme = back_end_url.scheme or ("https" if ".verta.ai" in socket else "http")
+        if auth is not None:
+            auth[_utils._GRPC_PREFIX+'scheme'] = scheme
 
         # verify connection
         conn = _utils.Connection(scheme, socket, auth, max_retries, ignore_conn_err)
@@ -148,14 +148,14 @@ class Client(object):
                                            "{}://{}/v1/project/verifyConnection".format(conn.scheme, conn.socket),
                                            conn)
         except requests.ConnectionError:
-            six.raise_from(requests.ConnectionError("connection failed; please check `host` and `port`"),
+            _six.raise_from(requests.ConnectionError("connection failed; please check `host` and `port`"),
                            None)
 
         def is_unauthorized(response): return response.status_code == 401
 
         if is_unauthorized(response):
             auth_error_msg = "authentication failed; please check `VERTA_EMAIL` and `VERTA_DEV_KEY`"
-            six.raise_from(requests.HTTPError(auth_error_msg), None)
+            _six.raise_from(requests.HTTPError(auth_error_msg), None)
 
         _utils.raise_for_http_error(response)
         print("connection successfully established")
@@ -719,7 +719,7 @@ class _ModelDBEntity(object):
             try:
                 repo_root_dir = _utils.get_git_repo_root_dir()
             except OSError:
-                six.raise_from(OSError("failed to locate Git repository; please check your working directory"),
+                _six.raise_from(OSError("failed to locate Git repository; please check your working directory"),
                                None)
             print("Git repository successfully located at {}".format(repo_root_dir))
         elif repo_url is not None or commit_hash is not None:
@@ -775,7 +775,7 @@ class _ModelDBEntity(object):
                 msg.code_version.git_snapshot.is_dirty = _CommonService.TernaryEnum.TRUE if is_dirty else _CommonService.TernaryEnum.FALSE
         else:  # log code as Artifact
             # write ZIP archive
-            zipstream = six.BytesIO()
+            zipstream = _six.BytesIO()
             with zipfile.ZipFile(zipstream, 'w') as zipf:
                 # TODO: save notebook
                 zipf.write(exec_path, os.path.basename(exec_path))  # write as base filename
@@ -884,7 +884,7 @@ class _ModelDBEntity(object):
             response = _utils.make_request("GET", url, self._conn)
             _utils.raise_for_http_error(response)
 
-            code_archive = six.BytesIO(response.content)
+            code_archive = _six.BytesIO(response.content)
             return zipfile.ZipFile(code_archive, 'r')  # TODO: return a util class instead, maybe
         else:
             raise RuntimeError("unable find code in response")
@@ -1019,7 +1019,7 @@ class Project(_ModelDBEntity):
     def _create(conn, proj_name, desc=None, tags=None, attrs=None):
         if attrs is not None:
             attrs = [_CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value, allow_collection=True))
-                     for key, value in six.viewitems(attrs)]
+                     for key, value in _six.viewitems(attrs)]
 
         Message = _ProjectService.CreateProject
         msg = Message(name=proj_name, description=desc, tags=tags, attributes=attrs)
@@ -1157,7 +1157,7 @@ class Experiment(_ModelDBEntity):
     def _create(conn, proj_id, expt_name, desc=None, tags=None, attrs=None):
         if attrs is not None:
             attrs = [_CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value, allow_collection=True))
-                     for key, value in six.viewitems(attrs)]
+                     for key, value in _six.viewitems(attrs)]
 
         Message = _ExperimentService.CreateExperiment
         msg = Message(project_id=proj_id, name=expt_name,
@@ -1226,7 +1226,7 @@ class ExperimentRuns(object):
                '>=': _CommonService.OperatorEnum.GTE,
                '<':  _CommonService.OperatorEnum.LT,
                '<=': _CommonService.OperatorEnum.LTE}
-    _OP_PATTERN = re.compile(r"({})".format('|'.join(sorted(six.viewkeys(_OP_MAP), key=lambda s: len(s), reverse=True))))
+    _OP_PATTERN = re.compile(r"({})".format('|'.join(sorted(_six.viewkeys(_OP_MAP), key=lambda s: len(s), reverse=True))))
 
     # keys that yield predictable, sensible results
     _VALID_QUERY_KEYS = {
@@ -1320,7 +1320,7 @@ class ExperimentRuns(object):
             try:
                 key, operator, value = map(str.strip, self._OP_PATTERN.split(predicate, maxsplit=1))
             except ValueError:
-                six.raise_from(ValueError("predicate `{}` must be a two-operand comparison".format(predicate)),
+                _six.raise_from(ValueError("predicate `{}` must be a two-operand comparison".format(predicate)),
                                None)
 
             if key.split('.')[0] not in self._VALID_QUERY_KEYS:
@@ -1334,7 +1334,7 @@ class ExperimentRuns(object):
             try:
                 expr_node = ast.parse(value, mode='eval')
             except SyntaxError:
-                six.raise_from(ValueError("value `{}` must be a number or string literal".format(value)),
+                _six.raise_from(ValueError("value `{}` must be a number or string literal".format(value)),
                                None)
             value_node = expr_node.body
             if type(value_node) is ast.Num:
@@ -1676,7 +1676,7 @@ class ExperimentRun(_ModelDBEntity):
     def _create(conn, proj_id, expt_id, expt_run_name, desc=None, tags=None, attrs=None):
         if attrs is not None:
             attrs = [_CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value, allow_collection=True))
-                     for key, value in six.viewitems(attrs)]
+                     for key, value in _six.viewitems(attrs)]
 
         Message = _ExperimentRunService.CreateExperimentRun
         msg = Message(project_id=proj_id, experiment_id=expt_id, name=expt_run_name,
@@ -1749,7 +1749,7 @@ class ExperimentRun(_ModelDBEntity):
 
         return new_run
 
-    def _log_artifact(self, key, artifact, artifact_type, extension=None, method=None):
+    def _log_artifact(self, key, artifact, artifact_type, extension=None, method=None, overwrite=False):
         """
         Logs an artifact to this Experiment Run.
 
@@ -1769,8 +1769,11 @@ class ExperimentRun(_ModelDBEntity):
             Filename extension associated with the artifact.
         method : str, optional
             Serialization method used to produce the bytestream, if `artifact` was already serialized by verta.
+        overwrite : bool, default False
+            Whether to allow overwriting an existing artifact with key `key`.
+
         """
-        if isinstance(artifact, six.string_types):
+        if isinstance(artifact, _six.string_types):
             artifact = open(artifact, 'rb')
 
         if hasattr(artifact, 'read') and method is not None:  # already a verta-produced stream
@@ -1807,6 +1810,11 @@ class ExperimentRun(_ModelDBEntity):
                                                filename_extension=extension)
         msg = Message(id=self.id, artifact=artifact_msg)
         data = _utils.proto_to_json(msg)
+        if overwrite:
+            response = _utils.make_request("DELETE",
+                                           "{}://{}/v1/experiment-run/deleteArtifact".format(self._conn.scheme, self._conn.socket),
+                                           self._conn, json={'id': self.id, 'key': key})
+            _utils.raise_for_http_error(response)
         response = _utils.make_request("POST",
                                        "{}://{}/v1/experiment-run/logArtifact".format(self._conn.scheme, self._conn.socket),
                                        self._conn, json=data)
@@ -1957,12 +1965,22 @@ class ExperimentRun(_ModelDBEntity):
             try:
                 dataset, path_only = self._get_artifact(key)
             except KeyError:
-                six.raise_from(KeyError("no dataset found with key {}".format(key)),
+                _six.raise_from(KeyError("no dataset found with key {}".format(key)),
                                None)
             else:
                 return dataset, path_only, None
         else:
             return dataset.path, dataset.path_only, dataset.linked_artifact_id
+
+    def _get_deployment_status(self):
+        response = _utils.make_request(
+            "GET",
+            "{}://{}/api/v1/deployment/models/{}".format(self._conn.scheme, self._conn.socket, self.id),
+            self._conn,
+        )
+        _utils.raise_for_http_error(response)
+
+        return response.json()
 
     def log_tag(self, tag):
         """
@@ -1974,7 +1992,7 @@ class ExperimentRun(_ModelDBEntity):
             Tag.
 
         """
-        if not isinstance(tag, six.string_types):
+        if not isinstance(tag, _six.string_types):
             raise TypeError("`tag` must be a string")
 
         Message = _ExperimentRunService.AddExperimentRunTags
@@ -1995,10 +2013,10 @@ class ExperimentRun(_ModelDBEntity):
             Tags.
 
         """
-        if isinstance(tags, six.string_types):
+        if isinstance(tags, _six.string_types):
             raise TypeError("`tags` must be an iterable of strings")
         for tag in tags:
-            if not isinstance(tag, six.string_types):
+            if not isinstance(tag, _six.string_types):
                 raise TypeError("`tags` must be an iterable of strings")
 
         Message = _ExperimentRunService.AddExperimentRunTags
@@ -2068,12 +2086,12 @@ class ExperimentRun(_ModelDBEntity):
 
         """
         # validate all keys first
-        for key in six.viewkeys(attributes):
+        for key in _six.viewkeys(attributes):
             _utils.validate_flat_key(key)
 
         # build KeyValues
         attribute_keyvals = []
-        for key, value in six.viewitems(attributes):
+        for key, value in _six.viewitems(attributes):
             attribute_keyvals.append(_CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value, allow_collection=True)))
 
         msg = _ExperimentRunService.LogAttributes(id=self.id, attributes=attribute_keyvals)
@@ -2118,7 +2136,7 @@ class ExperimentRun(_ModelDBEntity):
         try:
             return attributes[key]
         except KeyError:
-            six.raise_from(KeyError("no attribute found with key {}".format(key)), None)
+            _six.raise_from(KeyError("no attribute found with key {}".format(key)), None)
 
     def get_attributes(self):
         """
@@ -2181,12 +2199,12 @@ class ExperimentRun(_ModelDBEntity):
 
         """
         # validate all keys first
-        for key in six.viewkeys(metrics):
+        for key in _six.viewkeys(metrics):
             _utils.validate_flat_key(key)
 
         # build KeyValues
         metric_keyvals = []
-        for key, value in six.viewitems(metrics):
+        for key, value in _six.viewitems(metrics):
             metric_keyvals.append(_CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value)))
 
         msg = _ExperimentRunService.LogMetrics(id=self.id, metrics=metric_keyvals)
@@ -2231,7 +2249,7 @@ class ExperimentRun(_ModelDBEntity):
         try:
             return metrics[key]
         except KeyError:
-            six.raise_from(KeyError("no metric found with key {}".format(key)), None)
+            _six.raise_from(KeyError("no metric found with key {}".format(key)), None)
 
     def get_metrics(self):
         """
@@ -2292,12 +2310,12 @@ class ExperimentRun(_ModelDBEntity):
 
         """
         # validate all keys first
-        for key in six.viewkeys(hyperparams):
+        for key in _six.viewkeys(hyperparams):
             _utils.validate_flat_key(key)
 
         # build KeyValues
         hyperparameter_keyvals = []
-        for key, value in six.viewitems(hyperparams):
+        for key, value in _six.viewitems(hyperparams):
             hyperparameter_keyvals.append(_CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value)))
 
         msg = _ExperimentRunService.LogHyperparameters(id=self.id, hyperparameters=hyperparameter_keyvals)
@@ -2342,7 +2360,7 @@ class ExperimentRun(_ModelDBEntity):
         try:
             return hyperparameters[key]
         except KeyError:
-            six.raise_from(KeyError("no hyperparameter found with key {}".format(key)), None)
+            _six.raise_from(KeyError("no hyperparameter found with key {}".format(key)), None)
 
     def get_hyperparameters(self):
         """
@@ -2365,7 +2383,7 @@ class ExperimentRun(_ModelDBEntity):
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
         return _utils.unravel_key_values(response_msg.hyperparameters)
 
-    def log_dataset(self, key, dataset):
+    def log_dataset(self, key, dataset, overwrite=False):
         """
         Logs a dataset artifact to this Experiment Run.
 
@@ -2380,6 +2398,8 @@ class ExperimentRun(_ModelDBEntity):
                 - If file-like, then the contents will be read as bytes and uploaded as an artifact.
                 - If type is Dataset, then it will log a dataset version
                 - Otherwise, the object will be serialized and uploaded as an artifact.
+        overwrite : bool, default False
+            Whether to allow overwriting an existing dataset with key `key`.
 
         """
         _utils.validate_flat_key(key)
@@ -2397,7 +2417,7 @@ class ExperimentRun(_ModelDBEntity):
             extension = _artifact_utils.get_file_ext(dataset)
         except (TypeError, ValueError):
             extension = None
-        self._log_artifact(key, dataset, _CommonService.ArtifactTypeEnum.DATA, extension)
+        self._log_artifact(key, dataset, _CommonService.ArtifactTypeEnum.DATA, extension, overwrite=overwrite)
 
     def log_dataset_version(self, key, dataset_version):
         """
@@ -2498,7 +2518,7 @@ class ExperimentRun(_ModelDBEntity):
             try:
                 return pickle.loads(dataset)
             except pickle.UnpicklingError:
-                return six.BytesIO(dataset)
+                return _six.BytesIO(dataset)
 
     def get_dataset_version(self, key):
         """
@@ -2562,11 +2582,11 @@ class ExperimentRun(_ModelDBEntity):
             raise ValueError("`train_features` and `train_targets` must be provided together")
 
         # open files
-        if isinstance(model, six.string_types):
+        if isinstance(model, _six.string_types):
             model = open(model, 'rb')
-        if isinstance(model_api, six.string_types):
+        if isinstance(model_api, _six.string_types):
             model_api = open(model_api, 'rb')
-        if isinstance(requirements, six.string_types):
+        if isinstance(requirements, _six.string_types):
             requirements = open(requirements, 'rb')
 
         # prehandle model
@@ -2607,7 +2627,7 @@ class ExperimentRun(_ModelDBEntity):
 
         # handle requirements
         _artifact_utils.reset_stream(requirements)  # reset cursor to beginning in case user forgot
-        req_deps = six.ensure_str(requirements.read()).splitlines()  # get list repr of reqs
+        req_deps = _six.ensure_str(requirements.read()).splitlines()  # get list repr of reqs
         _artifact_utils.reset_stream(requirements)  # reset cursor to beginning as a courtesy
         try:
             self.log_requirements(req_deps)
@@ -2615,11 +2635,11 @@ class ExperimentRun(_ModelDBEntity):
             if "artifact with key requirements.txt already exists" in e.args[0]:
                 print("requirements.txt already logged; skipping")
             else:
-                six.raise_from(e, None)
+                _six.raise_from(e, None)
 
         # prehandle train_features and train_targets
         if train_features is not None and train_targets is not None:
-            stringstream = six.StringIO()
+            stringstream = _six.StringIO()
             train_df = train_features.join(train_targets)
             train_df.to_csv(stringstream, index=False)  # write as CSV
             stringstream.seek(0)
@@ -2643,7 +2663,7 @@ class ExperimentRun(_ModelDBEntity):
             # TODO: change _log_artifact() to not read file into memory
             self._log_artifact("tf_saved_model", tempf, _CommonService.ArtifactTypeEnum.BLOB, 'zip')
 
-    def log_model(self, model, custom_modules=None, model_api=None, artifacts=None):
+    def log_model(self, model, custom_modules=None, model_api=None, artifacts=None, overwrite=False):
         """
         Logs a model artifact for Verta model deployment.
 
@@ -2664,11 +2684,13 @@ class ExperimentRun(_ModelDBEntity):
             Model API specifying details about the model and its deployment.
         artifacts : list of str, optional
             Keys of logged artifacts to be used by a class model.
+        overwrite : bool, default False
+            Whether to allow overwriting existing artifacts.
 
         """
         if (artifacts is not None
                 and not (isinstance(artifacts, list)
-                         and all(isinstance(artifact_key, six.string_types) for artifact_key in artifacts))):
+                         and all(isinstance(artifact_key, _six.string_types) for artifact_key in artifacts))):
             raise TypeError("`artifacts` must be list of str, not {}".format(type(artifacts)))
 
         # validate that `artifacts` are actually logged
@@ -2722,9 +2744,9 @@ class ExperimentRun(_ModelDBEntity):
         if artifacts:
             self.log_attribute(_MODEL_ARTIFACTS_ATTR_KEY, artifacts)
 
-        self._log_modules(custom_modules)
-        self._log_artifact("model.pkl", serialized_model, _CommonService.ArtifactTypeEnum.MODEL, extension, method)
-        self._log_artifact("model_api.json", model_api, _CommonService.ArtifactTypeEnum.BLOB, 'json')
+        self._log_modules(custom_modules, overwrite=overwrite)
+        self._log_artifact("model.pkl", serialized_model, _CommonService.ArtifactTypeEnum.MODEL, extension, method, overwrite=overwrite)
+        self._log_artifact("model_api.json", model_api, _CommonService.ArtifactTypeEnum.BLOB, 'json', overwrite=overwrite)
 
     def get_model(self):
         """
@@ -2739,7 +2761,7 @@ class ExperimentRun(_ModelDBEntity):
         model, _ = self._get_artifact("model.pkl")
         return _artifact_utils.deserialize_model(model)
 
-    def log_image(self, key, image):
+    def log_image(self, key, image, overwrite=False):
         """
         Logs a image artifact to this Experiment Run.
 
@@ -2756,12 +2778,14 @@ class ExperimentRun(_ModelDBEntity):
                 - If matplotlib Figure, then the image will be serialized and uploaded as an artifact.
                 - If PIL Image, then the image will be serialized and uploaded as an artifact.
                 - Otherwise, the object will be serialized and uploaded as an artifact.
+        overwrite : bool, default False
+            Whether to allow overwriting an existing image with key `key`.
 
         """
         _utils.validate_flat_key(key)
 
         # convert pyplot, Figure or Image to bytestream
-        bytestream, extension = six.BytesIO(), 'png'
+        bytestream, extension = _six.BytesIO(), 'png'
         try:  # handle matplotlib
             image.savefig(bytestream, format=extension)
         except AttributeError:
@@ -2782,7 +2806,7 @@ class ExperimentRun(_ModelDBEntity):
             bytestream.seek(0)
             image = bytestream
 
-        self._log_artifact(key, image, _CommonService.ArtifactTypeEnum.IMAGE, extension)
+        self._log_artifact(key, image, _CommonService.ArtifactTypeEnum.IMAGE, extension, overwrite=overwrite)
 
     def log_image_path(self, key, image_path):
         """
@@ -2827,13 +2851,13 @@ class ExperimentRun(_ModelDBEntity):
             return image
         else:
             if PIL is None:  # Pillow not installed
-                return six.BytesIO(image)
+                return _six.BytesIO(image)
             try:
-                return PIL.Image.open(six.BytesIO(image))
+                return PIL.Image.open(_six.BytesIO(image))
             except IOError:  # can't be handled by Pillow
-                return six.BytesIO(image)
+                return _six.BytesIO(image)
 
-    def log_artifact(self, key, artifact):
+    def log_artifact(self, key, artifact, overwrite=False):
         """
         Logs an artifact to this Experiment Run.
 
@@ -2847,6 +2871,8 @@ class ExperimentRun(_ModelDBEntity):
                   and uploaded as an artifact. If it is a directory path, its contents will be zipped.
                 - If file-like, then the contents will be read as bytes and uploaded as an artifact.
                 - Otherwise, the object will be serialized and uploaded as an artifact.
+        overwrite : bool, default False
+            Whether to allow overwriting an existing artifact with key `key`.
 
         """
         _utils.validate_flat_key(key)
@@ -2857,7 +2883,7 @@ class ExperimentRun(_ModelDBEntity):
             extension = None
 
         # zip if `artifact` is directory path
-        if isinstance(artifact, six.string_types) and os.path.isdir(artifact):
+        if isinstance(artifact, _six.string_types) and os.path.isdir(artifact):
             tempf = tempfile.TemporaryFile()
 
             with zipfile.ZipFile(tempf, 'w') as zipf:
@@ -2870,7 +2896,7 @@ class ExperimentRun(_ModelDBEntity):
             artifact = tempf
             extension = 'zip'
 
-        self._log_artifact(key, artifact, _CommonService.ArtifactTypeEnum.BLOB, extension)
+        self._log_artifact(key, artifact, _CommonService.ArtifactTypeEnum.BLOB, extension, overwrite=overwrite)
 
     def log_artifact_path(self, key, artifact_path):
         """
@@ -2918,7 +2944,7 @@ class ExperimentRun(_ModelDBEntity):
             try:
                 return pickle.loads(artifact)
             except:
-                return six.BytesIO(artifact)
+                return _six.BytesIO(artifact)
 
     def log_observation(self, key, value, timestamp=None):
         """
@@ -3009,7 +3035,7 @@ class ExperimentRun(_ModelDBEntity):
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
         return _utils.unravel_observations(response_msg.experiment_run.observations)
 
-    def log_requirements(self, requirements):
+    def log_requirements(self, requirements, overwrite=False):
         """
         Logs a pip requirements file for Verta model deployment.
 
@@ -3022,6 +3048,8 @@ class ExperimentRun(_ModelDBEntity):
                 - If str, then it will be interpreted as a filesystem path to a requirements file
                   for upload.
                 - If list of str, then it will be interpreted as a list of PyPI package names.
+        overwrite : bool, default False
+            Whether to allow overwriting existing requirements.
 
         Raises
         ------
@@ -3052,7 +3080,7 @@ class ExperimentRun(_ModelDBEntity):
             scikit-learn==0.21.3
 
         """
-        if isinstance(requirements, six.string_types):
+        if isinstance(requirements, _six.string_types):
             with open(requirements, 'r') as f:
                 requirements = f.readlines()
 
@@ -3061,7 +3089,7 @@ class ExperimentRun(_ModelDBEntity):
             requirements = [req for req in requirements if not req.startswith('#')]  # comment line
             requirements = [req for req in requirements if req]  # empty line
         elif (isinstance(requirements, list)
-              and all(isinstance(req, six.string_types) for req in requirements)):
+              and all(isinstance(req, _six.string_types) for req in requirements)):
             requirements = copy.copy(requirements)
 
             # replace importable module names with PyPI package names in case of user error
@@ -3076,8 +3104,8 @@ class ExperimentRun(_ModelDBEntity):
             print("[DEBUG] requirements are:")
             print(requirements)
 
-        requirements = six.BytesIO(six.ensure_binary('\n'.join(requirements)))  # as file-like
-        self._log_artifact("requirements.txt", requirements, _CommonService.ArtifactTypeEnum.BLOB, 'txt')
+        requirements = _six.BytesIO(_six.ensure_binary('\n'.join(requirements)))  # as file-like
+        self._log_artifact("requirements.txt", requirements, _CommonService.ArtifactTypeEnum.BLOB, 'txt', overwrite=overwrite)
 
     def log_modules(self, paths, search_path=None):
         """
@@ -3107,7 +3135,7 @@ class ExperimentRun(_ModelDBEntity):
 
         self._log_modules(paths)
 
-    def _log_modules(self, paths=None):
+    def _log_modules(self, paths=None, overwrite=False):
         extensions = None  # log all files in user-provided `paths` with _utils.find_filepaths()
         if paths is None:
             extensions = ['py', 'pyc', 'pyo']  # only log .py* files
@@ -3119,7 +3147,7 @@ class ExperimentRun(_ModelDBEntity):
                         and not PY_ZIP_REGEX.search(path)
                         and not IPYTHON_REGEX.search(path)):
                     paths.append(path)
-        if isinstance(paths, six.string_types):
+        if isinstance(paths, _six.string_types):
             paths = [paths]
 
         CUSTOM_MODULES_DIR = "/app/custom_modules/"  # location in DeploymentService model container
@@ -3154,7 +3182,7 @@ class ExperimentRun(_ModelDBEntity):
             print("[DEBUG] deployment search paths are:")
             pprint.pprint(search_paths)
 
-        bytestream = six.BytesIO()
+        bytestream = _six.BytesIO()
         with zipfile.ZipFile(bytestream, 'w') as zipf:
             for filepath in filepaths:
                 zipf.write(filepath, os.path.relpath(filepath, common_dir))
@@ -3163,7 +3191,7 @@ class ExperimentRun(_ModelDBEntity):
             working_dir = os.path.join(CUSTOM_MODULES_DIR, os.path.relpath(curr_dir, common_dir))
             zipf.writestr(
                 "_verta_config.py",
-                six.ensure_binary('\n'.join([
+                _six.ensure_binary('\n'.join([
                     "import os, sys",
                     "",
                     "",
@@ -3187,9 +3215,9 @@ class ExperimentRun(_ModelDBEntity):
                 zipf.printdir()
         bytestream.seek(0)
 
-        self._log_artifact("custom_modules", bytestream, _CommonService.ArtifactTypeEnum.BLOB, 'zip')
+        self._log_artifact("custom_modules", bytestream, _CommonService.ArtifactTypeEnum.BLOB, 'zip', overwrite=overwrite)
 
-    def log_setup_script(self, script):
+    def log_setup_script(self, script, overwrite=False):
         """
         Associate a model deployment setup script with this Experiment Run.
 
@@ -3200,6 +3228,8 @@ class ExperimentRun(_ModelDBEntity):
         script : str
             String composed of valid Python code for executing setup steps at the beginning of model
             deployment. An on-disk file can be passed in using ``open("path/to/file.py", 'r').read()``.
+        overwrite : bool, default False
+            Whether to allow overwriting an existing setup script.
 
         Raises
         ------
@@ -3215,19 +3245,19 @@ class ExperimentRun(_ModelDBEntity):
             reason = e.args[0]
             line_no = e.args[1][1]
             line = script.splitlines()[line_no-1]
-            six.raise_from(SyntaxError("{} in provided script on line {}:\n{}"
+            _six.raise_from(SyntaxError("{} in provided script on line {}:\n{}"
                                        .format(reason, line_no, line)),
                            e)
 
         # convert into bytes for upload
-        script = six.ensure_binary(script)
+        script = _six.ensure_binary(script)
 
         # convert to file-like for `_log_artifact()`
-        script = six.BytesIO(script)
+        script = _six.BytesIO(script)
 
-        self._log_artifact("setup_script", script, _CommonService.ArtifactTypeEnum.BLOB, 'py')
+        self._log_artifact("setup_script", script, _CommonService.ArtifactTypeEnum.BLOB, 'py', overwrite=overwrite)
 
-    def log_training_data(self, train_features, train_targets):
+    def log_training_data(self, train_features, train_targets, overwrite=False):
         """
         Associate training data with this Experiment Run.
 
@@ -3237,6 +3267,8 @@ class ExperimentRun(_ModelDBEntity):
             pandas DataFrame representing features of the training data.
         train_targets : pd.DataFrame or pd.Series
             pandas DataFrame representing targets of the training data.
+        overwrite : bool, default False
+            Whether to allow overwriting existing training data.
 
         """
         if train_features.__class__.__name__ != "DataFrame":
@@ -3258,7 +3290,7 @@ class ExperimentRun(_ModelDBEntity):
         train_df.to_csv(tempf, index=False)
         tempf.seek(0)
 
-        self._log_artifact("train_data", tempf, _CommonService.ArtifactTypeEnum.DATA, 'csv')
+        self._log_artifact("train_data", tempf, _CommonService.ArtifactTypeEnum.DATA, 'csv', overwrite=overwrite)
 
     def fetch_artifacts(self, keys):
         """
@@ -3295,7 +3327,7 @@ class ExperimentRun(_ModelDBEntity):
 
         """
         if not (isinstance(keys, list)
-                and all(isinstance(key, six.string_types) for key in keys)):
+                and all(isinstance(key, _six.string_types) for key in keys)):
             raise TypeError("`keys` must be list of str, not {}".format(type(keys)))
 
         # validate that `keys` are actually logged
@@ -3332,3 +3364,166 @@ class ExperimentRun(_ModelDBEntity):
             artifacts.update({key: path})
 
         return artifacts
+
+    def deploy(self, path=None, token=None, no_token=False, wait=False):
+        """
+        Deploys the model logged to this Experiment Run.
+
+        Parameters
+        ----------
+        path : str, optional
+            Suffix for the prediction endpoint URL. If not provided, one will be generated
+            automatically.
+        token : str, optional
+            Token to use to authorize predictions requests. If not provided and `no_token` is
+            ``False``, one will be generated automatically.
+        no_token : bool, default False
+            Whether to not require a token for predictions.
+        wait : bool, default False
+            Whether to wait for the deployed model to be ready for this function to finish.
+
+        Returns
+        -------
+        status : dict
+            The model's status, prediction endpoint URL, and token.
+
+        Raises
+        ------
+        RuntimeError
+            If the model is already deployed or is being deployed, or if a required deployment
+            artifact is missing.
+
+        Examples
+        --------
+        >>> status = run.deploy(path="banana", no_token=True, wait=True)
+        waiting for deployment.........
+        >>> status
+        {'status': 'deployed',
+         'url': 'https://app.verta.ai/api/v1/predict/abcdefgh-1234-abcd-1234-abcdefghijkl/banana',
+         'token': None}
+        >>> DeployedModel.from_url(status['url']).predict([x])
+        [0.973340685896]
+
+        """
+        # forbid calling deploy on already-deployed model
+        #     Changing `path` or `token` while a model is deployed updates the model's status but
+        #     not the prediction endpoint, leaving the deployment endpoints in a bad state.
+        #
+        #     e.g. if the model is deployed with token "banana", then the deploy endpoint is hit
+        #     again with token "coconut", then the status endpoint will return "coconut" but the
+        #     prediction endpoint still requires "banana".
+        if self._get_deployment_status()['status'] != "not deployed":
+            raise RuntimeError("model deployment has already been triggered; please undeploy the model first")
+
+        data = {}
+        if path is not None:
+            # get project ID for URL path
+            response = _utils.make_request(
+                "GET",
+                "{}://{}/v1/experiment-run/getExperimentRunById".format(self._conn.scheme, self._conn.socket),
+                self._conn, params={'id': self.id})
+            _utils.raise_for_http_error(response)
+
+            data.update({'url_path': "{}/{}".format(response.json()['experiment_run']['project_id'], path)})
+        if no_token:
+            data.update({'token': ""})
+        elif token is not None:
+            data.update({'token': token})
+
+        response = _utils.make_request(
+            "PUT",
+            "{}://{}/api/v1/deployment/models/{}".format(self._conn.scheme, self._conn.socket, self.id),
+            self._conn, json=data,
+        )
+        try:
+            _utils.raise_for_http_error(response)
+        except requests.HTTPError as e:
+            # propagate error caused by missing artifact
+            # TODO: recommend user call log_model() / log_requirements()
+            error_text = e.response.text.strip()
+            if error_text.startswith("missing artifact"):
+                _six.raise_from(RuntimeError("unable to deploy due to {}".format(error_text)), None)
+            else:
+                raise e
+
+        if wait:
+            print("waiting for deployment...", end='')
+            while self._get_deployment_status()['status'] not in ("deployed", "error"):
+                print(".", end='')
+                time.sleep(5)
+            if self._get_deployment_status()['status'] == "error":
+                status = self._get_deployment_status()
+                raise RuntimeError("model deployment is failing;\n{}".format(status.get('message', "no error message available")))
+
+        status = self._get_deployment_status()
+        return {
+            'status': status['status'],
+            'url': "{}://{}{}".format(self._conn.scheme, self._conn.socket, status['api']),
+            'token': status.get('token'),
+        }
+
+    def undeploy(self, wait=False):
+        """
+        Undeploys the model logged to this Experiment Run.
+
+        Parameters
+        ----------
+        wait : bool, default False
+            Whether to wait for the undeployment to complete for this function to finish.
+
+        Returns
+        -------
+        status : dict
+
+        Raises
+        ------
+        RuntimeError
+            If the model is already not deployed.
+
+        """
+        # forbid calling undeploy on already-undeployed model
+        #     This needs to be checked first, otherwise the undeployment endpoint will return an
+        #     unhelpful HTTP client error.
+        if self._get_deployment_status()['status'] == "not deployed":
+            raise RuntimeError("model is already not deployed")
+
+        response = _utils.make_request(
+            "DELETE",
+            "{}://{}/api/v1/deployment/models/{}".format(self._conn.scheme, self._conn.socket, self.id),
+            self._conn,
+        )
+        _utils.raise_for_http_error(response)
+
+        if wait:
+            print("waiting for undeployment...", end='')
+            while self._get_deployment_status()['status'] != "not deployed":
+                print(".", end='')
+                time.sleep(5)
+
+        status = self._get_deployment_status()
+        return {
+            'status': status['status'],
+        }
+
+    def get_deployed_model(self):
+        """
+        Returns an object for making predictions against the deployed model.
+
+        Returns
+        -------
+        :class:`~verta.deployment.DeployedModel`
+
+        Raises
+        ------
+        RuntimeError
+            If the model is not currently deployed.
+
+        """
+        if self._get_deployment_status()['status'] != "deployed":
+            raise RuntimeError("model is not currently deployed")
+
+        status = self._get_deployment_status()
+        return deployment.DeployedModel.from_url(
+            "{}://{}{}".format(self._conn.scheme, self._conn.socket, status['api']),
+            status['token'],
+        )

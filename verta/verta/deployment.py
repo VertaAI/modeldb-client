@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import six
-from six.moves.urllib.parse import urljoin, urlparse
+from . import _six
+from ._six.moves.urllib.parse import urljoin, urlparse  # pylint: disable=import-error, no-name-in-module
 
 import json
 import gzip
@@ -11,7 +11,6 @@ import warnings
 
 import requests
 
-from .client import _GRPC_PREFIX
 from . import _utils
 
 
@@ -68,19 +67,19 @@ class DeployedModel:
 
         self._session = requests.Session()
         if not _from_url:
-            self._session.headers.update({_GRPC_PREFIX+'source': "PythonClient"})
+            self._session.headers.update({_utils._GRPC_PREFIX+'source': "PythonClient"})
             try:
-                self._session.headers.update({_GRPC_PREFIX+'email': os.environ['VERTA_EMAIL']})
+                self._session.headers.update({_utils._GRPC_PREFIX+'email': os.environ['VERTA_EMAIL']})
             except KeyError:
-                six.raise_from(EnvironmentError("${} not found in environment".format('VERTA_EMAIL')), None)
+                _six.raise_from(EnvironmentError("${} not found in environment".format('VERTA_EMAIL')), None)
             try:
-                self._session.headers.update({_GRPC_PREFIX+'developer_key': os.environ['VERTA_DEV_KEY']})
+                self._session.headers.update({_utils._GRPC_PREFIX+'developer_key': os.environ['VERTA_DEV_KEY']})
             except KeyError:
-                six.raise_from(EnvironmentError("${} not found in environment".format('VERTA_DEV_KEY')), None)
+                _six.raise_from(EnvironmentError("${} not found in environment".format('VERTA_DEV_KEY')), None)
 
         back_end_url = urlparse(host)
-        self._scheme = back_end_url.scheme or "https"
         self._socket = back_end_url.netloc + back_end_url.path.rstrip('/')
+        self._scheme = back_end_url.scheme or ("https" if ".verta.ai" in self._socket else "http")
 
         self._id = run_id
         self._status_url = "{}://{}/api/v1/deployment/status/{}".format(self._scheme, self._socket, self._id)
@@ -150,11 +149,13 @@ class DeployedModel:
         if 'Access-token' not in self._session.headers or self._prediction_url is None:
             self._set_token_and_url()
 
+        x = _utils.to_builtin(x)
+
         if compress:
             # create gzip
-            gzstream = six.BytesIO()
+            gzstream = _six.BytesIO()
             with gzip.GzipFile(fileobj=gzstream, mode='wb') as gzf:
-                gzf.write(six.ensure_binary(json.dumps(x)))
+                gzf.write(_six.ensure_binary(json.dumps(x)))
             gzstream.seek(0)
 
             return self._session.post(
