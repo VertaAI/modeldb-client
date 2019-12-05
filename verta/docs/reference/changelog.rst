@@ -32,6 +32,31 @@ Release Notes
      <>`_
 
 
+v0.13.17 (2019-12-04)
+---------------------
+
+Deprecations
+^^^^^^^^^^^^
+- `utils.TFSavedModel, in favor of the class-as-model system
+  <https://github.com/VertaAI/modeldb-client/pull/306/files>`_
+
+New Features
+^^^^^^^^^^^^
+- `enable passing more datatypes into DeployedModel.predict()
+  <https://github.com/VertaAI/modeldb-client/pull/307>`_
+- `add overwrite flag to most artifact logging functions
+  <https://github.com/VertaAI/modeldb-client/pull/308>`_
+- `enable deployment through ExperimentRun objects
+  <https://github.com/VertaAI/modeldb-client/pull/309>`_
+- `only default to https for endpoints hosted by Verta
+  <https://github.com/VertaAI/modeldb-client/pull/311>`_
+
+Internal Changes
+^^^^^^^^^^^^^^^^
+- `remove external dependency on six
+  <https://github.com/VertaAI/modeldb-client/pull/310>`_
+
+
 v0.13.16 (2019-12-02)
 ---------------------
 
