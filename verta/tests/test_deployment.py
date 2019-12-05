@@ -617,7 +617,7 @@ class TestDeploy:
             with pytest.raises(RuntimeError) as excinfo:
                 experiment_run.deploy()
             assert str(excinfo.value).strip() == "unable to deploy due to missing artifact model.pkl"
-        except:
+        finally:
             conn = experiment_run._conn
             requests.delete(
                 "{}://{}/api/v1/deployment/models/{}".format(conn.scheme, conn.socket, experiment_run.id),
@@ -639,7 +639,7 @@ class TestDeploy:
             with pytest.raises(RuntimeError) as excinfo:
                 experiment_run.deploy()
             assert str(excinfo.value).strip() == "unable to deploy due to missing artifact model_api.json"
-        except:
+        finally:
             conn = experiment_run._conn
             requests.delete(
                 "{}://{}/api/v1/deployment/models/{}".format(conn.scheme, conn.socket, experiment_run.id),
@@ -652,7 +652,7 @@ class TestDeploy:
             with pytest.raises(RuntimeError) as excinfo:
                 experiment_run.deploy()
             assert str(excinfo.value).strip() == "unable to deploy due to missing artifact requirements.txt"
-        except:
+        finally:
             conn = experiment_run._conn
             requests.delete(
                 "{}://{}/api/v1/deployment/models/{}".format(conn.scheme, conn.socket, experiment_run.id),
@@ -696,13 +696,13 @@ class TestUndeploy:
         experiment_run.log_model(model_for_deployment['model'], custom_modules=[])
         experiment_run.log_requirements(['scikit-learn'])
 
-        experiment_run.deploy(wait=True)
-
         try:
-            status = experiment_run.undeploy()
+            experiment_run.deploy(wait=True)
+
+            status = experiment_run.undeploy(wait=True)
 
             assert status['status'] == "not deployed"
-        except:
+        finally:
             conn = experiment_run._conn
             requests.delete(
                 "{}://{}/api/v1/deployment/models/{}".format(conn.scheme, conn.socket, experiment_run.id),
