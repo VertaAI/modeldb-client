@@ -3463,7 +3463,4 @@ class ExperimentRun(_ModelDBEntity):
             raise RuntimeError("model is not currently deployed")
 
         status = self.get_deployment_status()
-        return deployment.DeployedModel.from_url(
-            "{}://{}{}".format(self._conn.scheme, self._conn.socket, status['api']),
-            status['token'],
-        )
+        return deployment.DeployedModel.from_url(status['url'], status['token'])
