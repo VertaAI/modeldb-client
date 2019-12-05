@@ -3447,3 +3447,26 @@ class ExperimentRun(_ModelDBEntity):
         return {
             'status': status['status'],
         }
+
+    def get_deployed_model(self):
+        """
+        Returns an object for making predictions against the deployed model.
+
+        Returns
+        -------
+        :class:`~verta.deployment.DeployedModel`
+
+        Raises
+        ------
+        RuntimeError
+            If the model is not currently deployed.
+
+        """
+        if self._get_deployment_status()['status'] != "deployed":
+            raise RuntimeError("model is not currently deployed")
+
+        status = self._get_deployment_status()
+        return deployment.DeployedModel.from_url(
+            "{}://{}{}".format(self._conn.scheme, self._conn.socket, status['api']),
+            status['token'],
+        )

@@ -712,3 +712,47 @@ class TestUndeploy:
     def test_already_undeployed_undeploy_error(self, experiment_run):
         with pytest.raises(RuntimeError):
             experiment_run.undeploy()
+
+
+class TestGetDeployedModel:
+    def test_get(self, experiment_run, model_for_deployment):
+        model = model_for_deployment['model'].fit(
+            model_for_deployment['train_features'],
+            model_for_deployment['train_targets'],
+        )
+
+        experiment_run.log_model(model, custom_modules=[])
+        experiment_run.log_requirements(['scikit-learn'])
+
+        try:
+            experiment_run.deploy(wait=True)
+
+            x = model_for_deployment['train_features'].iloc[1].values
+            experiment_run.get_deployed_model().predict([x])
+        finally:
+            conn = experiment_run._conn
+            requests.delete(
+                "{}://{}/api/v1/deployment/models/{}".format(conn.scheme, conn.socket, experiment_run.id),
+                headers=conn.auth,
+            )
+
+    def test_not_deployed_get_error(self, experiment_run, model_for_deployment):
+        with pytest.raises(RuntimeError):
+            experiment_run.get_deployed_model()
+
+    def test_undeployed_get_error(self, experiment_run, model_for_deployment):
+        experiment_run.log_model(model_for_deployment['model'], custom_modules=[])
+        experiment_run.log_requirements(['scikit-learn'])
+
+        try:
+            experiment_run.deploy(wait=True)
+            experiment_run.undeploy(wait=True)
+
+            with pytest.raises(RuntimeError):
+                experiment_run.get_deployed_model()
+        finally:
+            conn = experiment_run._conn
+            requests.delete(
+                "{}://{}/api/v1/deployment/models/{}".format(conn.scheme, conn.socket, experiment_run.id),
+                headers=conn.auth,
+            )
