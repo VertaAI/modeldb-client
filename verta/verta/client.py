@@ -1915,16 +1915,6 @@ class ExperimentRun(_ModelDBEntity):
         else:
             return dataset.path, dataset.path_only, dataset.linked_artifact_id
 
-    def _get_deployment_status(self):
-        response = _utils.make_request(
-            "GET",
-            "{}://{}/api/v1/deployment/models/{}".format(self._conn.scheme, self._conn.socket, self.id),
-            self._conn,
-        )
-        _utils.raise_for_http_error(response)
-
-        return response.json()
-
     def log_tag(self, tag):
         """
         Logs a tag to this Experiment Run.
@@ -3308,6 +3298,16 @@ class ExperimentRun(_ModelDBEntity):
 
         return artifacts
 
+    def get_deployment_status(self):
+        response = _utils.make_request(
+            "GET",
+            "{}://{}/api/v1/deployment/models/{}".format(self._conn.scheme, self._conn.socket, self.id),
+            self._conn,
+        )
+        _utils.raise_for_http_error(response)
+
+        return response.json()
+
     def deploy(self, path=None, token=None, no_token=False, wait=False):
         """
         Deploys the model logged to this Experiment Run.
@@ -3355,7 +3355,7 @@ class ExperimentRun(_ModelDBEntity):
         #     e.g. if the model is deployed with token "banana", then the deploy endpoint is hit
         #     again with token "coconut", then the status endpoint will return "coconut" but the
         #     prediction endpoint still requires "banana".
-        if self._get_deployment_status()['status'] != "not deployed":
+        if self.get_deployment_status()['status'] != "not deployed":
             raise RuntimeError("model deployment has already been triggered; please undeploy the model first")
 
         data = {}
@@ -3391,14 +3391,14 @@ class ExperimentRun(_ModelDBEntity):
 
         if wait:
             print("waiting for deployment...", end='')
-            while self._get_deployment_status()['status'] not in ("deployed", "error"):
+            while self.get_deployment_status()['status'] not in ("deployed", "error"):
                 print(".", end='')
                 time.sleep(5)
-            if self._get_deployment_status()['status'] == "error":
-                status = self._get_deployment_status()
+            if self.get_deployment_status()['status'] == "error":
+                status = self.get_deployment_status()
                 raise RuntimeError("model deployment is failing;\n{}".format(status.get('message', "no error message available")))
 
-        status = self._get_deployment_status()
+        status = self.get_deployment_status()
         return {
             'status': status['status'],
             'url': "{}://{}{}".format(self._conn.scheme, self._conn.socket, status['api']),
@@ -3427,7 +3427,7 @@ class ExperimentRun(_ModelDBEntity):
         # forbid calling undeploy on already-undeployed model
         #     This needs to be checked first, otherwise the undeployment endpoint will return an
         #     unhelpful HTTP client error.
-        if self._get_deployment_status()['status'] == "not deployed":
+        if self.get_deployment_status()['status'] == "not deployed":
             raise RuntimeError("model is already not deployed")
 
         response = _utils.make_request(
@@ -3439,11 +3439,11 @@ class ExperimentRun(_ModelDBEntity):
 
         if wait:
             print("waiting for undeployment...", end='')
-            while self._get_deployment_status()['status'] != "not deployed":
+            while self.get_deployment_status()['status'] != "not deployed":
                 print(".", end='')
                 time.sleep(5)
 
-        status = self._get_deployment_status()
+        status = self.get_deployment_status()
         return {
             'status': status['status'],
         }
@@ -3462,10 +3462,10 @@ class ExperimentRun(_ModelDBEntity):
             If the model is not currently deployed.
 
         """
-        if self._get_deployment_status()['status'] != "deployed":
+        if self.get_deployment_status()['status'] != "deployed":
             raise RuntimeError("model is not currently deployed")
 
-        status = self._get_deployment_status()
+        status = self.get_deployment_status()
         return deployment.DeployedModel.from_url(
             "{}://{}{}".format(self._conn.scheme, self._conn.socket, status['api']),
             status['token'],
