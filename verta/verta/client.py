@@ -1736,7 +1736,6 @@ class ExperimentRun(_ModelDBEntity):
 
         # create the new run
         data = _utils.proto_to_json(msg)
-        print(data)
         response = _utils.make_request("POST",
                                        "{}://{}/v1/experiment-run/createExperimentRun".format(
                                            self._conn.scheme, self._conn.socket), self._conn, json=data)
