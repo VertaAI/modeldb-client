@@ -41,9 +41,6 @@ from . import deployment
 
 # for ExperimentRun._log_modules()
 _CUSTOM_MODULES_DIR = "/app/custom_modules/"  # location in DeploymentService model container
-PY_DIR_REGEX = re.compile(r"/lib/python\d\.\d")
-PY_ZIP_REGEX = re.compile(r"/lib/python\d\d\.zip")
-IPYTHON_REGEX = re.compile(r"/\.ipython")
 
 # for ExperimentRun.log_model()
 _MODEL_ARTIFACTS_ATTR_KEY = "verta_model_artifacts"
@@ -3182,53 +3179,51 @@ class ExperimentRun(_ModelDBEntity):
         self._log_modules(paths)
 
     def _log_modules(self, paths=None, overwrite=False):
-        extensions = None  # log all files in user-provided `paths` with _utils.find_filepaths()
-        if paths is None:
-            extensions = ['py', 'pyc', 'pyo']  # only log .py* files
-            # log paths in sys.path, excluding standard and external libraries
-            paths = []
-            for path in sys.path:
-                if (path
-                        and not PY_DIR_REGEX.search(path)
-                        and not PY_ZIP_REGEX.search(path)
-                        and not IPYTHON_REGEX.search(path)):
-                    paths.append(path)
         if isinstance(paths, _six.string_types):
             paths = [paths]
+        if paths is not None:
+            paths = list(map(os.path.abspath, paths))
 
-        # convert into absolute paths
-        paths = map(os.path.abspath, paths)
-        # add trailing separator to directories
-        paths = [os.path.join(path, "") if os.path.isdir(path) else path
-                 for path in paths]
+        # collect local sys paths
+        local_sys_paths = copy.copy(sys.path)
+        ## remove empty strings
+        local_sys_paths = list(filter(None, local_sys_paths))
+        ## convert to absolute paths
+        local_sys_paths = list(map(os.path.abspath, local_sys_paths))
+        ## remove paths that don't exist
+        local_sys_paths = list(filter(os.path.exists, local_sys_paths))
+        ## remove .ipython
+        local_sys_paths = list(filter(lambda path: not path.endswith(".ipython"), local_sys_paths))
+
+        # get paths to files within
+        if paths is None:
+            # Python files within sys.path dirs
+            local_filepaths = _utils.find_filepaths(
+                local_sys_paths, extensions=['py', 'pyc', 'pyo'],
+                include_hidden=True, include_venv=False,
+            )
+        else:
+            # all user-specified files
+            local_filepaths = _utils.find_filepaths(
+                paths,
+                include_hidden=True, include_venv=False,
+            )
 
         # obtain deepest common directory
+        #     This directory on the local system will be mirrored in `_CUSTOM_MODULES_DIR` in
+        #     deployment.
         curr_dir = os.path.join(os.getcwd(), "")
-        paths_plus = paths + [curr_dir]
+        paths_plus = list(local_filepaths) + [curr_dir]
         common_prefix = os.path.commonprefix(paths_plus)
         common_dir = os.path.dirname(common_prefix)
 
-        filepaths = _utils.find_filepaths(paths, extensions=extensions, include_hidden=True, include_venv=False)
-
-        # get search paths to modify Deployment's sys.path
-        if self._conf.debug:
-            print("[DEBUG] sys.path is:")
-            pprint.pprint(sys.path)
-        # convert into absolute paths
-        search_paths = list(map(os.path.abspath, sys.path))
-        # only consider search paths inside common directory
-        search_paths = list(filter(lambda path: path.startswith(common_dir), search_paths))
-        # strip common directory
-        search_paths = list(map(lambda path: os.path.relpath(path, common_dir), search_paths))
-        # append to Deployment's custom modules directory
-        search_paths = list(map(lambda path: os.path.join(_CUSTOM_MODULES_DIR, path), search_paths))
-        if self._conf.debug:
-            print("[DEBUG] deployment search paths are:")
-            pprint.pprint(search_paths)
+        # replace `common_dir` with `_CUSTOM_MODULES_DIR` for deployment sys.path
+        depl_sys_paths = list(map(lambda path: os.path.relpath(path, common_dir), local_sys_paths))
+        depl_sys_paths = list(map(lambda path: os.path.join(_CUSTOM_MODULES_DIR, path), depl_sys_paths))
 
         bytestream = _six.BytesIO()
         with zipfile.ZipFile(bytestream, 'w') as zipf:
-            for filepath in filepaths:
+            for filepath in local_filepaths:
                 zipf.write(filepath, os.path.relpath(filepath, common_dir))
 
             # add verta config file for sys.path and chdir
@@ -3239,7 +3234,7 @@ class ExperimentRun(_ModelDBEntity):
                     "import os, sys",
                     "",
                     "",
-                    "sys.path = sys.path[:1] + {} + sys.path[1:]".format(list(search_paths)),
+                    "sys.path = sys.path[:1] + {} + sys.path[1:]".format(depl_sys_paths),
                     "",
                     "try:",
                     "    os.makedirs(\"{}\")".format(working_dir),
