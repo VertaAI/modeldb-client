@@ -110,16 +110,23 @@ Data Versioning
 
 Deployment
 ^^^^^^^^^^
+Logging
+"""""""
 .. automethod:: ExperimentRun.log_model
 .. automethod:: ExperimentRun.get_model
 .. automethod:: ExperimentRun.log_requirements
 .. automethod:: ExperimentRun.log_setup_script
 .. automethod:: ExperimentRun.log_training_data
 .. automethod:: ExperimentRun.fetch_artifacts
+
+Deploying
+"""""""""
 .. automethod:: ExperimentRun.get_deployment_status
 .. automethod:: ExperimentRun.deploy
 .. automethod:: ExperimentRun.undeploy
 .. automethod:: ExperimentRun.get_deployed_model
 
+Deprecated
+""""""""""
 .. automethod:: ExperimentRun.log_model_for_deployment
 .. automethod:: ExperimentRun.log_modules

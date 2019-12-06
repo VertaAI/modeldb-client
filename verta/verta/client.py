@@ -3302,6 +3302,8 @@ class ExperimentRun(_ModelDBEntity):
         """
         Returns the current status of the model deployment associated with this Experiment Run.
 
+        .. versionadded:: 0.13.17
+
         Returns
         -------
         status : dict
@@ -3327,6 +3329,8 @@ class ExperimentRun(_ModelDBEntity):
     def deploy(self, path=None, token=None, no_token=False, wait=False):
         """
         Deploys the model logged to this Experiment Run.
+
+        .. versionadded:: 0.13.17
 
         Parameters
         ----------
@@ -3420,6 +3424,8 @@ class ExperimentRun(_ModelDBEntity):
         """
         Undeploys the model logged to this Experiment Run.
 
+        .. versionadded:: 0.13.17
+
         Parameters
         ----------
         wait : bool, default False
@@ -3460,6 +3466,8 @@ class ExperimentRun(_ModelDBEntity):
     def get_deployed_model(self):
         """
         Returns an object for making predictions against the deployed model.
+
+        .. versionadded:: 0.13.17
 
         Returns
         -------
