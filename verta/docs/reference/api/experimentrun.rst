@@ -6,6 +6,8 @@ ExperimentRun
 Functionality
 -------------
 
+- `Miscellaneous`_
+
 - `Basic Metadata`_
 
   - `Attributes`_
@@ -25,6 +27,13 @@ Functionality
   - `Code Versioning`_
   - `Data Versioning`_
   - `Deployment`_
+
+Miscellaneous
+-------------
+
+.. attribute:: ExperimentRun.id
+.. attribute:: ExperimentRun.name
+.. automethod:: ExperimentRun.clone
 
 Basic Metadata
 --------------
