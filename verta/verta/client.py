@@ -1693,6 +1693,24 @@ class ExperimentRun(_ModelDBEntity):
             _utils.raise_for_http_error(response)
 
     def clone(self, copy_artifacts=False, copy_code_version=False, copy_datasets=False):
+        """
+        Returns a newly-created copy of this Experiment Run.
+
+        Parameters
+        ----------
+        copy_artifacts : bool, default False
+            Whether to also copy this Experiment Run's artifacts.
+        copy_code_version : bool, default False
+            Whether to also copy this Experiment Run's code version.
+        copy_datasets : bool, default False
+            Whether to also copy this Experiment Run's dataset versions.
+
+        Returns
+        -------
+        :class:`ExperimentRun`
+            Newly-created copy of this Experiment Run.
+
+        """
         # get info for the current run
         current_run = self._get(self._conn, _expt_run_id=self.id)
 
@@ -1739,8 +1757,7 @@ class ExperimentRun(_ModelDBEntity):
         response = _utils.make_request("POST",
                                        "{}://{}/v1/experiment-run/createExperimentRun".format(
                                            self._conn.scheme, self._conn.socket), self._conn, json=data)
-        if not response.ok:
-            _utils.raise_for_http_error(response)
+        _utils.raise_for_http_error(response)
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
         new_run_msg = response_msg.experiment_run
