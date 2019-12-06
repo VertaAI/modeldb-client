@@ -220,10 +220,8 @@ class TestExperimentRun:
         with pytest.raises(ValueError):
             client.set_experiment_run(id="nonexistent_id")
 
-    def test_clone(self, client):
-        proj = client.set_project()
-        expt = client.set_experiment()
-        expt_run = client.set_experiment_run()
+    def test_clone(self, experiment_run):
+        expt_run = experiment_run
         expt_run.log_hyperparameters({"hpp1" : 1, "hpp2" : 2, "hpp3" : "hpp3"})
         expt_run.log_metrics({"metric1" : 0.5, "metric2" : 0.6})
         expt_run.log_tags(["tag1", "tag2"])
