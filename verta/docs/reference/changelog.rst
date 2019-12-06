@@ -32,7 +32,7 @@ Release Notes
      <>`_
 
 
-v0.13.17 (2019-12-04)
+v0.13.17 (2019-12-05)
 ---------------------
 
 Deprecations
@@ -48,6 +48,8 @@ New Features
   <https://github.com/VertaAI/modeldb-client/pull/308>`_
 - `enable deployment through ExperimentRun objects
   <https://github.com/VertaAI/modeldb-client/pull/309>`_
+- `add a decorator for models' predict() to handle datatype conversion
+  <https://github.com/VertaAI/modeldb-client/pull/313>`_
 - `only default to https for endpoints hosted by Verta
   <https://github.com/VertaAI/modeldb-client/pull/311>`_
 
