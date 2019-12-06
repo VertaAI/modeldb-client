@@ -40,6 +40,7 @@ from . import deployment
 
 
 # for ExperimentRun._log_modules()
+_CUSTOM_MODULES_DIR = "/app/custom_modules/"  # location in DeploymentService model container
 PY_DIR_REGEX = re.compile(r"/lib/python\d\.\d")
 PY_ZIP_REGEX = re.compile(r"/lib/python\d\d\.zip")
 IPYTHON_REGEX = re.compile(r"/\.ipython")
@@ -3195,8 +3196,6 @@ class ExperimentRun(_ModelDBEntity):
         if isinstance(paths, _six.string_types):
             paths = [paths]
 
-        CUSTOM_MODULES_DIR = "/app/custom_modules/"  # location in DeploymentService model container
-
         # convert into absolute paths
         paths = map(os.path.abspath, paths)
         # add trailing separator to directories
@@ -3222,7 +3221,7 @@ class ExperimentRun(_ModelDBEntity):
         # strip common directory
         search_paths = list(map(lambda path: os.path.relpath(path, common_dir), search_paths))
         # append to Deployment's custom modules directory
-        search_paths = list(map(lambda path: os.path.join(CUSTOM_MODULES_DIR, path), search_paths))
+        search_paths = list(map(lambda path: os.path.join(_CUSTOM_MODULES_DIR, path), search_paths))
         if self._conf.debug:
             print("[DEBUG] deployment search paths are:")
             pprint.pprint(search_paths)
@@ -3233,7 +3232,7 @@ class ExperimentRun(_ModelDBEntity):
                 zipf.write(filepath, os.path.relpath(filepath, common_dir))
 
             # add verta config file for sys.path and chdir
-            working_dir = os.path.join(CUSTOM_MODULES_DIR, os.path.relpath(curr_dir, common_dir))
+            working_dir = os.path.join(_CUSTOM_MODULES_DIR, os.path.relpath(curr_dir, common_dir))
             zipf.writestr(
                 "_verta_config.py",
                 _six.ensure_binary('\n'.join([

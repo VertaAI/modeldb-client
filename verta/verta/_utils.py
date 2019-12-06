@@ -206,6 +206,10 @@ def find_filepaths(paths, extensions=None, include_hidden=False, include_venv=Fa
     include_venv : bool, default False
         Whether to include Python virtual environment directories.
 
+    Returns
+    -------
+    filepaths : set
+
     """
     if isinstance(paths, _six.string_types):
         paths = [paths]
