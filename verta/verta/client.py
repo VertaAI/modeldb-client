@@ -1692,79 +1692,6 @@ class ExperimentRun(_ModelDBEntity):
         else:
             _utils.raise_for_http_error(response)
 
-    def clone(self, copy_artifacts=False, copy_code_version=False, copy_datasets=False):
-        """
-        Returns a newly-created copy of this Experiment Run.
-
-        Parameters
-        ----------
-        copy_artifacts : bool, default False
-            Whether to also copy this Experiment Run's artifacts.
-        copy_code_version : bool, default False
-            Whether to also copy this Experiment Run's code version.
-        copy_datasets : bool, default False
-            Whether to also copy this Experiment Run's dataset versions.
-
-        Returns
-        -------
-        :class:`ExperimentRun`
-            Newly-created copy of this Experiment Run.
-
-        """
-        # get info for the current run
-        current_run = self._get(self._conn, _expt_run_id=self.id)
-
-        # clone the current run
-        Message = _ExperimentRunService.CreateExperimentRun
-        msg = Message(
-            project_id=current_run.project_id,
-            experiment_id=current_run.experiment_id,
-            name=ExperimentRun._generate_default_name(),
-            description=current_run.description,
-            tags=current_run.tags,
-            attributes=current_run.attributes,
-            observations=current_run.observations,
-            metrics=current_run.metrics,
-            hyperparameters=current_run.hyperparameters,
-            parent_id=current_run.parent_id,
-        )
-
-        msg_artifact = Message()
-        msg_code_version = Message()
-        msg_datasets = Message()
-
-        if copy_artifacts:
-            msg_artifact = Message(
-                artifacts=current_run.artifacts,
-            )
-
-        if copy_code_version:
-            msg_code_version = Message(
-                code_version_snapshot=current_run.code_version_snapshot,
-            )
-
-        if copy_datasets:
-            msg_datasets = Message(
-                datasets=current_run.datasets,
-            )
-
-        msg.MergeFrom(msg_artifact)
-        msg.MergeFrom(msg_code_version)
-        msg.MergeFrom(msg_datasets)
-
-        # create the new run
-        data = _utils.proto_to_json(msg)
-        response = _utils.make_request("POST",
-                                       "{}://{}/v1/experiment-run/createExperimentRun".format(
-                                           self._conn.scheme, self._conn.socket), self._conn, json=data)
-        _utils.raise_for_http_error(response)
-
-        response_msg = _utils.json_to_proto(response.json(), Message.Response)
-        new_run_msg = response_msg.experiment_run
-        new_run = ExperimentRun(self._conn, self._conf, _expt_run_id=new_run_msg.id)
-
-        return new_run
-
     def _log_artifact(self, key, artifact, artifact_type, extension=None, method=None, overwrite=False):
         """
         Logs an artifact to this Experiment Run.
@@ -1997,6 +1924,79 @@ class ExperimentRun(_ModelDBEntity):
         _utils.raise_for_http_error(response)
 
         return response.json()
+
+    def clone(self, copy_artifacts=False, copy_code_version=False, copy_datasets=False):
+        """
+        Returns a newly-created copy of this Experiment Run.
+
+        Parameters
+        ----------
+        copy_artifacts : bool, default False
+            Whether to also copy this Experiment Run's artifacts.
+        copy_code_version : bool, default False
+            Whether to also copy this Experiment Run's code version.
+        copy_datasets : bool, default False
+            Whether to also copy this Experiment Run's dataset versions.
+
+        Returns
+        -------
+        :class:`ExperimentRun`
+            Newly-created copy of this Experiment Run.
+
+        """
+        # get info for the current run
+        current_run = self._get(self._conn, _expt_run_id=self.id)
+
+        # clone the current run
+        Message = _ExperimentRunService.CreateExperimentRun
+        msg = Message(
+            project_id=current_run.project_id,
+            experiment_id=current_run.experiment_id,
+            name=ExperimentRun._generate_default_name(),
+            description=current_run.description,
+            tags=current_run.tags,
+            attributes=current_run.attributes,
+            observations=current_run.observations,
+            metrics=current_run.metrics,
+            hyperparameters=current_run.hyperparameters,
+            parent_id=current_run.parent_id,
+        )
+
+        msg_artifact = Message()
+        msg_code_version = Message()
+        msg_datasets = Message()
+
+        if copy_artifacts:
+            msg_artifact = Message(
+                artifacts=current_run.artifacts,
+            )
+
+        if copy_code_version:
+            msg_code_version = Message(
+                code_version_snapshot=current_run.code_version_snapshot,
+            )
+
+        if copy_datasets:
+            msg_datasets = Message(
+                datasets=current_run.datasets,
+            )
+
+        msg.MergeFrom(msg_artifact)
+        msg.MergeFrom(msg_code_version)
+        msg.MergeFrom(msg_datasets)
+
+        # create the new run
+        data = _utils.proto_to_json(msg)
+        response = _utils.make_request("POST",
+                                       "{}://{}/v1/experiment-run/createExperimentRun".format(
+                                           self._conn.scheme, self._conn.socket), self._conn, json=data)
+        _utils.raise_for_http_error(response)
+
+        response_msg = _utils.json_to_proto(response.json(), Message.Response)
+        new_run_msg = response_msg.experiment_run
+        new_run = ExperimentRun(self._conn, self._conf, _expt_run_id=new_run_msg.id)
+
+        return new_run
 
     def log_tag(self, tag):
         """
