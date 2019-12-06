@@ -220,7 +220,7 @@ class TestExperimentRun:
         with pytest.raises(ValueError):
             client.set_experiment_run(id="nonexistent_id")
 
-    def test_clone_run(self, client):
+    def test_clone(self, client):
         proj = client.set_project()
         expt = client.set_experiment()
         expt_run = client.set_experiment_run()
@@ -228,7 +228,7 @@ class TestExperimentRun:
         expt_run.log_metrics({"metric1" : 0.5, "metric2" : 0.6})
         expt_run.log_tags(["tag1", "tag2"])
         expt_run.log_attributes({"attr1" : 10, "attr2" : {"abc": 1}})
-        expt_run.log_artifact("my-artifact", "test.txt")
+        expt_run.log_artifact("my-artifact", "README.md")
         expt_run.log_code()
 
         # set various things in the run
