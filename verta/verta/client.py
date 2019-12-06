@@ -8,6 +8,7 @@ from ._six.moves.urllib.parse import urlparse  # pylint: disable=import-error, n
 
 import ast
 import copy
+import glob
 import hashlib
 import importlib
 import os
@@ -3194,6 +3195,22 @@ class ExperimentRun(_ModelDBEntity):
         local_sys_paths = list(filter(os.path.exists, local_sys_paths))
         ## remove .ipython
         local_sys_paths = list(filter(lambda path: not path.endswith(".ipython"), local_sys_paths))
+        ## remove virtual (and real) environments
+        def is_in_venv(path):
+            """
+            Roughly checks for:
+                /
+                |_ lib/
+                |   |_ python*/ <- directory with packages, in sys.path
+                |
+                |_ bin/
+                    |_ python*  <- Python executable
+
+            """
+            lib_python_str = os.path.join(os.sep, "lib", "python")
+            i = path.find(lib_python_str)
+            return i != -1 and glob.glob(os.path.join(path[:i], "bin", "python*"))
+        local_sys_paths = list(filter(lambda path: not is_in_venv(path), local_sys_paths))
 
         # get paths to files within
         if paths is None:
