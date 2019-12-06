@@ -1941,7 +1941,6 @@ class ExperimentRun(_ModelDBEntity):
         Returns
         -------
         :class:`ExperimentRun`
-            Newly-created copy of this Experiment Run.
 
         """
         # get info for the current run
