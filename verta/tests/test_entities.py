@@ -222,6 +222,7 @@ class TestExperimentRun:
 
     def test_clone(self, experiment_run):
         expt_run = experiment_run
+        expt_run._conf.use_git = False
         expt_run.log_hyperparameters({"hpp1" : 1, "hpp2" : 2, "hpp3" : "hpp3"})
         expt_run.log_metrics({"metric1" : 0.5, "metric2" : 0.6})
         expt_run.log_tags(["tag1", "tag2"])
