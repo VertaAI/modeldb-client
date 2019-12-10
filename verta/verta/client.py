@@ -618,8 +618,8 @@ class _ModelDBEntity(object):
             tempf.flush()  # flush object buffer
             os.fsync(tempf.fileno())  # flush OS buffer
 
-        if os.path.splitext(filename)[1] == '.zip':
-            name = os.path.splitext(filename)[0]
+        name, extension = os.path.splitext(filename)
+        if extension == '.zip':
             temp_path = tempfile.mkdtemp()
 
             with zipfile.ZipFile(tempf.name, 'r') as zipf:
@@ -643,8 +643,9 @@ class _ModelDBEntity(object):
         return path
 
     def _get_cached(self, filename):
-        if os.path.splitext(filename)[1] == '.zip':
-            name = os.path.splitext(filename)[0]
+        name, extension = os.path.splitext(filename)
+        if extension == '.zip':
+            pass
         else:
             name = filename
 
