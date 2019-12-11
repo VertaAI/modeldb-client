@@ -3392,11 +3392,10 @@ class ExperimentRun(_ModelDBEntity):
         )
         _utils.raise_for_http_error(response)
 
-        response_json = response.json()
-        status = {'status': response_json['status']}
-        if 'api' in response_json:
-            status.update({'url': "{}://{}{}".format(self._conn.scheme, self._conn.socket, response_json['api'])})
-            status.update({'token': response_json.get('token')})
+        status = response.json()
+        if 'api' in status:
+            status.update({'url': "{}://{}{}".format(self._conn.scheme, self._conn.socket, status.pop('api'))})
+            status.update({'token': status.pop('token', None)})
         return status
 
     def deploy(self, path=None, token=None, no_token=False, wait=False):
