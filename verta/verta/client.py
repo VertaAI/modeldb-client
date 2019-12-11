@@ -3394,6 +3394,8 @@ class ExperimentRun(_ModelDBEntity):
 
         response_json = response.json()
         status = {'status': response_json['status']}
+        if 'message' in response_json:
+            status.update({'message': response_json['message']})
         if 'api' in response_json:
             status.update({'url': "{}://{}{}".format(self._conn.scheme, self._conn.socket, response_json['api'])})
             status.update({'token': response_json.get('token')})
