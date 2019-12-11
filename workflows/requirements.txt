@@ -1,9 +1,11 @@
+annoy
 jupyter
 matplotlib
 pandas
 scikit-learn
-tensorflow
+tensorflow<2.0
 tensorflow-hub
+wget
 xgboost
 
 verta
