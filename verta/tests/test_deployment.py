@@ -6,6 +6,7 @@ import json
 import os
 import shutil
 import sys
+import tarfile
 import tempfile
 import time
 import zipfile
@@ -306,6 +307,95 @@ class TestFetchArtifacts:
         finally:
             shutil.rmtree(verta.client._CACHE_DIR, ignore_errors=True)
 
+    def test_fetch_tgz(self, experiment_run, strs, dir_and_files):
+        dirpath, filepaths = dir_and_files
+        key = strs[0]
+
+        with tempfile.NamedTemporaryFile(suffix='.tgz') as tempf:
+            # make archive
+            with tarfile.open(tempf.name, 'w:gz') as tarf:
+                tarf.add(dirpath, "")
+            tempf.flush()  # flush object buffer
+            os.fsync(tempf.fileno())  # flush OS buffer
+            tempf.seek(0)
+
+            experiment_run.log_artifact(key, tempf.name)
+
+        try:
+            dirpath = experiment_run.fetch_artifacts([key])[key]
+
+            assert dirpath.startswith(verta.client._CACHE_DIR)
+
+            retrieved_filepaths = set()
+            for root, _, files in os.walk(dirpath):
+                for filename in files:
+                    filepath = os.path.join(root, filename)
+                    filepath = os.path.relpath(filepath, dirpath)
+                    retrieved_filepaths.add(filepath)
+
+            assert filepaths == retrieved_filepaths
+        finally:
+            shutil.rmtree(verta.client._CACHE_DIR, ignore_errors=True)
+
+    def test_fetch_tar(self, experiment_run, strs, dir_and_files):
+        dirpath, filepaths = dir_and_files
+        key = strs[0]
+
+        with tempfile.NamedTemporaryFile(suffix='.tar') as tempf:
+            # make archive
+            with tarfile.open(tempf.name, 'w') as tarf:
+                tarf.add(dirpath, "")
+            tempf.flush()  # flush object buffer
+            os.fsync(tempf.fileno())  # flush OS buffer
+            tempf.seek(0)
+
+            experiment_run.log_artifact(key, tempf.name)
+
+        try:
+            dirpath = experiment_run.fetch_artifacts([key])[key]
+
+            assert dirpath.startswith(verta.client._CACHE_DIR)
+
+            retrieved_filepaths = set()
+            for root, _, files in os.walk(dirpath):
+                for filename in files:
+                    filepath = os.path.join(root, filename)
+                    filepath = os.path.relpath(filepath, dirpath)
+                    retrieved_filepaths.add(filepath)
+
+            assert filepaths == retrieved_filepaths
+        finally:
+            shutil.rmtree(verta.client._CACHE_DIR, ignore_errors=True)
+
+    def test_fetch_tar_gz(self, experiment_run, strs, dir_and_files):
+        dirpath, filepaths = dir_and_files
+        key = strs[0]
+
+        with tempfile.NamedTemporaryFile(suffix='.tar.gz') as tempf:
+            # make archive
+            with tarfile.open(tempf.name, 'w:gz') as tarf:
+                tarf.add(dirpath, "")
+            tempf.flush()  # flush object buffer
+            os.fsync(tempf.fileno())  # flush OS buffer
+            tempf.seek(0)
+
+            experiment_run.log_artifact(key, tempf.name)
+
+        try:
+            dirpath = experiment_run.fetch_artifacts([key])[key]
+
+            assert dirpath.startswith(verta.client._CACHE_DIR)
+
+            retrieved_filepaths = set()
+            for root, _, files in os.walk(dirpath):
+                for filename in files:
+                    filepath = os.path.join(root, filename)
+                    filepath = os.path.relpath(filepath, dirpath)
+                    retrieved_filepaths.add(filepath)
+
+            assert filepaths == retrieved_filepaths
+        finally:
+            shutil.rmtree(verta.client._CACHE_DIR, ignore_errors=True)
 
     def test_wrong_type_artifacts_error(self, experiment_run, all_values):
         # remove lists of strings and empty lists, because they're valid arguments
