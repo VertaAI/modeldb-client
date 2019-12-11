@@ -3440,16 +3440,6 @@ class ExperimentRun(_ModelDBEntity):
         [0.973340685896]
 
         """
-        # forbid calling deploy on already-deployed model
-        #     Changing `path` or `token` while a model is deployed updates the model's status but
-        #     not the prediction endpoint, leaving the deployment endpoints in a bad state.
-        #
-        #     e.g. if the model is deployed with token "banana", then the deploy endpoint is hit
-        #     again with token "coconut", then the status endpoint will return "coconut" but the
-        #     prediction endpoint still requires "banana".
-        if self.get_deployment_status()['status'] != "not deployed":
-            raise RuntimeError("model deployment has already been triggered; please undeploy the model first")
-
         data = {}
         if path is not None:
             # get project ID for URL path
