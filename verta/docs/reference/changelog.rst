@@ -32,6 +32,26 @@ Release Notes
      <>`_
 
 
+v0.13.18 (2019-12-12)
+---------------------
+
+New Features
+^^^^^^^^^^^^
+- `add run.clone()
+  <https://github.com/VertaAI/modeldb-client/pull/312>`_
+- `add a decorator for models' predict() to handle argument unpacking
+  <https://github.com/VertaAI/modeldb-client/pull/318>`_
+
+Bug Fixes
+^^^^^^^^^
+- `properly propagate deployment error messages
+  <https://github.com/VertaAI/modeldb-client/pull/320>`_
+- `enable calling run.deploy() and run.undeploy() even if the run is already deployed / not deployed
+  <https://github.com/VertaAI/modeldb-client/pull/319>`_
+- `properly handle Python 2 string types in querying methods
+  <https://github.com/VertaAI/modeldb-client/pull/317>`_
+
+
 v0.13.17 (2019-12-05)
 ---------------------
 
