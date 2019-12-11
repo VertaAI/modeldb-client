@@ -3476,6 +3476,7 @@ class ExperimentRun(_ModelDBEntity):
             while self.get_deployment_status()['status'] not in ("deployed", "error"):
                 print(".", end='')
                 time.sleep(5)
+            print()
             if self.get_deployment_status()['status'] == "error":
                 status = self.get_deployment_status()
                 raise RuntimeError("model deployment is failing;\n{}".format(status.get('message', "no error message available")))
@@ -3520,6 +3521,7 @@ class ExperimentRun(_ModelDBEntity):
                 while self.get_deployment_status()['status'] != "not deployed":
                     print(".", end='')
                     time.sleep(5)
+                print()
 
         return self.get_deployment_status()
 
