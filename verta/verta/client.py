@@ -3440,16 +3440,6 @@ class ExperimentRun(_ModelDBEntity):
         [0.973340685896]
 
         """
-        # forbid calling deploy on already-deployed model
-        #     Changing `path` or `token` while a model is deployed updates the model's status but
-        #     not the prediction endpoint, leaving the deployment endpoints in a bad state.
-        #
-        #     e.g. if the model is deployed with token "banana", then the deploy endpoint is hit
-        #     again with token "coconut", then the status endpoint will return "coconut" but the
-        #     prediction endpoint still requires "banana".
-        if self.get_deployment_status()['status'] != "not deployed":
-            raise RuntimeError("model deployment has already been triggered; please undeploy the model first")
-
         data = {}
         if path is not None:
             # get project ID for URL path
@@ -3486,6 +3476,7 @@ class ExperimentRun(_ModelDBEntity):
             while self.get_deployment_status()['status'] not in ("deployed", "error"):
                 print(".", end='')
                 time.sleep(5)
+            print()
             if self.get_deployment_status()['status'] == "error":
                 status = self.get_deployment_status()
                 raise RuntimeError("model deployment is failing;\n{}".format(status.get('message', "no error message available")))
@@ -3514,24 +3505,23 @@ class ExperimentRun(_ModelDBEntity):
             If the model is already not deployed.
 
         """
-        # forbid calling undeploy on already-undeployed model
+        # skip calling undeploy on already-undeployed model
         #     This needs to be checked first, otherwise the undeployment endpoint will return an
-        #     unhelpful HTTP client error.
-        if self.get_deployment_status()['status'] == "not deployed":
-            raise RuntimeError("model is already not deployed")
+        #     unhelpful HTTP 404 Not Found.
+        if self.get_deployment_status()['status'] != "not deployed":
+            response = _utils.make_request(
+                "DELETE",
+                "{}://{}/api/v1/deployment/models/{}".format(self._conn.scheme, self._conn.socket, self.id),
+                self._conn,
+            )
+            _utils.raise_for_http_error(response)
 
-        response = _utils.make_request(
-            "DELETE",
-            "{}://{}/api/v1/deployment/models/{}".format(self._conn.scheme, self._conn.socket, self.id),
-            self._conn,
-        )
-        _utils.raise_for_http_error(response)
-
-        if wait:
-            print("waiting for undeployment...", end='')
-            while self.get_deployment_status()['status'] != "not deployed":
-                print(".", end='')
-                time.sleep(5)
+            if wait:
+                print("waiting for undeployment...", end='')
+                while self.get_deployment_status()['status'] != "not deployed":
+                    print(".", end='')
+                    time.sleep(5)
+                print()
 
         return self.get_deployment_status()
 

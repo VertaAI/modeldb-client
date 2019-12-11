@@ -602,6 +602,22 @@ class TestDeploy:
                 headers=conn.auth,
             )
 
+    def test_already_deployed_deploy(self, experiment_run, model_for_deployment):
+        experiment_run.log_model(model_for_deployment['model'], custom_modules=[])
+        experiment_run.log_requirements(['scikit-learn'])
+
+        try:
+            experiment_run.deploy()
+
+            # should not raise error
+            experiment_run.deploy()
+        finally:
+            conn = experiment_run._conn
+            requests.delete(
+                "{}://{}/api/v1/deployment/models/{}".format(conn.scheme, conn.socket, experiment_run.id),
+                headers=conn.auth,
+            )
+
     def test_no_model_deploy_error(self, experiment_run, model_for_deployment):
         experiment_run.log_model(model_for_deployment['model'], custom_modules=[])
         experiment_run.log_requirements(['scikit-learn'])
@@ -674,22 +690,6 @@ class TestDeploy:
                 headers=conn.auth,
             )
 
-    def test_already_deployed_deploy_error(self, experiment_run, model_for_deployment):
-        experiment_run.log_model(model_for_deployment['model'], custom_modules=[])
-        experiment_run.log_requirements(['scikit-learn'])
-
-        try:
-            experiment_run.deploy()
-
-            with pytest.raises(RuntimeError):
-                experiment_run.deploy()
-        finally:
-            conn = experiment_run._conn
-            requests.delete(
-                "{}://{}/api/v1/deployment/models/{}".format(conn.scheme, conn.socket, experiment_run.id),
-                headers=conn.auth,
-            )
-
 
 class TestUndeploy:
     def test_undeploy(self, experiment_run, model_for_deployment):
@@ -709,9 +709,9 @@ class TestUndeploy:
                 headers=conn.auth,
             )
 
-    def test_already_undeployed_undeploy_error(self, experiment_run):
-        with pytest.raises(RuntimeError):
-            experiment_run.undeploy()
+    def test_already_undeployed_undeploy(self, experiment_run):
+        # should not raise error
+        experiment_run.undeploy()
 
 
 class TestGetDeployedModel:
