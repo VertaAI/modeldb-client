@@ -1313,12 +1313,12 @@ class ExperimentRuns(object):
             expt_run_ids = None
 
         predicates = []
-        if isinstance(where, str):
+        if isinstance(where, _six.string_types):
             where = [where]
         for predicate in where:
             # split predicate
             try:
-                key, operator, value = map(str.strip, self._OP_PATTERN.split(predicate, maxsplit=1))
+                key, operator, value = map(lambda token: token.strip(), self._OP_PATTERN.split(predicate, maxsplit=1))
             except ValueError:
                 _six.raise_from(ValueError("predicate `{}` must be a two-operand comparison".format(predicate)),
                                None)
@@ -1983,6 +1983,7 @@ class ExperimentRun(_ModelDBEntity):
 
         response_msg = _utils.json_to_proto(response.json(), Message.Response)
         new_run_msg = response_msg.experiment_run
+        print("created new ExperimentRun: {}".format(new_run_msg.name))
         new_run = ExperimentRun(self._conn, self._conf, _expt_run_id=new_run_msg.id)
 
         return new_run
