@@ -709,9 +709,9 @@ class TestUndeploy:
                 headers=conn.auth,
             )
 
-    def test_already_undeployed_undeploy_error(self, experiment_run):
-        with pytest.raises(RuntimeError):
-            experiment_run.undeploy()
+    def test_already_undeployed_undeploy(self, experiment_run):
+        # should not raise error
+        experiment_run.undeploy()
 
 
 class TestGetDeployedModel:

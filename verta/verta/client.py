@@ -3514,24 +3514,22 @@ class ExperimentRun(_ModelDBEntity):
             If the model is already not deployed.
 
         """
-        # forbid calling undeploy on already-undeployed model
+        # skip calling undeploy on already-undeployed model
         #     This needs to be checked first, otherwise the undeployment endpoint will return an
-        #     unhelpful HTTP client error.
-        if self.get_deployment_status()['status'] == "not deployed":
-            raise RuntimeError("model is already not deployed")
+        #     unhelpful HTTP 404 Not Found.
+        if self.get_deployment_status()['status'] != "not deployed":
+            response = _utils.make_request(
+                "DELETE",
+                "{}://{}/api/v1/deployment/models/{}".format(self._conn.scheme, self._conn.socket, self.id),
+                self._conn,
+            )
+            _utils.raise_for_http_error(response)
 
-        response = _utils.make_request(
-            "DELETE",
-            "{}://{}/api/v1/deployment/models/{}".format(self._conn.scheme, self._conn.socket, self.id),
-            self._conn,
-        )
-        _utils.raise_for_http_error(response)
-
-        if wait:
-            print("waiting for undeployment...", end='')
-            while self.get_deployment_status()['status'] != "not deployed":
-                print(".", end='')
-                time.sleep(5)
+            if wait:
+                print("waiting for undeployment...", end='')
+                while self.get_deployment_status()['status'] != "not deployed":
+                    print(".", end='')
+                    time.sleep(5)
 
         return self.get_deployment_status()
 
