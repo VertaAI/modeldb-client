@@ -3187,8 +3187,10 @@ class ExperimentRun(_ModelDBEntity):
 
         # collect local sys paths
         local_sys_paths = copy.copy(sys.path)
-        ## remove empty strings
-        local_sys_paths = list(filter(None, local_sys_paths))
+        ## replace empty first element with cwd
+        ##     https://docs.python.org/3/library/sys.html#sys.path
+        if local_sys_paths[0] == "":
+            local_sys_paths[0] = os.getcwd()
         ## convert to absolute paths
         local_sys_paths = list(map(os.path.abspath, local_sys_paths))
         ## remove paths that don't exist
