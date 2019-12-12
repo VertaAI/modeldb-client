@@ -3383,6 +3383,7 @@ class ExperimentRun(_ModelDBEntity):
             - ``'status'`` (`str`) – Current status of the model deployment.
             - (if deployed) ``'url'`` (`str`) – Prediction endpoint URL.
             - (if deployed) ``'token'`` (`str or None`) – Token for authorizing prediction requests.
+            - (if error during deployment) ``'message'`` (`str`) – Error message from the model.
 
         """
         response = _utils.make_request(
