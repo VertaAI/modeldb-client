@@ -117,7 +117,7 @@ That's not much better than purely guessing! So how do we keep a more permanent 
 
     >>> run.log_dataset("train_data", digits)
     >>> run.log_hyperparameters(hyperparams)
-    >>> run.log_model("model", model)
+    >>> run.log_model(model)
     >>> run.log_metric("train_acc", train_acc)
 
 |
@@ -133,7 +133,7 @@ linear kernel—this time interweaving the logging statements with our training 
     >>> hyperparams['kernel'] = 'linear'
     >>> run.log_hyperparameters(hyperparams)
     >>> clf = SVC(**hyperparams).fit(X, y)
-    >>> run.log_model("model", model)
+    >>> run.log_model(model)
     >>> train_acc = clf.score(X, y)
     >>> run.log_metric("train_acc", train_acc)
 
@@ -172,7 +172,7 @@ We can load back the model to see it again for ourselves:
 
 .. code-block:: python
 
-    >>> clf = best_run.get_model("model")
+    >>> clf = best_run.get_model()
     >>> clf.score(X, y)
     0.9994435169727324
 
