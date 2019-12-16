@@ -682,7 +682,9 @@ class TestDeploy:
         try:
             with pytest.raises(RuntimeError) as excinfo:
                 experiment_run.deploy(wait=True)
-            assert str(excinfo.value).strip().startswith("model deployment is failing;")
+            err_msg = str(excinfo.value).strip()
+            assert err_msg.startswith("model deployment is failing;")
+            assert "no error message available" not in err_msg
         finally:
             conn = experiment_run._conn
             requests.delete(
