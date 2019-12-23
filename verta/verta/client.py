@@ -14,6 +14,7 @@ import os
 import pprint
 import re
 import sys
+import tarfile
 import tempfile
 import time
 import warnings
@@ -618,12 +619,32 @@ class _ModelDBEntity(object):
             tempf.flush()  # flush object buffer
             os.fsync(tempf.fileno())  # flush OS buffer
 
-        if os.path.splitext(filename)[1] == '.zip':
-            name = os.path.splitext(filename)[0]
+        name, extension = os.path.splitext(filename)
+        if extension == '.zip':
             temp_path = tempfile.mkdtemp()
 
             with zipfile.ZipFile(tempf.name, 'r') as zipf:
                 zipf.extractall(temp_path)
+            os.remove(tempf.name)
+        elif extension == '.tgz':
+            temp_path = tempfile.mkdtemp()
+
+            with tarfile.open(tempf.name, 'r:gz') as tarf:
+                tarf.extractall(temp_path)
+            os.remove(tempf.name)
+        elif extension == '.tar':
+            temp_path = tempfile.mkdtemp()
+
+            with tarfile.open(tempf.name, 'r') as tarf:
+                tarf.extractall(temp_path)
+            os.remove(tempf.name)
+        elif extension == '.gz' and os.path.splitext(name)[1] == '.tar':
+            name = os.path.splitext(name)[0]
+
+            temp_path = tempfile.mkdtemp()
+
+            with tarfile.open(tempf.name, 'r:gz') as tarf:
+                tarf.extractall(temp_path)
             os.remove(tempf.name)
         else:
             name = filename
@@ -643,8 +664,15 @@ class _ModelDBEntity(object):
         return path
 
     def _get_cached(self, filename):
-        if os.path.splitext(filename)[1] == '.zip':
-            name = os.path.splitext(filename)[0]
+        name, extension = os.path.splitext(filename)
+        if extension == '.zip':
+            pass
+        elif extension == '.tgz':
+            pass
+        elif extension == '.tar':
+            pass
+        elif extension == '.gz' and os.path.splitext(name)[1] == '.tar':
+            name = os.path.splitext(name)[0]
         else:
             name = filename
 
