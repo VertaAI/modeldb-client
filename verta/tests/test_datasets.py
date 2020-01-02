@@ -471,18 +471,29 @@ class TestRDBMSDatasetVersionInfo:
         assert dataset_version.dataset_version_info.num_records == 100
 
 class TestLogDatasetVersion:
-    def test_log_dataset_version(self, client, created_datasets, experiment_run, s3_bucket):
-        botocore = pytest.importorskip("botocore")
+    def test_log_dataset_version(self, client, created_datasets, experiment_run):
+        dataset = client.set_dataset(type="local")
+        created_datasets.append(dataset)
+        assert dataset.dataset_type == _DatasetService.DatasetTypeEnum.PATH
 
-        try:
-            dataset = client.set_dataset(type="s3")
-            created_datasets.append(dataset)
-            assert dataset.dataset_type == _DatasetService.DatasetTypeEnum.PATH
+        dataset_version = dataset.create_version(__file__)
+        experiment_run.log_dataset_version('train', dataset_version)
 
-            dataset_version = dataset.create_version(s3_bucket)
-            experiment_run.log_dataset_version('train', dataset_version)
+        retrieved_dataset_version = experiment_run.get_dataset_version('train')
+        path = retrieved_dataset_version.dataset_version.path_dataset_version_info.base_path
+        assert path.endswith(__file__)
 
-            # _, linked_id = experiment_run.get_dataset('train')
-            # assert linked_id == dataset_version.id
-        except botocore.exceptions.ClientError:
-            pytest.skip("insufficient AWS credentials")
+    def test_overwrite(self, client, created_datasets, experiment_run, s3_bucket):
+        dataset = client.set_dataset(type="local")
+        created_datasets.append(dataset)
+        assert dataset.dataset_type == _DatasetService.DatasetTypeEnum.PATH
+
+        dataset_version = dataset.create_version(__file__)
+        experiment_run.log_dataset_version('train', dataset_version)
+
+        new_dataset_version = dataset.create_version("conftest.py")
+        experiment_run.log_dataset_version('train', new_dataset_version, overwrite=True)
+
+        retrieved_dataset_version = experiment_run.get_dataset_version('train')
+        path = retrieved_dataset_version.dataset_version.path_dataset_version_info.base_path
+        assert path.endswith("conftest.py")
