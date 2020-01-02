@@ -175,10 +175,13 @@ class TestOverwrite:
         assert __file__.endswith(code_version['filepaths'][0])
 
     def test_proj_error(self, client):
+        client._conf.use_git = False
+
         with pytest.raises(ValueError):
             client.set_project().log_code(overwrite=True)
 
     def test_expt_error(self, client):
+        client._conf.use_git = False
         client.set_project()
 
         with pytest.raises(ValueError):
