@@ -122,3 +122,56 @@ class TestConflict:
             mdb_entity._conf.use_git = True
             with pytest.raises(ValueError):
                 mdb_entity.log_code()
+
+
+class TestOverwrite:
+    # TODO: add tests for Proj and Expt when overwrite is implemented for them
+
+    @pytest.mark.skip(reason="complex to implement test")
+    def test_log_two_git(self, experiment_run):
+        experiment_run._conf.use_git = True
+
+        experiment_run.log_code()
+
+        experiment_run.log_code(overwrite=True)
+
+    def test_log_two_source(self, experiment_run):
+        experiment_run._conf.use_git = False
+
+        experiment_run.log_code("conftest.py")
+
+        experiment_run.log_code(overwrite=True)
+        zipf = experiment_run.get_code()
+
+        assert isinstance(zipf, zipfile.ZipFile)
+        assert len(zipf.namelist()) == 1
+        assert __file__.endswith(zipf.namelist()[0])
+        assert open(__file__, 'rb').read() == zipf.open(zipf.infolist()[0]).read()
+
+    @pytest.mark.skipif(not IN_GIT_REPO, reason="not in git repo")
+    def test_log_git_then_source(self, experiment_run):
+        experiment_run._conf.use_git = True
+        experiment_run.log_code()
+
+        experiment_run._conf.use_git = False
+        experiment_run.log_code(overwrite=True)
+        zipf = experiment_run.get_code()
+
+        assert isinstance(zipf, zipfile.ZipFile)
+        assert len(zipf.namelist()) == 1
+        assert __file__.endswith(zipf.namelist()[0])
+        assert open(__file__, 'rb').read() == zipf.open(zipf.infolist()[0]).read()
+
+    @pytest.mark.skipif(not IN_GIT_REPO, reason="not in git repo")
+    def test_log_source_then_git(self, experiment_run):
+        experiment_run._conf.use_git = False
+        experiment_run.log_code()
+
+        experiment_run._conf.use_git = True
+        experiment_run.log_code(overwrite=True)
+        code_version = experiment_run.get_code()
+
+        assert isinstance(code_version, dict)
+        assert 'filepaths' in code_version
+        assert len(code_version['filepaths']) == 1
+        assert __file__.endswith(code_version['filepaths'][0])
