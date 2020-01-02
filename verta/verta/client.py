@@ -651,7 +651,7 @@ class _ModelDBEntity(object):
         path = os.path.join(_CACHE_DIR, name)
         return path if os.path.exists(path) else None
 
-    def log_code(self, exec_path=None, repo_url=None, commit_hash=None):
+    def log_code(self, exec_path=None, repo_url=None, commit_hash=None, overwrite=False):
         """
         Logs the code version.
 
@@ -670,6 +670,8 @@ class _ModelDBEntity(object):
         commit_hash : str, optional
             Git commit hash associated with this code version. If no hash is provided, the Client will
             make its best effort to find it.
+        overwrite : bool, default False
+            Whether to allow overwriting a code version.
 
         Examples
         --------
@@ -747,7 +749,7 @@ class _ModelDBEntity(object):
         elif isinstance(self, ExperimentRun):
             Message = self._service.LogExperimentRunCodeVersion
             endpoint = "logExperimentRunCodeVersion"
-        msg = Message(id=self.id)
+        msg = Message(id=self.id, overwrite=overwrite)
         if self._conf.use_git:
             try:
                 # adjust `exec_path` to be relative to repo root
