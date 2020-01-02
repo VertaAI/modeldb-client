@@ -749,7 +749,14 @@ class _ModelDBEntity(object):
         elif isinstance(self, ExperimentRun):
             Message = self._service.LogExperimentRunCodeVersion
             endpoint = "logExperimentRunCodeVersion"
-        msg = Message(id=self.id, overwrite=overwrite)
+        msg = Message(id=self.id)
+
+        if overwrite:
+            if isinstance(self, ExperimentRun):
+                msg.overwrite = True
+            else:
+                raise ValueError("`overwrite=True` is currently only supported for ExperimentRun")
+
         if self._conf.use_git:
             try:
                 # adjust `exec_path` to be relative to repo root

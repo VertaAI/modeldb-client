@@ -125,8 +125,6 @@ class TestConflict:
 
 
 class TestOverwrite:
-    # TODO: add tests for Proj and Expt when overwrite is implemented for them
-
     @pytest.mark.skip(reason="complex to implement test")
     def test_log_two_git(self, experiment_run):
         experiment_run._conf.use_git = True
@@ -175,3 +173,13 @@ class TestOverwrite:
         assert 'filepaths' in code_version
         assert len(code_version['filepaths']) == 1
         assert __file__.endswith(code_version['filepaths'][0])
+
+    def test_proj_error(self, client):
+        with pytest.raises(ValueError):
+            client.set_project().log_code(overwrite=True)
+
+    def test_proj_error(self, client):
+        client.set_project()
+
+        with pytest.raises(ValueError):
+            client.set_experiment().log_code(overwrite=True)
