@@ -178,7 +178,7 @@ class TestOverwrite:
         with pytest.raises(ValueError):
             client.set_project().log_code(overwrite=True)
 
-    def test_proj_error(self, client):
+    def test_expt_error(self, client):
         client.set_project()
 
         with pytest.raises(ValueError):
