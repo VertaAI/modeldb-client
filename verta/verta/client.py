@@ -1766,7 +1766,7 @@ class ExperimentRun(_ModelDBEntity):
         if not response.ok:
             if response.status_code == 409:
                 raise ValueError("artifact with key {} already exists;"
-                                 " consider using observations instead".format(key))
+                                 " consider setting overwrite=True".format(key))
             else:
                 _utils.raise_for_http_error(response)
 
@@ -1816,7 +1816,7 @@ class ExperimentRun(_ModelDBEntity):
         if not response.ok:
             if response.status_code == 409:
                 raise ValueError("artifact with key {} already exists;"
-                                 " consider using observations instead".format(key))
+                                 " consider setting overwrite=True".format(key))
             else:
                 _utils.raise_for_http_error(response)
 
@@ -2459,7 +2459,8 @@ class ExperimentRun(_ModelDBEntity):
                                        self._conn, json=data)
         if not response.ok:
             if response.status_code == 409:
-                raise ValueError("dataset with key {} already exists".format(key))
+                raise ValueError("dataset with key {} already exists;"
+                                 " consider setting overwrite=True".format(key))
             else:
                 _utils.raise_for_http_error(response)
 
