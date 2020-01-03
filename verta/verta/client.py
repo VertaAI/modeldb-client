@@ -679,7 +679,7 @@ class _ModelDBEntity(object):
         path = os.path.join(_CACHE_DIR, name)
         return path if os.path.exists(path) else None
 
-    def log_code(self, exec_path=None, repo_url=None, commit_hash=None):
+    def log_code(self, exec_path=None, repo_url=None, commit_hash=None, overwrite=False):
         """
         Logs the code version.
 
@@ -698,6 +698,8 @@ class _ModelDBEntity(object):
         commit_hash : str, optional
             Git commit hash associated with this code version. If no hash is provided, the Client will
             make its best effort to find it.
+        overwrite : bool, default False
+            Whether to allow overwriting a code version.
 
         Examples
         --------
@@ -776,6 +778,13 @@ class _ModelDBEntity(object):
             Message = self._service.LogExperimentRunCodeVersion
             endpoint = "logExperimentRunCodeVersion"
         msg = Message(id=self.id)
+
+        if overwrite:
+            if isinstance(self, ExperimentRun):
+                msg.overwrite = True
+            else:
+                raise ValueError("`overwrite=True` is currently only supported for ExperimentRun")
+
         if self._conf.use_git:
             try:
                 # adjust `exec_path` to be relative to repo root
@@ -1792,7 +1801,7 @@ class ExperimentRun(_ModelDBEntity):
         if not response.ok:
             if response.status_code == 409:
                 raise ValueError("artifact with key {} already exists;"
-                                 " consider using observations instead".format(key))
+                                 " consider setting overwrite=True".format(key))
             else:
                 _utils.raise_for_http_error(response)
 
@@ -1842,7 +1851,7 @@ class ExperimentRun(_ModelDBEntity):
         if not response.ok:
             if response.status_code == 409:
                 raise ValueError("artifact with key {} already exists;"
-                                 " consider using observations instead".format(key))
+                                 " consider setting overwrite=True".format(key))
             else:
                 _utils.raise_for_http_error(response)
 
@@ -2444,7 +2453,7 @@ class ExperimentRun(_ModelDBEntity):
 
         if isinstance(dataset, _dataset.DatasetVersion):
             # TODO: maybe raise a warning pointing to log_dataset_version()
-            self.log_dataset_version(key, dataset)
+            self.log_dataset_version(key, dataset, overwrite=overwrite)
 
         # log `dataset` as artifact
         try:
@@ -2453,7 +2462,7 @@ class ExperimentRun(_ModelDBEntity):
             extension = None
         self._log_artifact(key, dataset, _CommonService.ArtifactTypeEnum.DATA, extension, overwrite=overwrite)
 
-    def log_dataset_version(self, key, dataset_version):
+    def log_dataset_version(self, key, dataset_version, overwrite=False):
         """
         Logs a Verta DatasetVersion to this ExperimentRun with the given key.
 
@@ -2461,6 +2470,8 @@ class ExperimentRun(_ModelDBEntity):
         ----------
         key : str
         dataset_version : :class:`~verta._dataset.DatasetVersion`
+        overwrite : bool, default False
+            Whether to allow overwriting a dataset version.
 
         """
         if not isinstance(dataset_version, _dataset.DatasetVersion):
@@ -2476,7 +2487,7 @@ class ExperimentRun(_ModelDBEntity):
                                                path_only=True,
                                                artifact_type=_CommonService.ArtifactTypeEnum.DATA,
                                                linked_artifact_id=dataset_version.id)
-        msg = Message(id=self.id, dataset=artifact_msg)
+        msg = Message(id=self.id, dataset=artifact_msg, overwrite=overwrite)
         data = _utils.proto_to_json(msg)
         response = _utils.make_request("POST",
                                        "{}://{}/v1/experiment-run/logDataset".format(self._conn.scheme, self._conn.socket),
@@ -2484,7 +2495,7 @@ class ExperimentRun(_ModelDBEntity):
         if not response.ok:
             if response.status_code == 409:
                 raise ValueError("dataset with key {} already exists;"
-                                 " consider using observations instead".format(key))
+                                 " consider setting overwrite=True".format(key))
             else:
                 _utils.raise_for_http_error(response)
 
