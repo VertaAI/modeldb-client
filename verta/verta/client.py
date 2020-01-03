@@ -3203,7 +3203,7 @@ class ExperimentRun(_ModelDBEntity):
             Roughly checks for:
                 /
                 |_ lib/
-                |   |_ python*/ <- directory with packages, in sys.path
+                |   |_ python*/ <- `path`, directory with Python packages
                 |
                 |_ bin/
                     |_ python*  <- Python executable
@@ -3216,7 +3216,7 @@ class ExperimentRun(_ModelDBEntity):
 
         # get paths to files within
         if paths is None:
-            # Python files within sys.path dirs
+            # Python files within filtered sys.path dirs
             local_filepaths = _utils.find_filepaths(
                 local_sys_paths, extensions=['py', 'pyc', 'pyo'],
                 include_hidden=True, include_venv=False,
