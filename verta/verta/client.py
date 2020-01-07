@@ -3217,16 +3217,17 @@ class ExperimentRun(_ModelDBEntity):
         # get paths to files within
         if paths is None:
             # Python files within filtered sys.path dirs
-            local_filepaths = _utils.find_filepaths(
-                local_sys_paths, extensions=['py', 'pyc', 'pyo'],
-                include_hidden=True, include_venv=False,
-            )
+            paths = local_sys_paths
+            extensions = ['py', 'pyc', 'pyo']
         else:
             # all user-specified files
-            local_filepaths = _utils.find_filepaths(
-                paths,
-                include_hidden=True, include_venv=False,
-            )
+            paths = paths
+            extensions = None
+        local_filepaths = _utils.find_filepaths(
+            paths, extensions=extensions,
+            include_hidden=True,
+            include_venv=False,  # ignore virtual environments nested within
+        )
 
         # obtain deepest common directory
         #     This directory on the local system will be mirrored in `_CUSTOM_MODULES_DIR` in
