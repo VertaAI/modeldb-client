@@ -3203,7 +3203,7 @@ class ExperimentRun(_ModelDBEntity):
             Roughly checks for:
                 /
                 |_ lib/
-                |   |_ python*/ <- `path`, directory with Python packages
+                |   |_ python*/ <- directory with Python packages, containing `path`
                 |
                 |_ bin/
                     |_ python*  <- Python executable
