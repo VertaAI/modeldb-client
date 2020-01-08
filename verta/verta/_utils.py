@@ -4,6 +4,7 @@ from . import _six
 from ._six.moves.urllib.parse import urljoin  # pylint: disable=import-error, no-name-in-module
 
 import datetime
+import glob
 import inspect
 import json
 import numbers
@@ -206,6 +207,10 @@ def find_filepaths(paths, extensions=None, include_hidden=False, include_venv=Fa
     include_venv : bool, default False
         Whether to include Python virtual environment directories.
 
+    Returns
+    -------
+    filepaths : set
+
     """
     if isinstance(paths, _six.string_types):
         paths = [paths]
@@ -227,8 +232,8 @@ def find_filepaths(paths, extensions=None, include_hidden=False, include_venv=Fa
                     # skip hidden files
                     filenames[:] = [filename for filename in filenames if not is_hidden(filename)]
                 if not include_venv:
-                    exec_path = os.path.join(parent_dir, "{}", "bin", "python")
-                    dirnames[:] = [dirname for dirname in dirnames if not os.path.lexists(exec_path.format(dirname))]
+                    exec_path_glob = os.path.join(parent_dir, "{}", "bin", "python*")
+                    dirnames[:] = [dirname for dirname in dirnames if not glob.glob(exec_path_glob.format(dirname))]
                 for filename in filenames:
                     if extensions is None or os.path.splitext(filename)[1] in extensions:
                         filepaths.add(os.path.join(parent_dir, filename))
