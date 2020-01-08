@@ -32,6 +32,22 @@ Release Notes
      <>`_
 
 
+v0.13.19 (2020-01-08)
+---------------------
+
+New Features
+^^^^^^^^^^^^
+- `enable overwriting code and dataset versions
+  <https://github.com/VertaAI/modeldb-client/pull/323>`_
+- `unpack tarballs in run.fetch_artifacts()
+  <https://github.com/VertaAI/modeldb-client/pull/316>`_
+
+Bug Fixes
+^^^^^^^^^
+- `include virtual environment-like directories when automatically logging custom modules
+  <https://github.com/VertaAI/modeldb-client/pull/324>`_
+
+
 v0.13.18 (2019-12-12)
 ---------------------
 
