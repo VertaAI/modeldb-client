@@ -2,6 +2,7 @@ import pytest
 
 import six
 
+import glob
 import json
 import os
 import shutil
@@ -105,8 +106,9 @@ class TestLogModel:
         custom_module_filenames = {"__init__.py", "_verta_config.py"}
         for parent_dir, dirnames, filenames in os.walk(custom_modules_dir):
             # skip venvs
-            exec_path = os.path.join(parent_dir, "{}", "bin", "python")  # from verta._utils.find_filepaths()
-            dirnames[:] = [dirname for dirname in dirnames if not os.path.lexists(exec_path.format(dirname))]
+            #     This logic is from verta._utils.find_filepaths().
+            exec_path_glob = os.path.join(parent_dir, "{}", "bin", "python*")
+            dirnames[:] = [dirname for dirname in dirnames if not glob.glob(exec_path_glob.format(dirname))]
 
             custom_module_filenames.update(map(os.path.basename, filenames))
 
@@ -118,17 +120,18 @@ class TestLogModel:
 
         custom_module_filenames = {"__init__.py", "_verta_config.py"}
         for path in sys.path:
-            # skip std libs and Jupyter libs
-            if (not path
-                    or verta.client.PY_DIR_REGEX.search(path)
-                    or verta.client.PY_ZIP_REGEX.search(path)
-                    or verta.client.IPYTHON_REGEX.search(path)):
+            # skip std libs and venvs
+            #     This logic is from verta.client._log_modules().
+            lib_python_str = os.path.join(os.sep, "lib", "python")
+            i = path.find(lib_python_str)
+            if i != -1 and glob.glob(os.path.join(path[:i], "bin", "python*")):
                 continue
 
             for parent_dir, dirnames, filenames in os.walk(path):
                 # skip venvs
-                exec_path = os.path.join(parent_dir, "{}", "bin", "python")  # from verta._utils.find_filepaths()
-                dirnames[:] = [dirname for dirname in dirnames if not os.path.lexists(exec_path.format(dirname))]
+                #     This logic is from verta._utils.find_filepaths().
+                exec_path_glob = os.path.join(parent_dir, "{}", "bin", "python*")
+                dirnames[:] = [dirname for dirname in dirnames if not glob.glob(exec_path_glob.format(dirname))]
 
                 # only Python files
                 filenames[:] = [filename for filename in filenames if filename.endswith(('.py', '.pyc', '.pyo'))]
