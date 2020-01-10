@@ -222,7 +222,7 @@ class Client(object):
                             if expt_run.experiment_id == self.expt.id]
             return ExperimentRuns(self._conn, self._conf, expt_run_ids)
 
-    def set_project(self, name=None, desc=None, tags=None, attrs=None, id=None):
+    def set_project(self, name=None, desc=None, tags=None, attrs=None, workspace=None, id=None):
         """
         Attaches a Project to this Client.
 
@@ -242,6 +242,9 @@ class Client(object):
             Tags of the Project.
         attrs : dict of str to {None, bool, float, int, str}, optional
             Attributes of the Project.
+        workspace : str, optionnal
+            Workspace under which the Project with name `name` exists. If not provided, the current
+            user's personal workspace will be used.
         id : str, optional
             ID of the Project. This parameter cannot be provided alongside `name`, and other
             parameters will be ignored.
@@ -263,6 +266,7 @@ class Client(object):
         self.proj = Project(self._conn, self._conf,
                             name,
                             desc, tags, attrs,
+                            workspace,
                             id)
 
         return self.proj
@@ -955,6 +959,7 @@ class Project(_ModelDBEntity):
     def __init__(self, conn, conf,
                  proj_name=None,
                  desc=None, tags=None, attrs=None,
+                 workspace=None,
                  _proj_id=None):
         if proj_name is not None and _proj_id is not None:
             raise ValueError("cannot specify both `proj_name` and `_proj_id`")
@@ -975,7 +980,7 @@ class Project(_ModelDBEntity):
                     if any(param is not None for param in (desc, tags, attrs)):
                         warnings.warn("Project with name {} already exists;"
                                       " cannot initialize `desc`, `tags`, or `attrs`".format(proj_name))
-                    proj = Project._get(conn, proj_name)
+                    proj = Project._get(conn, proj_name, workspace)
                     print("set existing Project: {}".format(proj.name))
                 else:
                     raise e
@@ -1021,7 +1026,7 @@ class Project(_ModelDBEntity):
         return "Proj {}".format(_utils.generate_default_name())
 
     @staticmethod
-    def _get(conn, proj_name=None, _proj_id=None):
+    def _get(conn, proj_name=None, workspace=None, _proj_id=None):
         if _proj_id is not None:
             Message = _ProjectService.GetProjectById
             msg = Message(id=_proj_id)
@@ -1040,7 +1045,7 @@ class Project(_ModelDBEntity):
                     _utils.raise_for_http_error(response)
         elif proj_name is not None:
             Message = _ProjectService.GetProjectByName
-            msg = Message(name=proj_name)
+            msg = Message(name=proj_name, workspace_name=workspace)
             data = _utils.proto_to_json(msg)
             response = _utils.make_request("GET",
                                            "{}://{}/v1/project/getProjectByName".format(conn.scheme, conn.socket),
@@ -1048,7 +1053,11 @@ class Project(_ModelDBEntity):
 
             if response.ok:
                 response_msg = _utils.json_to_proto(response.json(), Message.Response)
-                return response_msg.project_by_user
+                if workspace is None or response_msg.HasField('project_by_user'):
+                    # user's personal workspace
+                    return response_msg.project_by_user
+                else:
+                    return response_msg.shared_projects[0]
             else:
                 if response.status_code == 404 and response.json()['code'] == 5:
                     return None
