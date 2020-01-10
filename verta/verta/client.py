@@ -242,8 +242,8 @@ class Client(object):
             Tags of the Project.
         attrs : dict of str to {None, bool, float, int, str}, optional
             Attributes of the Project.
-        id : str
-            ID of the project. This parameter cannot be provided alongside `name`, and other
+        id : str, optional
+            ID of the Project. This parameter cannot be provided alongside `name`, and other
             parameters will be ignored.
 
         Returns
@@ -286,6 +286,9 @@ class Client(object):
             Tags of the Experiment.
         attrs : dict of str to {None, bool, float, int, str}, optional
             Attributes of the Experiment.
+        id : str, optional
+            ID of the Experiment. This parameter cannot be provided alongside `name`, and other
+            parameters will be ignored.
 
         Returns
         -------
@@ -344,6 +347,9 @@ class Client(object):
             Tags of the Experiment Run.
         attrs : dict of str to {None, bool, float, int, str}, optional
             Attributes of the Experiment Run.
+        id : str, optional
+            ID of the Experiment Run. This parameter cannot be provided alongside `name`, and other
+            parameters will be ignored.
 
         Returns
         -------
