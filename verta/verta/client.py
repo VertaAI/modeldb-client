@@ -974,7 +974,7 @@ class Project(_ModelDBEntity):
             if proj_name is None:
                 proj_name = Project._generate_default_name()
             try:
-                proj = Project._create(conn, proj_name, desc, tags, attrs)
+                proj = Project._create(conn, proj_name, desc, tags, attrs, workspace)
             except requests.HTTPError as e:
                 if e.response.status_code == 409:  # already exists
                     if any(param is not None for param in (desc, tags, attrs)):
@@ -1067,13 +1067,13 @@ class Project(_ModelDBEntity):
             raise ValueError("insufficient arguments")
 
     @staticmethod
-    def _create(conn, proj_name, desc=None, tags=None, attrs=None):
+    def _create(conn, proj_name, desc=None, tags=None, attrs=None, workspace=None):
         if attrs is not None:
             attrs = [_CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value, allow_collection=True))
                      for key, value in _six.viewitems(attrs)]
 
         Message = _ProjectService.CreateProject
-        msg = Message(name=proj_name, description=desc, tags=tags, attributes=attrs)
+        msg = Message(name=proj_name, description=desc, tags=tags, attributes=attrs, workspace_name=workspace)
         data = _utils.proto_to_json(msg)
         response = _utils.make_request("POST",
                                        "{}://{}/v1/project/createProject".format(conn.scheme, conn.socket),
