@@ -168,7 +168,7 @@ class DeployedModel:
 
     def predict(self, x, compress=False, max_retries=5, always_retry_404=True, always_retry_429=True):
         """
-        Make a prediction using input `x`.
+        Makes a prediction using input `x`.
 
         .. versionadded:: 0.13.14
            The `always_retry_404` parameter.
@@ -231,13 +231,94 @@ class DeployedModel:
         _utils.raise_for_http_error(response)
 
 
-def prediction_io_cleanup(func):
+def prediction_input_unpack(func):
+    """
+    Decorator for unpacking a dictionary passed in as the argument for ``predict()``.
+
+    Verta's :meth:`DeployedModel.predict` does not support passing multiple arguments to the model.
+    If an existing model of yours was written to take multiple parameters, this decorator can bridge
+    the gap to keep your model code clean by allowing you to pass in a dictionary of keyword arguments
+    and values that will be unpacked for ``predict()``.
+
+    .. versionadded:: 0.13.18
+
+    Examples
+    --------
+    Before:
+
+    >>> class Model(object):
+    ...     def predict(self, data):
+    ...         x = data['x']
+    ...         y = data['y']
+    ...         z = data['z']
+    ...         return x + y + z
+
+    >>> deployed_model.predict({'x': 0, 'y': 1, 'z': 2})
+    3
+
+    After:
+
+    >>> class Model(object):
+    ...     @prediction_input_unpack
+    ...     def predict(self, x, y, z):
+    ...         return x + y + z
+
+    >>> deployed_model.predict({'x': 0, 'y': 1, 'z': 2})
+    3
+
+    """
     def prediction(self, X):
-        return _utils.to_builtin(func(self, _utils.to_builtin(X)))
+        return func(self, **X)
     return prediction
 
 
-def prediction_input_unpack(func):
+def prediction_io_cleanup(func):
+    """
+    Decorator for casting the argument and return values for ``predict()`` into Python built-in types.
+
+    For interoperability, a deployed model will receive and return Python's built-in types—such as
+    lists rather than NumPy arrays. There may be inconsistencies as you develop your model locally
+    if your ``predict()`` code is written to expect and/or output a third-party type; this decorator
+    will attempt to cast such values into a Python built-in type, replicating
+    :meth:`DeployedModel.predict`'s behavior.
+
+    .. versionadded:: 0.13.17
+
+    Examples
+    --------
+    Before:
+
+    >>> class Model(object):
+    ...     def predict(self, data):
+    ...         return data.mean()
+
+    >>> data = np.array([0, 1, 2])
+    >>> # succeeds; predict() locally receives NumPy array
+    >>> model.predict(data)
+    1.0
+    >>> # fails; predict() in deployment receives list
+    >>> deployed_model.predict(data)
+    HTTPError: 400 Client Error: Traceback (most recent call last):
+      File "<stdin>", line 3, in predict
+    AttributeError: 'list' object has no attribute 'mean'
+     for url: https://app.verta.ai/api/v1/predict/01234567-0123-0123-0123-012345678901
+
+    After:
+
+    >>> class Model(object):
+    ...     @prediction_io_cleanup
+    ...     def predict(self, data):
+    ...         # anticipate `data` being list
+    ...         return sum(data) / float(len(data))
+
+    >>> data = np.array([1, 2, 3])
+    >>> # consistent behavior locally and in deployment
+    >>> model.predict(data)
+    1.0
+    >>> deployed_model.predict(data)
+    1.0
+
+    """
     def prediction(self, X):
-        return func(self, **X)
+        return _utils.to_builtin(func(self, _utils.to_builtin(X)))
     return prediction

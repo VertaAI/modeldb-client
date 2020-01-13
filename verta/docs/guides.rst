@@ -33,3 +33,4 @@ Guides
     Package Installation <guides/installation>
     Workflow Logging <guides/workflow>
     Data Versioning <guides/dataset>
+    Class Models <guides/class>
