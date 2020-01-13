@@ -28,9 +28,15 @@ class Dataset(object):
     def __init__(self, conn, conf,
                  name=None, dataset_type=None,
                  desc=None, tags=None, attrs=None,
+                 workspace=None,
                  _dataset_id=None):
         if name is not None and _dataset_id is not None:
             raise ValueError("cannot specify both `name` and `_dataset_id`")
+
+        if workspace is not None:
+            WORKSPACE_PRINT_MSG = "workspace: {}".format(workspace)
+        else:
+            WORKSPACE_PRINT_MSG = "personal workspace"
 
         if _dataset_id is not None:
             dataset = Dataset._get(conn, _dataset_id=_dataset_id)
@@ -42,18 +48,24 @@ class Dataset(object):
             if name is None:
                 name = Dataset._generate_default_name()
             try:
-                dataset = Dataset._create(conn, name, dataset_type, desc, tags, attrs)
+                dataset = Dataset._create(conn, name, dataset_type, desc, tags, attrs, workspace)
             except requests.HTTPError as e:
-                if e.response.status_code == 409:  # already exists
+                if e.response.status_code == 403:  # cannot create in other workspace
+                    dataset = Dataset._get(conn, name, workspace)
+                    if dataset is not None:
+                        print("set existing Dataset: {} from {}".format(dataset.name, WORKSPACE_PRINT_MSG))
+                    else:  # no accessible dataset in other workspace
+                        _six.raise_from(e, None)
+                elif e.response.status_code == 409:  # already exists
                     if any(param is not None for param in (desc, tags, attrs)):
                         warnings.warn("Dataset with name {} already exists;"
                                       " cannot initialize `desc`, `tags`, or `attrs`".format(name))
-                    dataset = Dataset._get(conn, name)
-                    print("set existing Dataset: {}".format(dataset.name))
+                    dataset = Dataset._get(conn, name, workspace)
+                    print("set existing Dataset: {} from {}".format(dataset.name, WORKSPACE_PRINT_MSG))
                 else:
                     raise e
             else:
-                print("created new Dataset: {}".format(dataset.name))
+                print("created new Dataset: {} in {}".format(dataset.name, WORKSPACE_PRINT_MSG))
 
         # this is available to create versions
         self._conn = conn
@@ -76,7 +88,7 @@ class Dataset(object):
         return "Dataset {}".format(_utils.generate_default_name())
 
     @staticmethod
-    def _get(conn, dataset_name=None, _dataset_id=None):
+    def _get(conn, dataset_name=None, workspace=None, _dataset_id=None):
         if _dataset_id is not None:
             Message = _DatasetService.GetDatasetById
             msg = Message(id=_dataset_id)
@@ -95,7 +107,7 @@ class Dataset(object):
                     _utils.raise_for_http_error(response)
         elif dataset_name is not None:
             Message = _DatasetService.GetDatasetByName
-            msg = Message(name=dataset_name)
+            msg = Message(name=dataset_name, workspace_name=workspace)
             data = _utils.proto_to_json(msg)
             response = _utils.make_request("GET",
                                            "{}://{}/v1/dataset/getDatasetByName".format(conn.scheme, conn.socket),
@@ -103,7 +115,11 @@ class Dataset(object):
 
             if response.ok:
                 response_msg = _utils.json_to_proto(response.json(), Message.Response)
-                return response_msg.dataset_by_user
+                if workspace is None or response_msg.HasField('dataset_by_user'):
+                    # user's personal workspace
+                    return response_msg.dataset_by_user
+                else:
+                    return response_msg.shared_datasets[0]
             else:
                 if response.status_code == 404 and response.json()['code'] == 5:
                     return None
@@ -113,14 +129,15 @@ class Dataset(object):
             raise ValueError("insufficient arguments")
 
     @staticmethod
-    def _create(conn, dataset_name, dataset_type, desc=None, tags=None, attrs=None):
+    def _create(conn, dataset_name, dataset_type, desc=None, tags=None, attrs=None, workspace=None):
         if attrs is not None:
             attrs = [_CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value, allow_collection=True))
                      for key, value in _six.viewitems(attrs)]
 
         Message = _DatasetService.CreateDataset
         msg = Message(name=dataset_name, dataset_type=dataset_type,
-                      description=desc, tags=tags, attributes=attrs)
+                      description=desc, tags=tags, attributes=attrs,
+                      workspace_name=workspace)
         data = _utils.proto_to_json(msg)
         response = _utils.make_request("POST",
                                        "{}://{}/v1/dataset/createDataset".format(conn.scheme, conn.socket),

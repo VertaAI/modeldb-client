@@ -402,6 +402,7 @@ class Client(object):
     # NOTE: dataset visibility cannot be set via a client
     def set_dataset(self, name=None, type="local",
                     desc=None, tags=None, attrs=None,
+                    workspace=None,
                     id=None):
         """
         Attaches a Dataset to this Client.
@@ -422,7 +423,10 @@ class Client(object):
             Tags of the Dataset.
         attrs : dict of str to {None, bool, float, int, str}, optional
             Attributes of the Dataset.
-        id : str
+        workspace : str, optional
+            Workspace under which the Dataset with name `name` exists. If not provided, the current
+            user's personal workspace will be used.
+        id : str, optional
             ID of the Dataset. This parameter cannot be provided alongside `name`, and other
             parameters will be ignored.
 
@@ -454,6 +458,7 @@ class Client(object):
 
         return DatasetSubclass(self._conn, self._conf,
                                name=name, desc=desc, tags=tags, attrs=attrs,
+                               workspace=workspace,
                                _dataset_id=id)
 
     def get_dataset(self, name=None, id=None):
@@ -972,7 +977,7 @@ class Project(_ModelDBEntity):
         if _proj_id is not None:
             proj = Project._get(conn, _proj_id=_proj_id)
             if proj is not None:
-                print("set existing Project: {} from {}".format(proj.name, WORKSPACE_PRINT_MSG))
+                print("set existing Project: {}".format(proj.name))
             else:
                 raise ValueError("Project with ID {} not found".format(_proj_id))
         else:
