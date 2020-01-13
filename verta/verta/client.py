@@ -964,10 +964,15 @@ class Project(_ModelDBEntity):
         if proj_name is not None and _proj_id is not None:
             raise ValueError("cannot specify both `proj_name` and `_proj_id`")
 
+        if workspace is not None:
+            WORKSPACE_PRINT_MSG = "workspace: {}".format(workspace)
+        else:
+            WORKSPACE_PRINT_MSG = "personal workspace"
+
         if _proj_id is not None:
             proj = Project._get(conn, _proj_id=_proj_id)
             if proj is not None:
-                print("set existing Project: {}".format(proj.name))
+                print("set existing Project: {} from {}".format(proj.name, WORKSPACE_PRINT_MSG))
             else:
                 raise ValueError("Project with ID {} not found".format(_proj_id))
         else:
@@ -979,7 +984,7 @@ class Project(_ModelDBEntity):
                 if e.response.status_code == 403:  # cannot create in other workspace
                     proj = Project._get(conn, proj_name, workspace)
                     if proj is not None:
-                        print("set existing Project: {}".format(proj.name))
+                        print("set existing Project: {} from {}".format(proj.name, WORKSPACE_PRINT_MSG))
                     else:  # no accessible project in other workspace
                         _six.raise_from(e, None)
                 elif e.response.status_code == 409:  # already exists
@@ -987,11 +992,11 @@ class Project(_ModelDBEntity):
                         warnings.warn("Project with name {} already exists;"
                                       " cannot initialize `desc`, `tags`, or `attrs`".format(proj_name))
                     proj = Project._get(conn, proj_name, workspace)
-                    print("set existing Project: {}".format(proj.name))
+                    print("set existing Project: {} from {}".format(proj.name, WORKSPACE_PRINT_MSG))
                 else:
                     raise e
             else:
-                print("created new Project: {}".format(proj.name))
+                print("created new Project: {} in {}".format(proj.name, WORKSPACE_PRINT_MSG))
 
         super(Project, self).__init__(conn, conf, _ProjectService, "project", proj.id)
 
