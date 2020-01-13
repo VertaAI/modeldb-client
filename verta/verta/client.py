@@ -976,7 +976,13 @@ class Project(_ModelDBEntity):
             try:
                 proj = Project._create(conn, proj_name, desc, tags, attrs, workspace)
             except requests.HTTPError as e:
-                if e.response.status_code == 409:  # already exists
+                if e.response.status_code == 403:  # cannot create in other workspace
+                    proj = Project._get(conn, proj_name, workspace)
+                    if proj is not None:
+                        print("set existing Project: {}".format(proj.name))
+                    else:  # no accessible project in other workspace
+                        _six.raise_from(e, None)
+                elif e.response.status_code == 409:  # already exists
                     if any(param is not None for param in (desc, tags, attrs)):
                         warnings.warn("Project with name {} already exists;"
                                       " cannot initialize `desc`, `tags`, or `attrs`".format(proj_name))
