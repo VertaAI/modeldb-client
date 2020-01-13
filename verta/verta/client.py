@@ -78,7 +78,7 @@ class Client(object):
         is no need to set it.
     max_retries : int, default 5
         Maximum number of times to retry a request on a connection failure. This only attempts retries
-        on HTTP codes {403, 502, 503, 504} which commonly occur during back end connection lapses.
+        on HTTP codes {502, 503, 504} which commonly occur during back end connection lapses.
     ignore_conn_err : bool, default False
         Whether to ignore connection errors and instead return successes with empty contents.
     use_git : bool, default True
