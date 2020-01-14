@@ -78,7 +78,7 @@ class Client(object):
         is no need to set it.
     max_retries : int, default 5
         Maximum number of times to retry a request on a connection failure. This only attempts retries
-        on HTTP codes {403, 502, 503, 504} which commonly occur during back end connection lapses.
+        on HTTP codes {502, 503, 504} which commonly occur during back end connection lapses.
     ignore_conn_err : bool, default False
         Whether to ignore connection errors and instead return successes with empty contents.
     use_git : bool, default True
@@ -222,7 +222,7 @@ class Client(object):
                             if expt_run.experiment_id == self.expt.id]
             return ExperimentRuns(self._conn, self._conf, expt_run_ids)
 
-    def set_project(self, name=None, desc=None, tags=None, attrs=None, id=None):
+    def set_project(self, name=None, desc=None, tags=None, attrs=None, workspace=None, id=None):
         """
         Attaches a Project to this Client.
 
@@ -242,6 +242,9 @@ class Client(object):
             Tags of the Project.
         attrs : dict of str to {None, bool, float, int, str}, optional
             Attributes of the Project.
+        workspace : str, optionnal
+            Workspace under which the Project with name `name` exists. If not provided, the current
+            user's personal workspace will be used.
         id : str, optional
             ID of the Project. This parameter cannot be provided alongside `name`, and other
             parameters will be ignored.
@@ -263,6 +266,7 @@ class Client(object):
         self.proj = Project(self._conn, self._conf,
                             name,
                             desc, tags, attrs,
+                            workspace,
                             id)
 
         return self.proj
@@ -398,6 +402,7 @@ class Client(object):
     # NOTE: dataset visibility cannot be set via a client
     def set_dataset(self, name=None, type="local",
                     desc=None, tags=None, attrs=None,
+                    workspace=None,
                     id=None):
         """
         Attaches a Dataset to this Client.
@@ -418,7 +423,10 @@ class Client(object):
             Tags of the Dataset.
         attrs : dict of str to {None, bool, float, int, str}, optional
             Attributes of the Dataset.
-        id : str
+        workspace : str, optional
+            Workspace under which the Dataset with name `name` exists. If not provided, the current
+            user's personal workspace will be used.
+        id : str, optional
             ID of the Dataset. This parameter cannot be provided alongside `name`, and other
             parameters will be ignored.
 
@@ -450,6 +458,7 @@ class Client(object):
 
         return DatasetSubclass(self._conn, self._conf,
                                name=name, desc=desc, tags=tags, attrs=attrs,
+                               workspace=workspace,
                                _dataset_id=id)
 
     def get_dataset(self, name=None, id=None):
@@ -955,9 +964,15 @@ class Project(_ModelDBEntity):
     def __init__(self, conn, conf,
                  proj_name=None,
                  desc=None, tags=None, attrs=None,
+                 workspace=None,
                  _proj_id=None):
         if proj_name is not None and _proj_id is not None:
             raise ValueError("cannot specify both `proj_name` and `_proj_id`")
+
+        if workspace is not None:
+            WORKSPACE_PRINT_MSG = "workspace: {}".format(workspace)
+        else:
+            WORKSPACE_PRINT_MSG = "personal workspace"
 
         if _proj_id is not None:
             proj = Project._get(conn, _proj_id=_proj_id)
@@ -969,18 +984,24 @@ class Project(_ModelDBEntity):
             if proj_name is None:
                 proj_name = Project._generate_default_name()
             try:
-                proj = Project._create(conn, proj_name, desc, tags, attrs)
+                proj = Project._create(conn, proj_name, desc, tags, attrs, workspace)
             except requests.HTTPError as e:
-                if e.response.status_code == 409:  # already exists
+                if e.response.status_code == 403:  # cannot create in other workspace
+                    proj = Project._get(conn, proj_name, workspace)
+                    if proj is not None:
+                        print("set existing Project: {} from {}".format(proj.name, WORKSPACE_PRINT_MSG))
+                    else:  # no accessible project in other workspace
+                        _six.raise_from(e, None)
+                elif e.response.status_code == 409:  # already exists
                     if any(param is not None for param in (desc, tags, attrs)):
                         warnings.warn("Project with name {} already exists;"
                                       " cannot initialize `desc`, `tags`, or `attrs`".format(proj_name))
-                    proj = Project._get(conn, proj_name)
-                    print("set existing Project: {}".format(proj.name))
+                    proj = Project._get(conn, proj_name, workspace)
+                    print("set existing Project: {} from {}".format(proj.name, WORKSPACE_PRINT_MSG))
                 else:
                     raise e
             else:
-                print("created new Project: {}".format(proj.name))
+                print("created new Project: {} in {}".format(proj.name, WORKSPACE_PRINT_MSG))
 
         super(Project, self).__init__(conn, conf, _ProjectService, "project", proj.id)
 
@@ -1021,7 +1042,7 @@ class Project(_ModelDBEntity):
         return "Proj {}".format(_utils.generate_default_name())
 
     @staticmethod
-    def _get(conn, proj_name=None, _proj_id=None):
+    def _get(conn, proj_name=None, workspace=None, _proj_id=None):
         if _proj_id is not None:
             Message = _ProjectService.GetProjectById
             msg = Message(id=_proj_id)
@@ -1040,15 +1061,20 @@ class Project(_ModelDBEntity):
                     _utils.raise_for_http_error(response)
         elif proj_name is not None:
             Message = _ProjectService.GetProjectByName
-            msg = Message(name=proj_name)
+            msg = Message(name=proj_name, workspace_name=workspace)
             data = _utils.proto_to_json(msg)
             response = _utils.make_request("GET",
                                            "{}://{}/v1/project/getProjectByName".format(conn.scheme, conn.socket),
                                            conn, params=data)
 
             if response.ok:
-                response_msg = _utils.json_to_proto(response.json(), Message.Response)
-                return response_msg.project_by_user
+                response_json = response.json()
+                response_msg = _utils.json_to_proto(response_json, Message.Response)
+                if workspace is None or response_json.get('project_by_user'):
+                    # user's personal workspace
+                    return response_msg.project_by_user
+                else:
+                    return response_msg.shared_projects[0]
             else:
                 if response.status_code == 404 and response.json()['code'] == 5:
                     return None
@@ -1058,13 +1084,13 @@ class Project(_ModelDBEntity):
             raise ValueError("insufficient arguments")
 
     @staticmethod
-    def _create(conn, proj_name, desc=None, tags=None, attrs=None):
+    def _create(conn, proj_name, desc=None, tags=None, attrs=None, workspace=None):
         if attrs is not None:
             attrs = [_CommonService.KeyValue(key=key, value=_utils.python_to_val_proto(value, allow_collection=True))
                      for key, value in _six.viewitems(attrs)]
 
         Message = _ProjectService.CreateProject
-        msg = Message(name=proj_name, description=desc, tags=tags, attributes=attrs)
+        msg = Message(name=proj_name, description=desc, tags=tags, attributes=attrs, workspace_name=workspace)
         data = _utils.proto_to_json(msg)
         response = _utils.make_request("POST",
                                        "{}://{}/v1/project/createProject".format(conn.scheme, conn.socket),
