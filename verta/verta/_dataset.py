@@ -114,8 +114,9 @@ class Dataset(object):
                                            conn, params=data)
 
             if response.ok:
-                response_msg = _utils.json_to_proto(response.json(), Message.Response)
-                if workspace is None or response_msg.HasField('dataset_by_user'):
+                response_json = response.json()
+                response_msg = _utils.json_to_proto(response_json, Message.Response)
+                if workspace is None or response_json.get('dataset_by_user'):
                     # user's personal workspace
                     return response_msg.dataset_by_user
                 else:
