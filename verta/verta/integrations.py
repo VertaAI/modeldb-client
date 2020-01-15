@@ -49,16 +49,37 @@ if tensorflow is not None:
                 for key, val in _six.viewitems(params):
                     try:
                         self.run.log_hyperparameter(key, _utils.to_builtin(val))
-                    except (ValueError,  # key already logged
-                            TypeError):  # unloggable type
-                        pass
-                    except:  # don't halt execution
-                        pass
+                    except:
+                        pass  # don't halt execution
 
         def set_model(self, model):
-            pass
+            try:
+                optimizer = model.optimizer._name
+                self.run.log_hyperparameter("optimizer", _utils.to_builtin(optimizer))
+            except:
+                pass  # don't halt execution
+
+            try:
+                loss = model.loss
+                self.run.log_hyperparameter("loss", _utils.to_builtin(loss))
+            except:
+                pass  # don't halt execution
+
+            for i, layer in enumerate(model.layers):
+                try:
+                    self.run.log_hyperparameter("layer_{}_name".format(i), layer._name)
+                except:
+                    pass  # don't halt execution
+
+                try:
+                    self.run.log_hyperparameter("layer_{}_size".format(i), layer.units)
+                except:
+                    pass  # don't halt execution
 
         def on_epoch_end(self, epoch, logs=None):
             if isinstance(logs, dict):
                 for key, val in _six.viewitems(logs):
-                    self.run.log_observation(key, _utils.to_builtin(val))
+                    try:
+                        self.run.log_observation(key, _utils.to_builtin(val))
+                    except:
+                        pass  # don't halt execution
