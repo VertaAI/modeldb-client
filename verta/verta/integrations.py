@@ -20,6 +20,15 @@ except ImportError:  # TensorFlow not installed
 
 if tensorflow is not None:
     class KerasCallback(tensorflow.keras.callbacks.Callback):
+        """
+
+
+        Parameters
+        ----------
+        run : :class:`~verta.client.ExperimentRun`
+            Experiment Run tracking this model.
+
+        """
         def __init__(self, run):
             self.run = run
 
