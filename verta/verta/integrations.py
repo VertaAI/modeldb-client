@@ -76,6 +76,11 @@ if tensorflow is not None:
                 except:
                     pass  # don't halt execution
 
+                try:
+                    layer.activation.__name__
+                except:
+                    pass  # don't halt execution
+
         def on_epoch_end(self, epoch, logs=None):
             if isinstance(logs, dict):
                 for key, val in _six.viewitems(logs):
