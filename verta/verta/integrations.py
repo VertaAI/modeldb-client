@@ -20,12 +20,14 @@ except ImportError:  # TensorFlow not installed
 if tensorflow is not None:
     class KerasCallback(tensorflow.keras.callbacks.Callback):
         """
-
+        Keras callback that automates logging to Verta during model operation.
 
         Parameters
         ----------
         run : :class:`~verta.client.ExperimentRun`
             Experiment Run tracking this model.
+        log_layer_info : bool, default False
+            Whether to extract and log information about the model layers as hyperparameters.
 
         Examples
         --------
@@ -79,7 +81,8 @@ if tensorflow is not None:
                         pass  # don't halt execution
 
                     try:
-                        layer.activation.__name__
+                        self.run.log_hyperparameter("layer_{}_activation".format(i), layer.activation.__name__)
+
                     except:
                         pass  # don't halt execution
 
