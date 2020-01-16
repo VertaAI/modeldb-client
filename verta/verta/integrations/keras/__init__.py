@@ -25,8 +25,6 @@ class VertaCallback(keras.callbacks.Callback):
     ----------
     run : :class:`~verta.client.ExperimentRun`
         Experiment Run tracking this model.
-    log_layer_info : bool, default False
-        Whether to extract and log information about the model layers as hyperparameters.
 
     Examples
     --------
@@ -43,9 +41,8 @@ class VertaCallback(keras.callbacks.Callback):
     ... )
 
     """
-    def __init__(self, run, log_layer_info=False):
+    def __init__(self, run):
         self.run = run
-        self.log_layer_info = log_layer_info
 
     def set_params(self, params):
         if isinstance(params, dict):
@@ -68,27 +65,26 @@ class VertaCallback(keras.callbacks.Callback):
         except:
             pass  # don't halt execution
 
-        if self.log_layer_info:
-            for i, layer in enumerate(model.layers):
-                try:
-                    self.run.log_hyperparameter("layer_{}_name".format(i), layer._name)
-                except:
-                    pass  # don't halt execution
+        for i, layer in enumerate(model.layers):
+            try:
+                self.run.log_hyperparameter("layer_{}_name".format(i), layer._name)
+            except:
+                pass  # don't halt execution
 
-                try:
-                    self.run.log_hyperparameter("layer_{}_size".format(i), layer.units)
-                except:
-                    pass  # don't halt execution
+            try:
+                self.run.log_hyperparameter("layer_{}_size".format(i), layer.units)
+            except:
+                pass  # don't halt execution
 
-                try:
-                    self.run.log_hyperparameter("layer_{}_activation".format(i), layer.activation.__name__)
-                except:
-                    pass  # don't halt execution
+            try:
+                self.run.log_hyperparameter("layer_{}_activation".format(i), layer.activation.__name__)
+            except:
+                pass  # don't halt execution
 
-                try:
-                    self.run.log_hyperparameter("layer_{}_dropoutrate".format(i), layer.rate)
-                except:
-                    pass  # don't halt execution
+            try:
+                self.run.log_hyperparameter("layer_{}_dropoutrate".format(i), layer.rate)
+            except:
+                pass  # don't halt execution
 
     def on_epoch_end(self, epoch, logs=None):
         if isinstance(logs, dict):
