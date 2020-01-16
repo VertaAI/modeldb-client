@@ -58,7 +58,7 @@ class VertaCallback(keras.callbacks.Callback):
     def set_model(self, model):
         try:
             optimizer = model.optimizer._name
-            self.run.log_hyperparameter("optimizer", _utils.to_builtin(optimizer))
+            self.run.log_hyperparameter("optimizer", optimizer)
         except:
             pass  # don't halt execution
 
