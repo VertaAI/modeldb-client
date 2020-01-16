@@ -1,12 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
-
 from ... import _six
-
-import os
-
-import requests
 
 from ... import _utils
 
