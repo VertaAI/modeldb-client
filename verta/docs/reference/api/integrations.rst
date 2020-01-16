@@ -1,5 +1,5 @@
 Integrations
 ============
 
-.. automodule:: verta.integrations
+.. automodule:: verta.integrations.keras
     :members:
