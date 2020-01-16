@@ -41,8 +41,9 @@ if tensorflow is not None:
         ... )
 
         """
-        def __init__(self, run):
+        def __init__(self, run, log_layer_info=False):
             self.run = run
+            self.log_layer_info = log_layer_info
 
         def set_params(self, params):
             if isinstance(params, dict):
@@ -65,21 +66,22 @@ if tensorflow is not None:
             except:
                 pass  # don't halt execution
 
-            for i, layer in enumerate(model.layers):
-                try:
-                    self.run.log_hyperparameter("layer_{}_name".format(i), layer._name)
-                except:
-                    pass  # don't halt execution
+            if self.log_layer_info:
+                for i, layer in enumerate(model.layers):
+                    try:
+                        self.run.log_hyperparameter("layer_{}_name".format(i), layer._name)
+                    except:
+                        pass  # don't halt execution
 
-                try:
-                    self.run.log_hyperparameter("layer_{}_size".format(i), layer.units)
-                except:
-                    pass  # don't halt execution
+                    try:
+                        self.run.log_hyperparameter("layer_{}_size".format(i), layer.units)
+                    except:
+                        pass  # don't halt execution
 
-                try:
-                    layer.activation.__name__
-                except:
-                    pass  # don't halt execution
+                    try:
+                        layer.activation.__name__
+                    except:
+                        pass  # don't halt execution
 
         def on_epoch_end(self, epoch, logs=None):
             if isinstance(logs, dict):
