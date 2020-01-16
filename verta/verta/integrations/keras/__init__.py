@@ -19,7 +19,9 @@ except ImportError:  # TensorFlow not installed
 
 class VertaCallback(keras.callbacks.Callback):
     """
-    Keras callback that automates logging to Verta during model operation.
+    Keras callback that automates logging to Verta during model training.
+
+    .. versionadded:: 0.13.20
 
     Parameters
     ----------
