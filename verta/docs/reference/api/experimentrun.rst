@@ -3,6 +3,8 @@
 ExperimentRun
 =============
 
+.. autoclass:: verta.client.ExperimentRun
+
 Functionality
 -------------
 
