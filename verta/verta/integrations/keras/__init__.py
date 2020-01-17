@@ -50,14 +50,17 @@ class VertaCallback(keras.callbacks.Callback):
 
     def set_model(self, model):
         try:
-            optimizer = model.optimizer._name
-            self.run.log_hyperparameter("optimizer", optimizer)
+            self.run.log_hyperparameter("optimizer", model.optimizer._name)
         except:
             pass  # don't halt execution
 
         try:
-            loss = model.loss
-            self.run.log_hyperparameter("loss", _utils.to_builtin(loss))
+            if isinstance(model.loss, _six.string_types):
+                self.run.log_hyperparameter("loss", model.loss)
+            elif isinstance(model.loss, keras.losses.Loss):
+                self.run.log_hyperparameter("loss", model.loss.__class__.__name__)
+            else:  # function from `keras.losses`
+                self.run.log_hyperparameter("loss", model.loss.__name__)
         except:
             pass  # don't halt execution
 

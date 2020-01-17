@@ -18,7 +18,7 @@ class TestKeras:
         dropout_rate = .5
         batch_size = 128
         epochs = 3
-        loss = "categorical_crossentropy"
+        loss = "CategoricalCrossentropy"
         optimizer = "Adam"
         ## create dummy data
         x_train = np.random.random((samples, 20))
@@ -31,7 +31,7 @@ class TestKeras:
         model.add(keras.layers.Dropout(dropout_rate))
         model.add(keras.layers.Dense(num_classes, activation="softmax"))
         ## train model
-        model.compile(loss=loss,
+        model.compile(loss=getattr(keras.losses, loss)(),
                       optimizer=optimizer,
                       metrics=["accuracy"])
         model.fit(x_train, y_train,
@@ -91,7 +91,7 @@ class TestKeras:
         predictions = keras.layers.Dense(num_classes, activation="softmax")(dropout_2)
         model = keras.models.Model(inputs=inputs, outputs=predictions)
         ## train model
-        model.compile(loss=loss,
+        model.compile(loss=getattr(keras.losses, loss),
                       optimizer=optimizer,
                       metrics=["accuracy"])
         model.fit(x_train, y_train,
