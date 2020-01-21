@@ -72,9 +72,10 @@ class VertaHook(SessionRunHook):
 
         for value in summary_msg.value:
             # TODO: something better than this check-skip
+            #     The Client currently only allows alphanum, dashes, and underscores in keys
             try:
                 _utils.validate_flat_key(value.tag)
-            except ValueError:  # key has slashes, probably
+            except ValueError:  # key has slashes, probably (usually properties of specific layers)
                 continue
 
             if value.WhichOneof("value") == "simple_value":
@@ -83,6 +84,3 @@ class VertaHook(SessionRunHook):
                 except:
                     pass  # don't halt execution
             # TODO: support other value types
-
-    def end(self, session):
-        pass
