@@ -26,11 +26,6 @@ class VertaCallback(keras.callbacks.Callback):
     --------
     >>> from verta.integrations.keras import VertaCallback
     >>> run = client.set_experiment_run()
-    >>> model.compile(
-    ...     loss="categorical_crossentropy",
-    ...     optimizer="adam",
-    ...     metrics=["accuracy"],
-    ... )
     >>> model.fit(
     ...     X_train, y_train,
     ...     callbacks=[VertaCallback(run)],
