@@ -3,18 +3,29 @@
 from ... import _six
 
 import tensorflow as tf
+try:
+    from tensorflow.summary import Summary
+except ImportError as e:  # tensorflow>=2.0
+    raise e  # TODO: figure out where `Summary` is
+try:
+    from tensorflow.estimator import SessionRunHook
+except ImportError:  # tensorflow<2.0
+    from tf.train import SessionRunHook
 
 from ... import _utils
 
 
-# `SessionRunHook` moved to `tf.estimator` in v2.0
-if hasattr(tf.estimator, 'SessionRunHook'):
-    SessionRunHook = tf.estimator.SessionRunHook
-else:
-    SessionRunHook = tf.train.SessionRunHook
+def _parse_summary_proto_str(proto_str):
+    """
+    Converts the serialized protobuf `SessionRunValues.results['summary']` into a `Message` object.
+
+    """
+    summary_msg = Summary()
+    summary_msg.ParseFromString(proto_str)
+    return summary_msg
 
 
-class _VertaHook(SessionRunHook):
+class VertaHook(SessionRunHook):
     """
     TensorFlow Estimator callback that automates logging to Verta during model training.
 
@@ -24,6 +35,8 @@ class _VertaHook(SessionRunHook):
     ----------
     run : :class:`~verta.client.ExperimentRun`
         Experiment Run tracking this model.
+    every_n_steps : int, default 1000
+        How often to log summary metrics.
 
     Examples
     --------
@@ -35,21 +48,41 @@ class _VertaHook(SessionRunHook):
     ... )
 
     """
-    def __init__(self, run):
+    def __init__(self, run, every_n_steps=1000):
+        self._summary = None
+        self._every_n_steps = every_n_steps
+        self._step = 0
+
         self.run = run
 
     def begin(self):
-        pass
+        if self._summary is None:
+            self._summary = tf.summary.merge_all()
 
     def before_run(self, run_context):
-        print("RUN CONTEXT:")
-        print(run_context)
+        self._step += 1
+        return tf.train.SessionRunArgs({"summary": self._summary})
 
     def after_run(self, run_context, run_values):
-        print("RUN CONTEXT:")
-        print(run_context)
-        print("RUN VALUES:")
-        print(run_values)
+        if self._step % self._every_n_steps != 0:
+            return
+
+        summary_msg = _parse_summary_proto_str(run_values.results['summary'])
+        timestamp = _utils.now()
+
+        for value in summary_msg.value:
+            # TODO: something better than this check-skip
+            try:
+                _utils.validate_flat_key(value.tag)
+            except ValueError:  # key has slashes, probably
+                continue
+
+            if value.WhichOneof("value") == "simple_value":
+                try:
+                    self.run.log_observation(value.tag, value.simple_value, timestamp)
+                except:
+                    pass  # don't halt execution
+            # TODO: support other value types
 
     def end(self, session):
         pass
