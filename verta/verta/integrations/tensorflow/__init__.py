@@ -14,18 +14,42 @@ else:
     SessionRunHook = tf.train.SessionRunHook
 
 
-class VertaHook(SessionRunHook):
-    def __init__(self):
-        pass
+class _VertaHook(SessionRunHook):
+    """
+    TensorFlow Estimator callback that automates logging to Verta during model training.
 
-    def after_create_session(self, session, coord):
+    .. versionadded:: 0.13.20
+
+    Parameters
+    ----------
+    run : :class:`~verta.client.ExperimentRun`
+        Experiment Run tracking this model.
+
+    Examples
+    --------
+    >>> from verta.integrations.tensorflow import VertaHook
+    >>> run = client.set_experiment_run()
+    >>> estimator.train(
+    ...     input_fn=train_input_fn,
+    ...     hooks=[VertaHook(run)],
+    ... )
+
+    """
+    def __init__(self, run):
+        self.run = run
+
+    def begin(self):
         pass
 
     def before_run(self, run_context):
-        pass
+        print("RUN CONTEXT:")
+        print(run_context)
 
     def after_run(self, run_context, run_values):
-        pass
+        print("RUN CONTEXT:")
+        print(run_context)
+        print("RUN VALUES:")
+        print(run_values)
 
     def end(self, session):
         pass
