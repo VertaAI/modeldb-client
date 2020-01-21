@@ -122,3 +122,38 @@ class TestKeras:
         logged_observations = experiment_run.get_observations()
         assert 'acc' in logged_observations or 'accuracy' in logged_observations
         assert 'loss' in logged_observations
+
+
+class TestTensorFlow:
+    def test_estimator_hook(self, experiment_run):
+        verta_integrations_tensorflow = pytest.importorskip("verta.integrations.tensorflow")
+        VertaHook = verta_integrations_tensorflow.VertaHook
+
+        np = pytest.importorskip("numpy")
+        pd = pytest.importorskip("pandas")
+        tf = pytest.importorskip("tensorflow")
+
+        # adapted from https://www.tensorflow.org/tutorials/estimator/linear
+        samples = 500
+        num_features = 3
+
+        data_df = pd.DataFrame(
+            data=np.random.random(size=(samples, num_features))*100,
+            columns=map(str, range(num_features))
+        )
+        label_series = pd.Series(np.random.randint(0, 2, size=samples))
+
+        feature_columns = []
+        for feature_name in data_df.columns:
+            feature_columns.append(tf.feature_column.numeric_column(feature_name, dtype=tf.float32))
+
+        def train_input_fn():
+            ds = tf.data.Dataset.from_tensor_slices((dict(data_df), label_series))
+            ds = ds.shuffle(1000)
+            ds = ds.batch(32).repeat(10)
+            return ds
+
+        linear_est = tf.estimator.LinearClassifier(feature_columns=feature_columns)
+        linear_est.train(train_input_fn, hooks=[VertaHook(experiment_run, every_n_steps=5)])
+
+        assert 'loss' in experiment_run.get_observations()
