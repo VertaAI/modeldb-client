@@ -5,10 +5,7 @@ from ... import _six
 import tensorflow as tf
 from tensorflow.compat.v1 import summary  # pylint: disable=import-error
 from tensorflow.compat.v1.train import SessionRunArgs  # pylint: disable=import-error
-try:
-    from tensorflow.estimator import SessionRunHook
-except ImportError:  # tensorflow<2.0
-    from tf.train import SessionRunHook
+from tensorflow.compat.v1.train import SessionRunHook  # pylint: disable=import-error
 
 from ... import _utils
 
