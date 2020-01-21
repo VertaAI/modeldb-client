@@ -65,11 +65,10 @@ class VertaHook(SessionRunHook):
             return
 
         summary_msg = _parse_summary_proto_str(run_values.results['summary'])
-        timestamp = _utils.now()
 
         for value in summary_msg.value:
             # TODO: something better than this check-skip
-            #     The Client currently only allows alphanum, dashes, and underscores in keys
+            #     The Client currently only allows alphanum, dashes, and underscores in keys.
             try:
                 _utils.validate_flat_key(value.tag)
             except ValueError:  # key has slashes, probably (usually properties of specific layers)
@@ -77,7 +76,7 @@ class VertaHook(SessionRunHook):
 
             if value.WhichOneof("value") == "simple_value":
                 try:
-                    self.run.log_observation(value.tag, value.simple_value, timestamp)
+                    self.run.log_observation(value.tag, value.simple_value)
                 except:
                     pass  # don't halt execution
             # TODO: support other value types
