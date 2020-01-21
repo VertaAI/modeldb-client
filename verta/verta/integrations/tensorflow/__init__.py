@@ -3,7 +3,8 @@
 from ... import _six
 
 import tensorflow as tf
-from tensorflow.compat.v1.summary import Summary  # pylint: disable=import-error
+from tensorflow.compat.v1 import summary  # pylint: disable=import-error
+from tensorflow.compat.v1.train import SessionRunArgs  # pylint: disable=import-error
 try:
     from tensorflow.estimator import SessionRunHook
 except ImportError:  # tensorflow<2.0
@@ -17,7 +18,7 @@ def _parse_summary_proto_str(proto_str):
     Converts the serialized protobuf `SessionRunValues.results['summary']` into a `Message` object.
 
     """
-    summary_msg = Summary()
+    summary_msg = summary.Summary()
     summary_msg.ParseFromString(proto_str)
     return summary_msg
 
@@ -54,11 +55,11 @@ class VertaHook(SessionRunHook):
 
     def begin(self):
         if self._summary is None:
-            self._summary = tf.summary.merge_all()
+            self._summary = summary.merge_all()
 
     def before_run(self, run_context):
         self._step += 1
-        return tf.train.SessionRunArgs({"summary": self._summary})
+        return SessionRunArgs({"summary": self._summary})
 
     def after_run(self, run_context, run_values):
         if self._step % self._every_n_steps != 0:
