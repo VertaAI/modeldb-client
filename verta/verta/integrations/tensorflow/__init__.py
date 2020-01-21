@@ -8,7 +8,10 @@ from ... import _utils
 
 
 # `SessionRunHook` moved to `tf.estimator` in v2.0
-SessionRunHook = getattr(tf.estimator, 'SessionRunHook', tf.train.SessionRunHook)
+if hasattr(tf.estimator, 'SessionRunHook'):
+    SessionRunHook = tf.estimator.SessionRunHook
+else:
+    SessionRunHook = tf.train.SessionRunHook
 
 
 class VertaHook(SessionRunHook):
