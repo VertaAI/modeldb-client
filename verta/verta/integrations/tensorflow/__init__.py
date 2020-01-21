@@ -3,10 +3,7 @@
 from ... import _six
 
 import tensorflow as tf
-try:
-    from tensorflow.summary import Summary
-except ImportError as e:  # tensorflow>=2.0
-    raise e  # TODO: figure out where `Summary` is
+from tensorflow.compat.v1.summary import Summary  # pylint: disable=import-error
 try:
     from tensorflow.estimator import SessionRunHook
 except ImportError:  # tensorflow<2.0
