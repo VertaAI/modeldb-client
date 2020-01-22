@@ -3,6 +3,7 @@
 from ... import _six
 
 import tensorflow as tf
+from tensorflow.core.framework.summary_pb2 import Summary  # pylint: disable=import-error, no-name-in-module
 from tensorflow.compat.v1 import summary  # pylint: disable=import-error
 try:
     from tensorflow.estimator import SessionRunArgs
@@ -21,14 +22,16 @@ def _parse_summary_proto_str(proto_str):
     Converts the serialized protobuf `SessionRunValues.results['summary']` into a `Message` object.
 
     """
-    summary_msg = summary.Summary()
+    summary_msg = Summary()
     summary_msg.ParseFromString(proto_str)
     return summary_msg
 
 
 class VertaHook(SessionRunHook):
     """
-    TensorFlow Estimator callback that automates logging to Verta during model training.
+    TensorFlow Estimator hook that automates logging to Verta during model training.
+
+    This hook is verified to work with the TensorFlow 1.X API.
 
     .. versionadded:: 0.13.20
 
