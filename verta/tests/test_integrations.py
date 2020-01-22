@@ -134,7 +134,7 @@ class TestTensorFlow:
         tf = pytest.importorskip("tensorflow")
 
         # adapted from https://www.tensorflow.org/tutorials/estimator/linear
-        samples = 500
+        samples = 5
         num_features = 3
 
         data_df = pd.DataFrame(
@@ -148,12 +148,9 @@ class TestTensorFlow:
             feature_columns.append(tf.feature_column.numeric_column(feature_name, dtype=tf.float32))
 
         def train_input_fn():
-            ds = tf.data.Dataset.from_tensor_slices((dict(data_df), label_series))
-            ds = ds.shuffle(1000)
-            ds = ds.batch(32).repeat(10)
-            return ds
+            return tf.data.Dataset.from_tensor_slices((dict(data_df), label_series))
 
         linear_est = tf.estimator.LinearClassifier(feature_columns=feature_columns)
-        linear_est.train(train_input_fn, hooks=[VertaHook(experiment_run, every_n_steps=5)])
+        linear_est.train(train_input_fn, hooks=[VertaHook(experiment_run, every_n_steps=1)])
 
         assert 'loss' in experiment_run.get_observations()
