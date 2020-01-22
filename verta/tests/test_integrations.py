@@ -154,3 +154,37 @@ class TestTensorFlow:
         linear_est.train(train_input_fn, hooks=[VertaHook(experiment_run, every_n_steps=1)])
 
         assert 'loss' in experiment_run.get_observations()
+
+class TestXGBoost:
+    def test_callback(self, experiment_run):
+        verta_integrations_xgboost = pytest.importorskip("verta.integrations.xgboost")
+        verta_callback = verta_integrations_xgboost.verta_callback
+
+        xgb = pytest.importorskip("xgboost")
+        np = pytest.importorskip("numpy")
+
+        samples = 5
+        num_features = 3
+        X = np.random.random(size=(samples, num_features))*1000
+        y = np.random.randint(0, 10, size=(samples,))
+        train_dataset_name = "train"
+        dtrain = xgb.DMatrix(X, label=y)
+
+        params = {
+            'eta': 0.5,
+            'max_depth': 3,
+            'num_class': 10,
+            'eval_metric': ["merror", "mlogloss"],
+        }
+        num_rounds = 3
+
+        bst = xgb.train(
+            params, dtrain,
+            num_boost_round=num_rounds,
+            evals=[(dtrain, train_dataset_name)],
+            callbacks=[verta_callback(experiment_run)],
+        )
+
+        observations = experiment_run.get_observations()
+        for eval_metric in params['eval_metric']:
+            assert '{}-{}'.format(train_dataset_name, eval_metric) in observations
