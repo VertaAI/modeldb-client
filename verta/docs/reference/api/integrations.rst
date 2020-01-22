@@ -6,3 +6,6 @@ Integrations
 
 .. automodule:: verta.integrations.tensorflow
     :members:
+
+.. automodule:: verta.integrations.xgboost
+    :members:
