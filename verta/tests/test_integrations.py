@@ -148,7 +148,7 @@ class TestTensorFlow:
             feature_columns.append(tf.feature_column.numeric_column(feature_name, dtype=tf.float32))
 
         def train_input_fn():
-            return tf.data.Dataset.from_tensor_slices((dict(data_df), label_series))
+            return tf.data.Dataset.from_tensor_slices((dict(data_df), label_series)).batch(32)
 
         linear_est = tf.estimator.LinearClassifier(feature_columns=feature_columns)
         linear_est.train(train_input_fn, hooks=[VertaHook(experiment_run, every_n_steps=1)])
