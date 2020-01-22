@@ -95,7 +95,7 @@ class DeployedModel:
             return "<{}>".format(self.__class__.__name__)
 
     @classmethod
-    def from_url(cls, url, token=None):
+    def from_url(cls, url, token):
         """
         Returns a :class:`DeployedModel` based on a custom URL and token.
 
@@ -103,8 +103,9 @@ class DeployedModel:
         ----------
         url : str
             Full prediction endpoint URL. Can be copy and pasted directly from the Verta Web App.
-        token : str, optional
-            Prediction token. Can be copy and pasted directly from the Verta Web App.
+        token : str or None
+            Prediction token. Can be copy and pasted directly from the Verta Web App. If the deployment
+            does not use a token, ``None`` should be passed in as the argument.
 
         Returns
         -------
