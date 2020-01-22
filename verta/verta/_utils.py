@@ -50,7 +50,7 @@ else:
 _GRPC_PREFIX = "Grpc-Metadata-"
 
 _VALID_HTTP_METHODS = {'GET', 'POST', 'PUT', 'DELETE'}
-_VALID_FLAT_KEY_CHARS = set(string.ascii_letters + string.digits + '_-')
+_VALID_FLAT_KEY_CHARS = set(string.ascii_letters + string.digits + '_-/')
 
 THREAD_LOCALS = threading.local()
 THREAD_LOCALS.active_experiment_run = None
@@ -534,7 +534,8 @@ def validate_flat_key(key):
     """
     for c in key:
         if c not in _VALID_FLAT_KEY_CHARS:
-            raise ValueError("`key` may only contain alphanumeric characters, underscores, and dashes")
+            raise ValueError("`key` may only contain alphanumeric characters, underscores, dashes,"
+                             " and forward slashes")
 
 
 def generate_default_name():

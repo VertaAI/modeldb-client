@@ -2,13 +2,13 @@
 
 from ... import _six
 
-from ... import _utils
-
-
+# TODO: use `keras` module imported in calling scope
 try:
     from tensorflow import keras
 except ImportError:  # TensorFlow not installed
     import keras
+
+from ... import _utils
 
 
 class VertaCallback(keras.callbacks.Callback):
@@ -26,11 +26,6 @@ class VertaCallback(keras.callbacks.Callback):
     --------
     >>> from verta.integrations.keras import VertaCallback
     >>> run = client.set_experiment_run()
-    >>> model.compile(
-    ...     loss="categorical_crossentropy",
-    ...     optimizer="adam",
-    ...     metrics=["accuracy"],
-    ... )
     >>> model.fit(
     ...     X_train, y_train,
     ...     callbacks=[VertaCallback(run)],
@@ -92,3 +87,6 @@ class VertaCallback(keras.callbacks.Callback):
                     self.run.log_observation(key, _utils.to_builtin(val))
                 except:
                     pass  # don't halt execution
+
+    # TODO: log metrics on_(train|test|predict)_end
+    # TODO: log model checkpoints as artifacts
