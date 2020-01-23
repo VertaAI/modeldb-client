@@ -11,7 +11,7 @@ def verta_hook(run):
     """
     PyTorch module hook that automates logging to Verta during training.
 
-    This hook logs details about the network's topology.
+    This hook logs details about the network topology.
 
     .. versionadded:: 0.13.20
 
