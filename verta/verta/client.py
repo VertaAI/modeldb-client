@@ -28,6 +28,7 @@ try:
 except ImportError:  # Pillow not installed
     PIL = None
 
+from ._protos.public.common import CommonService_pb2 as _CommonCommonService
 from ._protos.public.modeldb import CommonService_pb2 as _CommonService
 from ._protos.public.modeldb import ProjectService_pb2 as _ProjectService
 from ._protos.public.modeldb import ExperimentService_pb2 as _ExperimentService
@@ -823,7 +824,10 @@ class _ModelDBEntity(object):
             except OSError as e:
                 print("{}; skipping".format(e))
             else:
-                msg.code_version.git_snapshot.is_dirty = _CommonService.TernaryEnum.TRUE if is_dirty else _CommonService.TernaryEnum.FALSE
+                if is_dirty:
+                    msg.code_version.git_snapshot.is_dirty = _CommonCommonService.TernaryEnum.TRUE
+                else:
+                    msg.code_version.git_snapshot.is_dirty = _CommonCommonService.TernaryEnum.FALSE
         else:  # log code as Artifact
             # write ZIP archive
             zipstream = _six.BytesIO()
@@ -917,8 +921,8 @@ class _ModelDBEntity(object):
                 git_snapshot['repo_url'] = git_snapshot_msg.repo
             if git_snapshot_msg.hash:
                 git_snapshot['commit_hash'] = git_snapshot_msg.hash
-                if git_snapshot_msg.is_dirty != _CommonService.TernaryEnum.UNKNOWN:
-                    git_snapshot['is_dirty'] = git_snapshot_msg.is_dirty == _CommonService.TernaryEnum.TRUE
+                if git_snapshot_msg.is_dirty != _CommonCommonService.TernaryEnum.UNKNOWN:
+                    git_snapshot['is_dirty'] = git_snapshot_msg.is_dirty == _CommonCommonService.TernaryEnum.TRUE
             return git_snapshot
         elif which_code == 'code_archive':
             # download artifact from artifact store
