@@ -7,6 +7,7 @@ class TestKeras:
     def test_sequential_api(self, experiment_run):
         verta_integrations_keras = pytest.importorskip("verta.integrations.keras")
         keras = verta_integrations_keras.keras  # use same Keras imported by Verta
+
         np = pytest.importorskip("numpy")
 
         # adapted from https://keras.io/getting-started/sequential-model-guide/
@@ -66,6 +67,7 @@ class TestKeras:
     def test_functional_api(self, experiment_run):
         verta_integrations_keras = pytest.importorskip("verta.integrations.keras")
         keras = verta_integrations_keras.keras  # use same Keras imported by Verta
+
         np = pytest.importorskip("numpy")
 
         # also adapted from https://keras.io/getting-started/sequential-model-guide/
@@ -155,6 +157,7 @@ class TestTensorFlow:
 
         assert 'loss' in experiment_run.get_observations()
 
+
 class TestXGBoost:
     def test_callback(self, experiment_run):
         verta_integrations_xgboost = pytest.importorskip("verta.integrations.xgboost")
@@ -188,3 +191,55 @@ class TestXGBoost:
         observations = experiment_run.get_observations()
         for eval_metric in params['eval_metric']:
             assert '{}-{}'.format(train_dataset_name, eval_metric) in observations
+
+
+class TestPyTorch:
+    def test_hook(self, experiment_run):
+        verta_integrations_torch = pytest.importorskip("verta.integrations.torch")
+        verta_hook = verta_integrations_torch.verta_hook
+
+        np = pytest.importorskip("numpy")
+        pd = pytest.importorskip("pandas")
+        torch = pytest.importorskip("torch")
+
+        samples = 5
+        num_features = 3
+        num_classes = 10
+        X = np.random.randint(0, 17, size=(samples, num_features))
+        y = np.random.randint(0, num_classes, size=(samples,))
+        X = torch.tensor(X, dtype=torch.float)
+        y = torch.tensor(y, dtype=torch.long)
+
+        hidden_size = 512
+        dropout = 0.2
+
+        class Net(torch.nn.Module):
+            def __init__(self, hidden_size, dropout):
+                super(Net, self).__init__()
+                self.fc      = torch.nn.Linear(num_features, hidden_size)
+                self.dropout = torch.nn.Dropout(dropout)
+                self.output  = torch.nn.Linear(hidden_size, num_classes)
+
+            def forward(self, x):
+                x = x.view(x.shape[0], -1)  # flatten non-batch dimensions
+                x = torch.nn.functional.relu(self.fc(x))
+                x = self.dropout(x)
+                x = torch.nn.functional.softmax(self.output(x), dim=-1)
+                return x
+
+        model = Net(hidden_size, dropout)
+        model.register_forward_hook(verta_hook(experiment_run))
+        output = model(X)
+
+        logged_hyperparams = experiment_run.get_hyperparameters()
+
+        assert logged_hyperparams['layer_0_name'] == "Linear"
+        assert logged_hyperparams['layer_0_in_features'] == num_features
+        assert logged_hyperparams['layer_0_out_features'] == hidden_size
+
+        assert logged_hyperparams['layer_1_name'] == "Dropout"
+        assert logged_hyperparams['layer_1_p'] == dropout
+
+        assert logged_hyperparams['layer_2_name'] == "Linear"
+        assert logged_hyperparams['layer_2_in_features'] == hidden_size
+        assert logged_hyperparams['layer_2_out_features'] == num_classes
