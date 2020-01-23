@@ -339,13 +339,13 @@ def to_builtin(obj):
     return obj
 
 
-def python_to_val_proto(val, allow_collection=False):
+def python_to_val_proto(raw_val, allow_collection=False):
     """
     Converts a Python variable into a `protobuf` `Value` `Message` object.
 
     Parameters
     ----------
-    val : one of {None, bool, float, int, str, list, dict}
+    raw_val
         Python variable.
     allow_collection : bool, default False
         Whether to allow ``list``s and ``dict``s as `val`. This flag exists because some callers
@@ -358,7 +358,7 @@ def python_to_val_proto(val, allow_collection=False):
 
     """
     # TODO: check `allow_collection` before `to_builtin()` to avoid unnecessary processing
-    val = to_builtin(val)
+    val = to_builtin(raw_val)
 
     if val is None:
         return Value(null_value=NULL_VALUE)
@@ -382,9 +382,9 @@ def python_to_val_proto(val, allow_collection=False):
                 else:  # protobuf's fault
                     raise TypeError("struct keys must be strings; consider using log_artifact() instead")
         else:
-            raise TypeError("unsupported type {}; consider using log_attribute() instead".format(type(val)))
+            raise TypeError("unsupported type {}; consider using log_attribute() instead".format(type(raw_val)))
     else:
-        raise TypeError("unsupported type {}; consider using log_artifact() instead".format(type(val)))
+        raise TypeError("unsupported type {}; consider using log_artifact() instead".format(type(raw_val)))
 
 
 def val_proto_to_python(msg):
