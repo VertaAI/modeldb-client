@@ -318,7 +318,7 @@ def to_builtin(obj):
     if obj_class == "DataFrame":
         return obj.values.tolist()
     if obj_class == "Tensor" and obj_module == "torch":
-        return obj.numpy().tolist()
+        return obj.detach().numpy().tolist()
 
     # strings
     if isinstance(obj, _six.string_types):  # prevent infinite loop with iter
@@ -357,6 +357,9 @@ def python_to_val_proto(val, allow_collection=False):
         `protobuf` `Value` `Message` representing `val`.
 
     """
+    # TODO: check `allow_collection` before `to_builtin()` to avoid unnecessary processing
+    val = to_builtin(val)
+
     if val is None:
         return Value(null_value=NULL_VALUE)
     elif isinstance(val, bool):  # did you know that `bool` is a subclass of `int`?

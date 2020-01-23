@@ -39,7 +39,7 @@ class VertaCallback(keras.callbacks.Callback):
         if isinstance(params, dict):
             for key, val in _six.viewitems(params):
                 try:
-                    self.run.log_hyperparameter(key, _utils.to_builtin(val))
+                    self.run.log_hyperparameter(key, val)
                 except:
                     pass  # don't halt execution
 
@@ -84,7 +84,7 @@ class VertaCallback(keras.callbacks.Callback):
         if isinstance(logs, dict):
             for key, val in _six.viewitems(logs):
                 try:
-                    self.run.log_observation(key, _utils.to_builtin(val))
+                    self.run.log_observation(key, val)
                 except:
                     pass  # don't halt execution
 
