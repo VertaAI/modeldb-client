@@ -31,7 +31,9 @@ class VertaHook(SessionRunHook):
     """
     TensorFlow Estimator hook that automates logging to Verta during model training.
 
-    This hook is verified to work with the TensorFlow 1.X API.
+    This hook logs loss during training.
+
+    This hook has been verified to work with the TensorFlow 1.X API.
 
     .. versionadded:: 0.13.20
 

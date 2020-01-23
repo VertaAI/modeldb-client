@@ -15,6 +15,9 @@ class VertaCallback(keras.callbacks.Callback):
     """
     Keras callback that automates logging to Verta during model training.
 
+    This callback logs details about the network topology, training hyperparameters, and loss
+    and accuracy during fitting.
+
     .. versionadded:: 0.13.20
 
     Parameters
