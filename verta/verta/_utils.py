@@ -369,12 +369,12 @@ def python_to_val_proto(val, allow_collection=False):
         if allow_collection:
             if isinstance(val, list):
                 list_value = ListValue()
-                list_value.extend(val)
+                list_value.extend(val)  # pylint: disable=no-member
                 return Value(list_value=list_value)
             else:  # isinstance(val, dict)
                 if all([isinstance(key, _six.string_types) for key in val.keys()]):
                     struct_value = Struct()
-                    struct_value.update(val)
+                    struct_value.update(val)  # pylint: disable=no-member
                     return Value(struct_value=struct_value)
                 else:  # protobuf's fault
                     raise TypeError("struct keys must be strings; consider using log_artifact() instead")
