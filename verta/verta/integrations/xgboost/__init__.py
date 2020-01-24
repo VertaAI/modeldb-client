@@ -11,6 +11,8 @@ def verta_callback(run):
     """
     XGBoost callback that automates logging to Verta during booster training.
 
+    This callback logs ``eval_metric``\ s passed into ``xgb.train()``.
+
     .. versionadded:: 0.13.20
 
     Parameters
