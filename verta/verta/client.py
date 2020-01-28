@@ -4,7 +4,7 @@ from __future__ import print_function
 
 from . import _six
 from ._six.moves import cPickle as pickle  # pylint: disable=import-error, no-name-in-module
-from ._six.moves.urllib.parse import urlparse  # pylint: disable=import-error, no-name-in-module
+from ._six.moves.urllib.parse import urlparse, unquote  # pylint: disable=import-error, no-name-in-module
 
 import ast
 import copy
@@ -868,10 +868,7 @@ class _ModelDBEntity(object):
             # accommodate port-forwarded NFS store
             if 'https://localhost' in url[:20]:
                 url = 'http' + url[5:]
-            if 'localhost%3a' in url[:20]:
-                url = url.replace('localhost%3a', 'localhost:')
-            if 'localhost%3A' in url[:20]:
-                url = url.replace('localhost%3A', 'localhost:')
+            url = unquote(url)
 
             response = _utils.make_request("PUT", url, self._conn, data=zipstream)
             _utils.raise_for_http_error(response)
@@ -931,10 +928,7 @@ class _ModelDBEntity(object):
             # accommodate port-forwarded NFS store
             if 'https://localhost' in url[:20]:
                 url = 'http' + url[5:]
-            if 'localhost%3a' in url[:20]:
-                url = url.replace('localhost%3a', 'localhost:')
-            if 'localhost%3A' in url[:20]:
-                url = url.replace('localhost%3A', 'localhost:')
+            url = unquote(url)
 
             response = _utils.make_request("GET", url, self._conn)
             _utils.raise_for_http_error(response)
@@ -1850,10 +1844,7 @@ class ExperimentRun(_ModelDBEntity):
         # accommodate port-forwarded NFS store
         if 'https://localhost' in url[:20]:
             url = 'http' + url[5:]
-        if 'localhost%3a' in url[:20]:
-            url = url.replace('localhost%3a', 'localhost:')
-        if 'localhost%3A' in url[:20]:
-            url = url.replace('localhost%3A', 'localhost:')
+        url = unquote(url)
 
         response = _utils.make_request("PUT", url, self._conn, data=artifact_stream)
         _utils.raise_for_http_error(response)
@@ -1932,10 +1923,7 @@ class ExperimentRun(_ModelDBEntity):
             # accommodate port-forwarded NFS store
             if 'https://localhost' in url[:20]:
                 url = 'http' + url[5:]
-            if 'localhost%3a' in url[:20]:
-                url = url.replace('localhost%3a', 'localhost:')
-            if 'localhost%3A' in url[:20]:
-                url = url.replace('localhost%3A', 'localhost:')
+            url = unquote(url)
 
             response = _utils.make_request("GET", url, self._conn)
             _utils.raise_for_http_error(response)
